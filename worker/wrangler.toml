@@ -1,0 +1,10 @@
+name = "system-design-mastery-cert"
+main = "src/index.ts"
+compatibility_date = "2026-09-10"
+
+# Created with: wrangler d1 create system-design-mastery-cert
+# Then replace database_id below with the id that command prints.
+[[d1_databases]]
+binding = "DB"
+database_name = "system-design-mastery-cert"
+database_id = "REPLACE_WITH_REAL_D1_DATABASE_ID"
