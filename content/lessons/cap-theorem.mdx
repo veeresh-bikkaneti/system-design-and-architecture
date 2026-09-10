@@ -29,6 +29,14 @@ strategies all sit on top of it.
 > In the presence of a network partition, a distributed system must choose between consistency
 > and availability. It cannot provide both.
 
+```mermaid
+flowchart TD
+    P{Network partition?} -->|No| CA[Consistent AND available]
+    P -->|Yes| CH{Prioritize which?}
+    CH -->|Consistency| CP[CP: reject or block unsafe requests]
+    CH -->|Availability| AP[AP: keep serving, maybe stale]
+```
+
 Network partitions **will** happen — cables get cut, switches fail, packets get dropped. Because
 partition tolerance is not really optional for a distributed system, CAP is more useful read as
 a choice between **CP** and **AP** during a partition:
