@@ -3,8 +3,9 @@ import { MDXProvider } from '@mdx-js/react';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
 import { LessonPage } from './pages/LessonPage';
+import { Quiz } from './components/Quiz';
 
-const mdxComponents = {};
+const mdxComponents = { Quiz };
 
 function App() {
   return (

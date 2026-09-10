@@ -57,6 +57,37 @@ The partition key decides your access pattern. A good partition key:
 3. Consistent hashing is the recurring trick for minimizing data movement when the cluster
    resizes, whether you're sharding a database or routing to a cache fleet.
 
+<Quiz
+  lessonSlug="data-partitioning"
+  questions={[
+    {
+      question: "Which partitioning strategy makes range queries expensive because they must fan out to every shard?",
+      options: ["Range-based", "Hash-based", "Directory-based", "None of the above"],
+      correctIndex: 1,
+    },
+    {
+      question: "What makes a partition key a *good* choice, according to the lesson?",
+      options: [
+        "It has low cardinality so fewer shards are needed",
+        "It matches the query pattern, has high cardinality, and avoids monotonically increasing hot keys",
+        "It is always the database's auto-incrementing primary key",
+        "It should be a raw timestamp to keep writes ordered",
+      ],
+      correctIndex: 1,
+    },
+    {
+      question: "What technique minimizes data movement when a sharded cluster is resized?",
+      options: [
+        "Directory-based lookup with a single central server",
+        "Range-based partitioning by alphabetical order",
+        "Consistent hashing",
+        "Two-phase commit",
+      ],
+      correctIndex: 2,
+    },
+  ]}
+/>
+
 ---
 
 *Content adapted and reorganized by this course from the topic outline in

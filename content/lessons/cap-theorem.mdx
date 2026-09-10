@@ -52,6 +52,37 @@ the latency/consistency trade-off that exists even when there is **no** partitio
 3. Most real systems are tunable (e.g., Cassandra's quorum reads/writes) rather than strictly
    CP or AP — CAP is a lens for reasoning, not a rigid checklist.
 
+<Quiz
+  lessonSlug="cap-theorem"
+  questions={[
+    {
+      question: "During a network partition, a CP system chooses to...",
+      options: [
+        "Reject or block requests it can't guarantee are consistent",
+        "Keep serving requests even with stale data",
+        "Shut down entirely until the partition is detected",
+        "Ignore the partition and hope it resolves itself",
+      ],
+      correctIndex: 0,
+    },
+    {
+      question: "What is a 'partition' in the context of the CAP theorem?",
+      options: [
+        "A logical division of a database's rows across servers",
+        "A dropped or delayed set of messages between nodes in a distributed system",
+        "A firewall rule blocking client traffic",
+        "A scheduled maintenance window",
+      ],
+      correctIndex: 1,
+    },
+    {
+      question: "Which of these is an example of an AP system, as described in the lesson?",
+      options: ["ZooKeeper", "etcd", "Cassandra", "HBase"],
+      correctIndex: 2,
+    },
+  ]}
+/>
+
 ---
 
 *Content adapted and reorganized by this course from the topic outline in
