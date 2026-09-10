@@ -1,5 +1,8 @@
+import { Suspense, lazy } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
+
+const ChatWidget = lazy(() => import('./ChatWidget').then((m) => ({ default: m.ChatWidget })));
 
 export function Layout() {
   return (
@@ -12,6 +15,9 @@ export function Layout() {
       <main className="min-w-0 flex-1 px-6 py-8 md:px-10">
         <Outlet />
       </main>
+      <Suspense fallback={null}>
+        <ChatWidget />
+      </Suspense>
     </div>
   );
 }
