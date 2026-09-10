@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Consolas, monospace;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+/* Prose styling for rendered MDX lesson content */
+.lesson-prose h1 {
+  @apply text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 mt-0 mb-4;
+}
+.lesson-prose h2 {
+  @apply text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 mt-10 mb-3;
+}
+.lesson-prose h3 {
+  @apply text-xl font-semibold text-slate-900 dark:text-slate-100 mt-8 mb-2;
+}
+.lesson-prose p {
+  @apply my-4 leading-relaxed text-slate-700 dark:text-slate-300;
+}
+.lesson-prose ul {
+  @apply my-4 ml-6 list-disc space-y-1 text-slate-700 dark:text-slate-300;
+}
+.lesson-prose ol {
+  @apply my-4 ml-6 list-decimal space-y-1 text-slate-700 dark:text-slate-300;
+}
+.lesson-prose a {
+  @apply text-violet-600 dark:text-violet-400 underline underline-offset-2;
+}
+.lesson-prose code {
+  @apply rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[0.875em] font-mono text-slate-800 dark:text-slate-200;
+}
+.lesson-prose pre {
+  @apply my-4 overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-slate-100;
+}
+.lesson-prose pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+.lesson-prose blockquote {
+  @apply my-4 border-l-4 border-violet-300 dark:border-violet-700 pl-4 italic text-slate-600 dark:text-slate-400;
+}
+.lesson-prose table {
+  @apply my-4 w-full border-collapse text-sm;
+}
+.lesson-prose th,
+.lesson-prose td {
+  @apply border border-slate-200 dark:border-slate-700 px-3 py-2 text-left;
+}
+.lesson-prose hr {
+  @apply my-8 border-slate-200 dark:border-slate-800;
+}

@@ -1,0 +1,91 @@
+export const meta = {
+  slug: 'cap-theorem',
+  title: 'The CAP Theorem',
+  tier: 'beginner',
+  order: 1,
+  summary:
+    'Why a distributed data store can only pick two of consistency, availability, and partition tolerance — and what that trade-off means in practice.',
+  estimatedMinutes: 12,
+};
+
+## Why this matters
+
+Every distributed database and every "highly available" service you have ever used made a
+trade-off described by the **CAP theorem**. Understanding it is the foundation for reasoning
+about almost every other topic in this course — replication, consistency models, and failover
+strategies all sit on top of it.
+
+## The three properties
+
+- **Consistency (C)** — every read receives the most recent write, or an error. All nodes see
+  the same data at the same time.
+- **Availability (A)** — every request receives a (non-error) response, without the guarantee
+  that it contains the most recent write.
+- **Partition tolerance (P)** — the system continues to operate despite an arbitrary number of
+  messages being dropped or delayed between nodes.
+
+## The theorem, precisely
+
+> In the presence of a network partition, a distributed system must choose between consistency
+> and availability. It cannot provide both.
+
+Network partitions **will** happen — cables get cut, switches fail, packets get dropped. Because
+partition tolerance is not really optional for a distributed system, CAP is more useful read as
+a choice between **CP** and **AP** during a partition:
+
+| Choice | Behavior during a partition | Example systems |
+| --- | --- | --- |
+| **CP** | Reject or block requests that can't be guaranteed consistent | ZooKeeper, etcd, HBase |
+| **AP** | Keep serving requests, possibly with stale or conflicting data | Cassandra, DynamoDB, Riak |
+
+## A common misconception
+
+CAP does **not** say "pick any two of three" as a permanent architectural label. Outside of a
+partition, a system can be both consistent and available — the trade-off only bites *during* a
+partition. This is why later, more nuanced models like **PACELC** extend CAP by also describing
+the latency/consistency trade-off that exists even when there is **no** partition.
+
+## Takeaways
+
+1. Partitions are a fact of distributed systems, not an edge case — design for them explicitly.
+2. "Consistency" here means **linearizability**, a much stronger guarantee than the "C" in ACID.
+3. Most real systems are tunable (e.g., Cassandra's quorum reads/writes) rather than strictly
+   CP or AP — CAP is a lens for reasoning, not a rigid checklist.
+
+<Quiz
+  lessonSlug="cap-theorem"
+  questions={[
+    {
+      question: "During a network partition, a CP system chooses to...",
+      options: [
+        "Reject or block requests it can't guarantee are consistent",
+        "Keep serving requests even with stale data",
+        "Shut down entirely until the partition is detected",
+        "Ignore the partition and hope it resolves itself",
+      ],
+      correctIndex: 0,
+    },
+    {
+      question: "What is a 'partition' in the context of the CAP theorem?",
+      options: [
+        "A logical division of a database's rows across servers",
+        "A dropped or delayed set of messages between nodes in a distributed system",
+        "A firewall rule blocking client traffic",
+        "A scheduled maintenance window",
+      ],
+      correctIndex: 1,
+    },
+    {
+      question: "Which of these is an example of an AP system, as described in the lesson?",
+      options: ["ZooKeeper", "etcd", "Cassandra", "HBase"],
+      correctIndex: 2,
+    },
+  ]}
+/>
+
+---
+
+*Content adapted and reorganized by this course from the topic outline in
+[puncsky/system-design-and-architecture](https://github.com/puncsky/system-design-and-architecture)
+("Replication and Consistency" and "Introduction to Architecture" sections), rewritten here as
+original explanatory text with citation rather than reproduced verbatim.*
