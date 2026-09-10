@@ -14,6 +14,17 @@ A single server can only handle so many concurrent connections before latency cl
 falls over. A **load balancer** sits in front of a pool of servers and spreads incoming requests
 across them, giving you horizontal scalability and resilience to individual server failure.
 
+```mermaid
+flowchart LR
+    C[Clients] --> LB[Load Balancer]
+    LB --> S1[Server 1]
+    LB --> S2[Server 2]
+    LB --> S3[Server 3]
+    LB -. "health checks" .-> S1
+    LB -. "health checks" .-> S2
+    LB -. "health checks" .-> S3
+```
+
 ## Where load balancing happens
 
 - **DNS load balancing** — a domain resolves to multiple IPs; crude, but cheap and works at the
@@ -41,10 +52,12 @@ turns a single server crash into a brief capacity dip instead of an outage.
 
 ## Layer 7 example: routing by path
 
-```text
-GET /api/orders/42   →  order-service pool
-GET /api/users/7     →  user-service pool
-GET /static/logo.png →  CDN / static pool
+```mermaid
+flowchart LR
+    LB[Load Balancer]
+    LB --> N1["/api/orders/* → order pool"]
+    LB --> N2["/api/users/* → user pool"]
+    LB --> N3["/static/* → CDN pool"]
 ```
 
 This kind of routing is what lets a single public hostname front a whole fleet of independently
@@ -56,6 +69,14 @@ The load balancer itself would be a single point of failure if there were only o
 practice, teams run at least two load balancer nodes behind a floating (virtual) IP managed by a
 protocol like VRRP or a cloud provider's managed load balancer, so there's no single machine that
 can take the whole system down.
+
+```mermaid
+flowchart LR
+    VIP["Virtual IP (VRRP)"] --> LB1[Active LB]
+    VIP -. "failover" .-> LB2[Standby LB]
+    LB1 --> POOL[Server Pool]
+    LB2 --> POOL
+```
 
 ## Takeaways
 

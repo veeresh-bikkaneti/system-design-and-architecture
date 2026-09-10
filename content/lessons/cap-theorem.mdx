@@ -37,6 +37,16 @@ flowchart TD
     CH -->|Availability| AP[AP: keep serving, maybe stale]
 ```
 
+A partition is not abstract — it's a broken link between two nodes that are each still up and
+each still reachable by clients:
+
+```mermaid
+flowchart LR
+    C[Client] --> R1[Replica 1]
+    C --> R2[Replica 2]
+    R1 -. "partition" .-> R2
+```
+
 Network partitions **will** happen — cables get cut, switches fail, packets get dropped. Because
 partition tolerance is not really optional for a distributed system, CAP is more useful read as
 a choice between **CP** and **AP** during a partition:
@@ -45,6 +55,21 @@ a choice between **CP** and **AP** during a partition:
 | --- | --- | --- |
 | **CP** | Reject or block requests that can't be guaranteed consistent | ZooKeeper, etcd, HBase |
 | **AP** | Keep serving requests, possibly with stale or conflicting data | Cassandra, DynamoDB, Riak |
+
+Concretely, a CP system facing a partition would rather stall a write than risk an inconsistent
+one:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant NodeA as Reachable Node
+    participant NodeB as Unreachable Node
+
+    Client->>NodeA: Write request
+    NodeA--xNodeB: Replicate write
+    Note over NodeA,NodeB: Partition - quorum unreachable
+    NodeA-->>Client: Reject write
+```
 
 ## A common misconception
 
