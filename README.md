@@ -24,10 +24,6 @@ The course draws on standard, openly available system-design literature, includi
 - Betsy Beyer et al., *Site Reliability Engineering* (Google / O'Reilly, 2016).
 - Seminal papers such as Gilbert & Lynch (2002) on the CAP theorem and DeCandia et al. (2007) on Dynamo.
 
-The initial topic scope was also informed, among other sources, by the community-maintained
-[puncsky/system-design-and-architecture](https://github.com/puncsky/system-design-and-architecture)
-outline.
-
 ## Stack
 
 - Vite + React + TypeScript, built with `vite build` (static export, no SSR/backend)
