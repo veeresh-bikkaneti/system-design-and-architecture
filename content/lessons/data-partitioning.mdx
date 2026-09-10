@@ -28,6 +28,36 @@ multiple servers so each one only owns a slice of the whole.
   shard only remaps a small fraction of keys, instead of reshuffling everything (see the Load
   Balancers lesson for the same technique applied to routing).
 
+A range-based router sends each request straight to the shard that owns its key range:
+
+```mermaid
+flowchart LR
+    APP[Application] --> ROUTER{Shard Router}
+    ROUTER --> S1[("Shard 1: keys A-M")]
+    ROUTER --> S2[("Shard 2: keys N-Z")]
+```
+
+Directory-based partitioning moves that mapping out of a formula and into its own service, which
+can be repointed without touching clients:
+
+```mermaid
+flowchart LR
+    APP[Application] --> DIR[Directory Service]
+    DIR --> S1[(Shard 1)]
+    DIR --> S2[(Shard 2)]
+    DIR --> S3[(Shard 3)]
+```
+
+And consistent hashing's payoff is that adding a node only steals a slice of keys from its
+neighbor — every other shard is untouched:
+
+```mermaid
+flowchart TD
+    N0["Before: Node B owns keys 34-66"] --> N1["Node D is added"]
+    N1 --> N2["Node B now owns keys 34-58"]
+    N1 --> N3["Node D now owns only keys 59-66"]
+```
+
 ## The hard part: cross-shard operations
 
 Sharding buys horizontal scale at a real cost:
@@ -40,6 +70,22 @@ Sharding buys horizontal scale at a real cost:
    consistent hashing) that minimizes how much has to move.
 4. **Hot shards** — a popular key (a celebrity user, a viral post) can overload a single shard
    even if the overall hashing is "even" on average.
+
+A join or scatter-gather query has to fan out to every shard that might hold a match, then merge
+the results back in the application:
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant S1 as Shard 1
+    participant S2 as Shard 2
+
+    App->>S1: Query matching rows
+    App->>S2: Query matching rows
+    S1-->>App: Partial result
+    S2-->>App: Partial result
+    Note over App: Merge partial results
+```
 
 ## Picking a partition key
 
