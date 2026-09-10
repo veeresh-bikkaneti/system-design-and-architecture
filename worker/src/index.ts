@@ -31,15 +31,30 @@ function escapeHtml(value: string): string {
 }
 
 // A public verify page must not expose a learner's full email to any visitor
-// who has the link. Keep the first two characters of the local part, mask
-// the rest; leave the domain as-is (a domain alone isn't identifying).
+// who has the link. Show at most 2 characters of the local part, and never
+// more than half of it -- a 1-2 character local part (common: initials,
+// short handles) must come out fully masked, not fully exposed.
 function maskEmail(email: string): string {
   const at = email.indexOf('@');
   if (at <= 0) return '***';
   const local = email.slice(0, at);
   const domain = email.slice(at + 1);
-  const visible = local.slice(0, Math.min(2, local.length));
-  return `${visible}${'*'.repeat(Math.max(local.length - visible.length, 3))}@${domain}`;
+  const visibleCount = Math.min(2, Math.floor(local.length / 2));
+  const visible = local.slice(0, visibleCount);
+  return `${visible}${'*'.repeat(Math.max(local.length - visibleCount, 3))}@${domain}`;
+}
+
+// Only ever render a badge URL that is a well-formed https: link. escapeHtml
+// alone stops attribute-breakout/script-tag injection but does NOT stop a
+// javascript:/data: value from becoming a live, clickable link -- those
+// contain none of the characters escapeHtml touches. Reject anything else.
+function safeHttpsUrl(value: string): string | null {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function page(title: string, body: string, status: number): Response {
@@ -99,9 +114,10 @@ function credentialPage(cred: CredentialRow): Response {
     month: 'long',
     day: 'numeric',
   });
+  const safeBadgeUrl = cred.badge_url ? safeHttpsUrl(cred.badge_url) : null;
   const badgeLine =
-    cred.badge_status === 'issued' && cred.badge_url
-      ? `<dt>Badge</dt><dd><a href="${escapeHtml(cred.badge_url)}">View Open Badge</a></dd>`
+    cred.badge_status === 'issued' && safeBadgeUrl
+      ? `<dt>Badge</dt><dd><a href="${escapeHtml(safeBadgeUrl)}">View Open Badge</a></dd>`
       : '';
   return page(
     'Credential verified',
