@@ -52,8 +52,8 @@ embedded `<Quiz>` (mapped as an MDX component in `App.tsx`'s `MDXProvider`) at o
 `QUIZ_PASS_THRESHOLD` (0.7). All progress lives in `src/store/progress.ts`, a Zustand store
 persisted to `localStorage` under the key `sdm-progress`. Quiz answers (`correctIndex`) ship in the
 client bundle today, so quiz completion is self-check only, not a basis for any verifiable
-credential — see any in-repo notes on a certificate/badge feature for the plan to move grading
-server-side before that exists.
+credential — see `worker/README.md` (Phase 2) for the plan to move grading server-side before a
+verifiable certificate can be issued on top of it.
 
 **BYOK AI tutor is a strictly additive, client-only feature.** The user supplies their own
 Anthropic API key, stored in `localStorage` via the Zustand store `src/store/aiSettings.ts` (key
