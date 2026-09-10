@@ -11,9 +11,22 @@ key configured.
 
 ## Curriculum
 
-Lesson content is adapted and reorganized from the topic outline in
-[puncsky/system-design-and-architecture](https://github.com/puncsky/system-design-and-architecture),
-rewritten here as original text with citations rather than reproduced verbatim.
+Lessons are original explanatory text written for this course, covering standard, widely taught
+system-design topics (the CAP theorem, load balancing, data partitioning, and more). Each lesson
+cites the primary and canonical sources for its topic in a "Sources & further reading" section, so
+the material is grounded in the field rather than in any single reference.
+
+### References & acknowledgments
+
+The course draws on standard, openly available system-design literature, including:
+
+- Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017).
+- Betsy Beyer et al., *Site Reliability Engineering* (Google / O'Reilly, 2016).
+- Seminal papers such as Gilbert & Lynch (2002) on the CAP theorem and DeCandia et al. (2007) on Dynamo.
+
+The initial topic scope was also informed, among other sources, by the community-maintained
+[puncsky/system-design-and-architecture](https://github.com/puncsky/system-design-and-architecture)
+outline.
 
 ## Stack
 
