@@ -90,7 +90,9 @@ The partition key decides your access pattern. A good partition key:
 
 ---
 
-*Content adapted and reorganized by this course from the topic outline in
-[puncsky/system-design-and-architecture](https://github.com/puncsky/system-design-and-architecture)
-("Data Partitioning" section under System Design Theories), rewritten here as original
-explanatory text with citation rather than reproduced verbatim.*
+## Sources & further reading
+
+- Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017), Ch. 6 — partitioning strategies, rebalancing, and request routing.
+- Giuseppe DeCandia et al., "Dynamo: Amazon's Highly Available Key-value Store," *SOSP 2007* — consistent hashing and partitioning in a production store.
+- David Karger et al., "Consistent Hashing and Random Trees," *STOC 1997* — the ring-based hashing technique.
+- Jim Gray & Andreas Reuter, *Transaction Processing: Concepts and Techniques* (Morgan Kaufmann, 1992) — distributed transactions and two-phase commit.
