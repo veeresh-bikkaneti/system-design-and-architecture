@@ -1,7 +1,25 @@
 import { EXAM_PASS_THRESHOLD, publicQuestions, scoreSubmission } from './exam';
+import {
+  checkMagicLink,
+  confirmMagicLink,
+  exchangeCode,
+  isValidEmail,
+  normalizeEmail,
+  requestMagicLink,
+  validateSession,
+} from './auth';
+import { sha256Hex } from './crypto';
 
 export interface Env {
   DB: D1Database;
+  // Unset in local dev -- see auth.ts's sendMagicLinkEmail for what these
+  // control. DEV_MODE must be set alongside RESEND_API_KEY being absent
+  // for local testing to echo a magic link back instead of emailing it;
+  // it lives only in a developer's own gitignored .dev.vars, never in the
+  // committed wrangler.toml, so a real deployment can't have it by accident.
+  RESEND_API_KEY?: string;
+  RESEND_FROM_ADDRESS?: string;
+  DEV_MODE?: string;
 }
 
 interface CredentialRow {
@@ -136,7 +154,6 @@ function credentialPage(cred: CredentialRow): Response {
   );
 }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_ATTEMPTS_PER_EMAIL_PER_DAY = 5;
 const MAX_ATTEMPTS_PER_IP_PER_DAY = 10;
 
@@ -162,8 +179,33 @@ function corsHeaders(origin: string | null): HeadersInit {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
+}
+
+// Shared by every POST JSON handler (exam submit, request-link, exchange).
+// Requiring an explicit application/json content-type (rather than
+// accepting whatever request.json() can parse) is what actually makes each
+// handler's CORS origin allowlist meaningful for a *browser* caller:
+// text/plain is one of the CORS "simple request" content-types a browser
+// will send without a preflight, which would otherwise let a page on any
+// origin reach the handler at all, allowlist or not. This does nothing
+// against a direct, non-browser caller (curl, a script) setting this
+// header themselves -- that's inherent to any public, unauthenticated
+// endpoint. Also parses the body without ever throwing an uncaught
+// exception into the caller. Returns the parsed body, or a ready-to-return
+// Response for the caller to hand straight back.
+async function parseJsonBody(request: Request, cors: HeadersInit): Promise<{ body: unknown } | { errorResponse: Response }> {
+  if (!(request.headers.get('Content-Type') ?? '').toLowerCase().startsWith('application/json')) {
+    return {
+      errorResponse: Response.json({ error: 'Content-Type must be application/json' }, { status: 415, headers: cors }),
+    };
+  }
+  try {
+    return { body: await request.json() };
+  } catch {
+    return { errorResponse: Response.json({ error: 'Invalid JSON body' }, { status: 400, headers: cors }) };
+  }
 }
 
 // Not a secret -- this exists only so raw IPs aren't stored at rest (data
@@ -172,12 +214,8 @@ function corsHeaders(origin: string | null): HeadersInit {
 // its own scope -- identity (Phase 3) is where real secrets first show up.
 const IP_HASH_PEPPER = 'sdm-exam-v1';
 
-async function hashIp(ip: string): Promise<string> {
-  const data = new TextEncoder().encode(`${IP_HASH_PEPPER}:${ip}`);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+function hashIp(ip: string): Promise<string> {
+  return sha256Hex(`${IP_HASH_PEPPER}:${ip}`);
 }
 
 // `column` is a TypeScript literal union, always a hardcoded call-site value,
@@ -200,38 +238,24 @@ async function countAttemptsSince(
 async function handleExamSubmit(request: Request, env: Env): Promise<Response> {
   const cors = corsHeaders(request.headers.get('Origin'));
 
-  // Requiring an explicit application/json content-type (rather than
-  // accepting whatever request.json() can parse) is what actually makes the
-  // origin allowlist above meaningful for a *browser* caller: text/plain is
-  // one of the CORS "simple request" content-types a browser will send
-  // without a preflight, which would otherwise let a page on any origin
-  // reach this handler at all, allowlist or not. This does nothing against
-  // a direct, non-browser caller (curl, a script) setting this header
-  // themselves -- that's inherent to any public, unauthenticated endpoint.
-  if (!(request.headers.get('Content-Type') ?? '').toLowerCase().startsWith('application/json')) {
-    return Response.json({ error: 'Content-Type must be application/json' }, { status: 415, headers: cors });
-  }
-
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: 'Invalid JSON body' }, { status: 400, headers: cors });
-  }
+  const parsed = await parseJsonBody(request, cors);
+  if ('errorResponse' in parsed) return parsed.errorResponse;
+  const body = parsed.body;
 
   const { email: rawEmail, answers } = (body && typeof body === 'object' ? body : {}) as {
     email?: unknown;
     answers?: unknown;
   };
-  // Normalize BEFORE validating, not after: EMAIL_PATTERN's [^\s@]+ segments
-  // reject any whitespace, so a legitimate 'user@example.com ' (trailing
-  // space from autofill/copy-paste) would otherwise fail validation even
-  // though it's valid once trimmed. Lowercasing also matters downstream:
-  // SQLite string equality is case-sensitive, so 'User@Example.com' and
+  // Normalize BEFORE validating, not after: isValidEmail's pattern rejects
+  // any whitespace, so a legitimate 'user@example.com ' (trailing space
+  // from autofill/copy-paste) would otherwise fail validation even though
+  // it's valid once trimmed. Lowercasing also matters downstream: SQLite
+  // string equality is case-sensitive, so 'User@Example.com' and
   // 'user@example.com' would otherwise count as different rate-limit
-  // identities and trivially defeat the per-email cap below.
-  const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
-  if (!EMAIL_PATTERN.test(email)) {
+  // identities and trivially defeat the per-email cap below. Shared with
+  // the /auth/* handlers (auth.ts) rather than a second copy of this logic.
+  const email = normalizeEmail(rawEmail);
+  if (!isValidEmail(email)) {
     return Response.json({ error: 'A valid email is required' }, { status: 400, headers: cors });
   }
 
@@ -279,6 +303,117 @@ async function handleExamSubmit(request: Request, env: Env): Promise<Response> {
   return Response.json(result, { headers: cors });
 }
 
+async function handleRequestLink(request: Request, env: Env): Promise<Response> {
+  const cors = corsHeaders(request.headers.get('Origin'));
+
+  const parsed = await parseJsonBody(request, cors);
+  if ('errorResponse' in parsed) return parsed.errorResponse;
+
+  const { email: rawEmail } = (parsed.body && typeof parsed.body === 'object' ? parsed.body : {}) as {
+    email?: unknown;
+  };
+  const email = normalizeEmail(rawEmail);
+  if (!isValidEmail(email)) {
+    return Response.json({ error: 'A valid email is required' }, { status: 400, headers: cors });
+  }
+
+  const ip = request.headers.get('CF-Connecting-IP');
+  const ipHash = ip ? await hashIp(ip) : null;
+  const workerOrigin = new URL(request.url).origin;
+
+  const result = await requestMagicLink(env, workerOrigin, email, ipHash);
+  if (result.status === 'rate_limited') {
+    return Response.json({ error: 'Too many attempts. Try again later.' }, { status: 429, headers: cors });
+  }
+  if (result.status === 'send_failed') {
+    return Response.json({ error: 'Failed to send the email. Try again shortly.' }, { status: 502, headers: cors });
+  }
+
+  // devLink is only ever populated in local dev (no RESEND_API_KEY -- see
+  // auth.ts). In a real deployment this key is always absent and the body
+  // is just { status: 'sent' }.
+  return Response.json({ status: 'sent', devLink: result.devLink }, { headers: cors });
+}
+
+const EXPIRED_LINK_PAGE = `<h1><span class="badge-no">✕</span> This link is invalid or has expired</h1>
+   <p class="muted">Magic links are single-use and expire after 15 minutes. Request a new one.</p>`;
+
+async function handleVerify(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const token = url.searchParams.get('token');
+  if (!token) {
+    return page(
+      'Invalid link',
+      `<h1><span class="badge-no">✕</span> Invalid link</h1><p class="muted">No token was provided.</p>`,
+      400,
+    );
+  }
+
+  // Two steps, not one: the emailed link only ever reaches the read-only
+  // check below. Corporate email gateways commonly pre-fetch links in
+  // incoming mail to scan them, which would silently consume a single-use
+  // token before the real recipient clicks -- see checkMagicLink's comment
+  // in auth.ts. The actual consumption only happens via the second link
+  // rendered into THIS response's own HTML (?confirm=1), which a scanner
+  // has no reason to discover or follow.
+  if (url.searchParams.get('confirm') === '1') {
+    const result = await confirmMagicLink(env, token);
+    if (result.status === 'invalid_or_expired') {
+      return page('Link expired', EXPIRED_LINK_PAGE, 400);
+    }
+    return new Response(null, { status: 302, headers: { Location: result.redirectUrl } });
+  }
+
+  const check = await checkMagicLink(env, token);
+  if (!check.valid) {
+    return page('Link expired', EXPIRED_LINK_PAGE, 400);
+  }
+
+  const confirmUrl = `${url.origin}${url.pathname}?token=${encodeURIComponent(token)}&confirm=1`;
+  return page(
+    'Confirm sign-in',
+    `<h1>Confirm it's you</h1>
+     <p class="muted">Click continue to finish signing in.</p>
+     <p><a href="${escapeHtml(confirmUrl)}">Continue →</a></p>`,
+    200,
+  );
+}
+
+async function handleExchange(request: Request, env: Env): Promise<Response> {
+  const cors = corsHeaders(request.headers.get('Origin'));
+
+  const parsed = await parseJsonBody(request, cors);
+  if ('errorResponse' in parsed) return parsed.errorResponse;
+
+  const { code } = (parsed.body && typeof parsed.body === 'object' ? parsed.body : {}) as { code?: unknown };
+  if (typeof code !== 'string' || !code) {
+    return Response.json({ error: 'A code is required' }, { status: 400, headers: cors });
+  }
+
+  const result = await exchangeCode(env, code);
+  if (result.status === 'invalid_or_expired') {
+    return Response.json({ error: 'Invalid or expired code' }, { status: 400, headers: cors });
+  }
+
+  return Response.json({ sessionToken: result.sessionToken, email: result.email }, { headers: cors });
+}
+
+async function handleGetSession(request: Request, env: Env): Promise<Response> {
+  const cors = corsHeaders(request.headers.get('Origin'));
+  const auth = request.headers.get('Authorization') ?? '';
+  const token = auth.startsWith('Bearer ') ? auth.slice('Bearer '.length) : null;
+  if (!token) {
+    return Response.json({ error: 'Missing bearer token' }, { status: 401, headers: cors });
+  }
+
+  const email = await validateSession(env, token);
+  if (!email) {
+    return Response.json({ error: 'Invalid or expired session' }, { status: 401, headers: cors });
+  }
+
+  return Response.json({ email }, { headers: cors });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -287,9 +422,10 @@ export default {
       return Response.json({ status: 'ok' });
     }
 
-    // Preflight for the /exam/* routes below -- a cross-origin POST with a
-    // JSON content-type triggers a browser preflight before the real request.
-    if (request.method === 'OPTIONS' && url.pathname.startsWith('/exam/')) {
+    // Preflight for the /exam/* and /auth/* routes below -- a cross-origin
+    // POST with a JSON content-type (or, for /auth/session, an Authorization
+    // header) triggers a browser preflight before the real request.
+    if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/'))) {
       return new Response(null, { status: 204, headers: corsHeaders(request.headers.get('Origin')) });
     }
 
@@ -298,6 +434,22 @@ export default {
         { questions: publicQuestions(), passThreshold: EXAM_PASS_THRESHOLD },
         { headers: corsHeaders(request.headers.get('Origin')) },
       );
+    }
+
+    if (url.pathname === '/auth/request-link' && request.method === 'POST') {
+      return handleRequestLink(request, env);
+    }
+
+    if (url.pathname === '/auth/verify' && request.method === 'GET') {
+      return handleVerify(request, env);
+    }
+
+    if (url.pathname === '/auth/exchange' && request.method === 'POST') {
+      return handleExchange(request, env);
+    }
+
+    if (url.pathname === '/auth/session' && request.method === 'GET') {
+      return handleGetSession(request, env);
     }
 
     if (url.pathname === '/exam/submit' && request.method === 'POST') {
