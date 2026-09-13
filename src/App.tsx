@@ -7,6 +7,9 @@ import { HomePage } from './pages/HomePage';
 import { LessonPage } from './pages/LessonPage';
 import { Quiz } from './components/Quiz';
 import { MermaidDiagram } from './components/MermaidDiagram';
+import { PacketFlow } from './components/diagrams/PacketFlow';
+import { StepThrough } from './components/diagrams/StepThrough';
+import { VsToggle } from './components/diagrams/VsToggle';
 
 function extractText(node: ReactNode): string {
   if (typeof node === 'string') return node;
@@ -31,7 +34,7 @@ function Pre(props: ComponentPropsWithoutRef<'pre'>) {
   return <pre {...props} />;
 }
 
-const mdxComponents = { Quiz, pre: Pre };
+const mdxComponents = { Quiz, PacketFlow, StepThrough, VsToggle, pre: Pre };
 
 function App() {
   return (
