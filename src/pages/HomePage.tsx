@@ -135,12 +135,23 @@ export function HomePage() {
 
       {/* Tier roadmap */}
       <section className="mt-14" aria-label="Course roadmap">
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-stone-950 dark:text-stone-50">
-          Your roadmap
-        </h2>
-        <p className="mt-2 max-w-2xl text-stone-600 dark:text-stone-400">
-          Three tiers, each unlocking the next. Finish every lesson in a tier to move up.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl font-semibold tracking-tight text-stone-950 dark:text-stone-50">
+              Your roadmap
+            </h2>
+            <p className="mt-2 max-w-2xl text-stone-600 dark:text-stone-400">
+              Three tiers, each unlocking the next. Finish every lesson in a tier to move up.
+            </p>
+          </div>
+          <Link
+            to="/roadmap"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200/80 bg-white px-4 py-2.5 text-sm font-semibold text-stone-700 shadow-soft transition-all hover:-translate-y-0.5 hover:border-accent-300 hover:text-accent-800 hover:shadow-lift dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-accent-800 dark:hover:text-accent-300"
+          >
+            See the animated journey
+            <ArrowRightIcon className="h-4 w-4" />
+          </Link>
+        </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {tierOrder.map((tier, tierIndex) => {
             const tierLessons = lessons.filter((lesson) => lesson.meta.tier === tier);

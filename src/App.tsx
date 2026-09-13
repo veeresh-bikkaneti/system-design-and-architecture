@@ -4,6 +4,7 @@ import { isValidElement, useEffect } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
+import { RoadmapPage } from './pages/RoadmapPage';
 import { LessonPage } from './pages/LessonPage';
 import { BadgesPage, BadgeDetailPage } from './pages/BadgesPage';
 import { Quiz } from './components/Quiz';
@@ -54,6 +55,7 @@ function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<HomePage />} />
+            <Route path="roadmap" element={<RoadmapPage />} />
             <Route path="lesson/:slug" element={<LessonPage />} />
             <Route path="badges" element={<BadgesPage />} />
             <Route path="badges/:id" element={<BadgeDetailPage />} />

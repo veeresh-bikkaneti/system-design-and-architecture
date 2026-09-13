@@ -76,6 +76,15 @@ export function HomeIcon({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
+export function MapIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg {...iconProps(className)} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z" />
+      <path d="M9 4v14M15 6v14" />
+    </svg>
+  );
+}
+
 const lessonLinkBase =
   'group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-colors';
 
@@ -148,6 +157,13 @@ export function Sidebar() {
         <NavLink to="/" end className={({ isActive }) => `${lessonLinkBase} ${lessonLinkState(isActive)}`}>
           <HomeIcon />
           <span>Home</span>
+        </NavLink>
+        <NavLink
+          to="/roadmap"
+          className={({ isActive }) => `${lessonLinkBase} ${lessonLinkState(isActive)}`}
+        >
+          <MapIcon />
+          <span>Roadmap</span>
         </NavLink>
         <NavLink
           to="/badges"
