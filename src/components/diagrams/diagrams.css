@@ -3,6 +3,202 @@
    badges.css pattern. src/index.css is intentionally untouched. */
 
 /* ------------------------------------------------------------------ */
+/* Shared diagram language: JetBrains Mono labels and panel surfaces.  */
+/* Dark mode in this repo is OS-driven (Tailwind v4 `dark:` maps to    */
+/* prefers-color-scheme), so dark variants below use the same media    */
+/* query rather than a .dark class.                                    */
+/* ------------------------------------------------------------------ */
+
+.diagram-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Subtle blueprint grid, dark mode only — applied to every diagram
+   panel via the .diagram-panel class set by the components. */
+@media (prefers-color-scheme: dark) {
+  .diagram-panel {
+    background-image:
+      linear-gradient(rgb(148 163 184 / 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(148 163 184 / 0.055) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* MermaidDiagram: semantic role classes. Lesson authors tag nodes with */
+/* e.g. `OrderSvc["Order Service"]:::service`. The classDef lines       */
+/* (injected by MermaidDiagram.tsx) carry the light-mode colors; the   */
+/* rules below carry the dark-mode variants. Mermaid applies classDef   */
+/* colors as inline styles, so these need !important to win.           */
+/*                                                                     */
+/* Contract:                                                           */
+/*   client   = cyan    — frontend/client apps, UI, edge devices        */
+/*   service  = emerald — backend services, APIs                       */
+/*   data     = violet  — databases, storage                           */
+/*   cloud    = amber   — cloud services, infra                        */
+/*   security = rose    — auth, security                               */
+/* ------------------------------------------------------------------ */
+
+@media (prefers-color-scheme: dark) {
+  .mermaid-diagram .node.client rect,
+  .mermaid-diagram .node.client polygon,
+  .mermaid-diagram .node.client circle,
+  .mermaid-diagram .node.client ellipse,
+  .mermaid-diagram .node.client path {
+    fill: #083344 !important;
+    stroke: #22d3ee !important;
+  }
+  .mermaid-diagram .node.service rect,
+  .mermaid-diagram .node.service polygon,
+  .mermaid-diagram .node.service circle,
+  .mermaid-diagram .node.service ellipse,
+  .mermaid-diagram .node.service path {
+    fill: #022c22 !important;
+    stroke: #34d399 !important;
+  }
+  .mermaid-diagram .node.data rect,
+  .mermaid-diagram .node.data polygon,
+  .mermaid-diagram .node.data circle,
+  .mermaid-diagram .node.data ellipse,
+  .mermaid-diagram .node.data path {
+    fill: #2e1065 !important;
+    stroke: #a78bfa !important;
+  }
+  .mermaid-diagram .node.cloud rect,
+  .mermaid-diagram .node.cloud polygon,
+  .mermaid-diagram .node.cloud circle,
+  .mermaid-diagram .node.cloud ellipse,
+  .mermaid-diagram .node.cloud path {
+    fill: #451a03 !important;
+    stroke: #fbbf24 !important;
+  }
+  .mermaid-diagram .node.security rect,
+  .mermaid-diagram .node.security polygon,
+  .mermaid-diagram .node.security circle,
+  .mermaid-diagram .node.security ellipse,
+  .mermaid-diagram .node.security path {
+    fill: #4c0519 !important;
+    stroke: #fb7185 !important;
+  }
+  .mermaid-diagram .node.client .label,
+  .mermaid-diagram .node.client .nodeLabel {
+    color: #a5f3fc !important;
+  }
+  .mermaid-diagram .node.service .label,
+  .mermaid-diagram .node.service .nodeLabel {
+    color: #a7f3d0 !important;
+  }
+  .mermaid-diagram .node.data .label,
+  .mermaid-diagram .node.data .nodeLabel {
+    color: #ddd6fe !important;
+  }
+  .mermaid-diagram .node.cloud .label,
+  .mermaid-diagram .node.cloud .nodeLabel {
+    color: #fde68a !important;
+  }
+  .mermaid-diagram .node.security .label,
+  .mermaid-diagram .node.security .nodeLabel {
+    color: #fecdd3 !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* MermaidDiagram: dark-slate restyle of default (untagged) diagram     */
+/* chrome. Mermaid sets these as inline styles/attributes, hence       */
+/* !important. Light mode keeps the warm themeVariables from the init  */
+/* config in MermaidDiagram.tsx.                                       */
+/* ------------------------------------------------------------------ */
+
+@media (prefers-color-scheme: dark) {
+  /* Default nodes: slate panel look */
+  .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) rect,
+  .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) polygon,
+  .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) circle,
+  .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) ellipse,
+  .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) path {
+    fill: #1e293b !important;
+    stroke: #64748b !important;
+  }
+  .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) .label,
+  .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) .nodeLabel {
+    color: #e2e8f0 !important;
+  }
+
+  /* Edges: clean slate arrows */
+  .mermaid-diagram .flowchart-link {
+    stroke: #94a3b8 !important;
+  }
+  .mermaid-diagram .marker path,
+  .mermaid-diagram marker path {
+    fill: #94a3b8 !important;
+    stroke: #94a3b8 !important;
+  }
+  .mermaid-diagram .edgeLabel {
+    color: #cbd5e1 !important;
+    background-color: transparent !important;
+  }
+  .mermaid-diagram .edgeLabel rect {
+    fill: #0f172a !important;
+    opacity: 0.85;
+  }
+
+  /* Subgraphs / clusters */
+  .mermaid-diagram .cluster rect {
+    fill: #0f172a !important;
+    stroke: #334155 !important;
+  }
+  .mermaid-diagram .cluster .label,
+  .mermaid-diagram .cluster .nodeLabel {
+    color: #94a3b8 !important;
+  }
+
+  /* Sequence diagrams */
+  .mermaid-diagram .actor {
+    fill: #1e293b !important;
+    stroke: #64748b !important;
+  }
+  .mermaid-diagram .actor text,
+  .mermaid-diagram text.actor {
+    fill: #e2e8f0 !important;
+  }
+  .mermaid-diagram .messageLine0,
+  .mermaid-diagram .messageLine1 {
+    stroke: #94a3b8 !important;
+  }
+  .mermaid-diagram .messageText {
+    fill: #cbd5e1 !important;
+  }
+  .mermaid-diagram .labelBox {
+    fill: #451a03 !important;
+    stroke: #f59e0b !important;
+  }
+  .mermaid-diagram .labelText {
+    fill: #fde68a !important;
+  }
+  .mermaid-diagram .note rect,
+  .mermaid-diagram rect.note {
+    fill: #451a03 !important;
+    stroke: #b45309 !important;
+  }
+  .mermaid-diagram .note text,
+  .mermaid-diagram text.noteText {
+    fill: #fde68a !important;
+  }
+  .mermaid-diagram .activation0,
+  .mermaid-diagram .activation1,
+  .mermaid-diagram .activation2 {
+    fill: #78350f !important;
+    stroke: #f59e0b !important;
+  }
+  .mermaid-diagram .loopLine {
+    stroke: #64748b !important;
+  }
+  .mermaid-diagram .loopText {
+    fill: #cbd5e1 !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* StepThrough: warm amber highlight glow (overrides the violet glow   */
 /* defined in src/index.css; double class keeps this winning on        */
 /* specificity regardless of stylesheet order).                         */

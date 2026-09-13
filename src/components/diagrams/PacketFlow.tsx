@@ -87,8 +87,11 @@ export function PacketFlow({
 
   return (
     <div className="not-prose my-8">
-      <div className="packetflow overflow-x-auto rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+      <div className="packetflow diagram-panel overflow-x-auto rounded-xl border border-stone-200 bg-stone-50 p-4 shadow-soft dark:border-slate-800 dark:bg-slate-950">
         <style>{dots.map((d) => d.keyframes).join('\n')}</style>
+        <p className="diagram-mono mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400 dark:text-slate-500">
+          Request flow
+        </p>
         <svg
           viewBox={`0 0 ${VIEW_W} ${viewH}`}
           className="mx-auto block w-full max-w-2xl"
@@ -103,7 +106,7 @@ export function PacketFlow({
               y1={midY}
               x2={stageX(i + 1)}
               y2={midY}
-              className="stroke-slate-300 dark:stroke-slate-600"
+              className="stroke-stone-300 dark:stroke-slate-600"
               strokeWidth={2}
             />
           ))}
@@ -114,13 +117,14 @@ export function PacketFlow({
               y1={midY}
               x2={serverX}
               y2={serverCy(i)}
-              className="stroke-slate-300 dark:stroke-slate-600"
+              className="stroke-stone-300 dark:stroke-slate-600"
               strokeWidth={1.5}
               strokeDasharray="5 4"
             />
           ))}
 
-          {/* Stage nodes */}
+          {/* Stage nodes: first stage is the client (cyan), later stages are
+              infra hops (amber) */}
           {stages.map((label, i) => (
             <g key={`s-${i}`}>
               <rect
@@ -129,7 +133,11 @@ export function PacketFlow({
                 width={NODE_W}
                 height={NODE_H}
                 rx={9}
-                className="fill-amber-50 stroke-amber-500 dark:fill-amber-950/50 dark:stroke-amber-500"
+                className={
+                  i === 0
+                    ? 'fill-cyan-50 stroke-cyan-600 dark:fill-cyan-950/60 dark:stroke-cyan-400'
+                    : 'fill-amber-50 stroke-amber-500 dark:fill-amber-950/60 dark:stroke-amber-400'
+                }
                 strokeWidth={1.5}
               />
               <text
@@ -137,16 +145,20 @@ export function PacketFlow({
                 y={midY}
                 textAnchor="middle"
                 dominantBaseline="central"
-                fontSize={12}
+                fontSize={11}
                 fontWeight={600}
-                className="fill-amber-950 dark:fill-amber-200"
+                className={
+                  i === 0
+                    ? 'diagram-mono fill-cyan-950 dark:fill-cyan-100'
+                    : 'diagram-mono fill-amber-950 dark:fill-amber-100'
+                }
               >
                 {label}
               </text>
             </g>
           ))}
 
-          {/* Server nodes */}
+          {/* Server nodes: backend services (emerald) */}
           {servers.map((label, i) => (
             <g key={`srv-${i}`}>
               <rect
@@ -155,7 +167,7 @@ export function PacketFlow({
                 width={NODE_W}
                 height={NODE_H}
                 rx={9}
-                className="fill-orange-50 stroke-orange-400 dark:fill-orange-950/50 dark:stroke-orange-500"
+                className="fill-emerald-50 stroke-emerald-500 dark:fill-emerald-950/60 dark:stroke-emerald-400"
                 strokeWidth={1.5}
               />
               <text
@@ -163,9 +175,9 @@ export function PacketFlow({
                 y={serverCy(i)}
                 textAnchor="middle"
                 dominantBaseline="central"
-                fontSize={12}
+                fontSize={11}
                 fontWeight={600}
-                className="fill-orange-950 dark:fill-orange-200"
+                className="diagram-mono fill-emerald-950 dark:fill-emerald-100"
               >
                 {label}
               </text>
@@ -207,7 +219,7 @@ export function PacketFlow({
             </g>
           ))}
         </svg>
-        <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-500">
+        <p className="diagram-mono mt-2 text-center text-[11px] text-stone-400 dark:text-slate-500">
           Hover to pause the animation
         </p>
       </div>
