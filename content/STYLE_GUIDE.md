@@ -8,8 +8,20 @@ writing or rewriting a lesson; apply all of it, not just the parts you remember.
 - **Friendly mentor, never condescending.** Write like a senior engineer explaining something
   to a bright colleague over coffee. Explain, don't lecture. Never talk down, never assume
   the reader is lost — assume they're smart and busy.
+- **Human-positive, not hype-positive.** Frame ideas by what the reader *gains* and what is
+  empowering about them — concrete wins, real numbers, named systems. Encouragement should
+  sound like a person means it: plain sentences, honest enthusiasm, opinions included. Never
+  cheerleader hype ("game-changing," "mind-blowing," "incredible") and never bland
+  corporate-positive. A sentence that could sit in any company's white paper is a sentence
+  that failed.
 - **Direct and concrete.** Prefer plain sentences and specific examples over abstractions.
-  If a sentence works without jargon, keep it that way.
+  If a sentence works without jargon, keep it that way. Concrete nouns (a queue, a server,
+  a 2 a.m. page) beat abstractions (the landscape, the paradigm).
+- **Rhythm like speech.** Vary sentence lengths. Use contractions. Drop an occasional short
+  fragment for emphasis. If every sentence is the same careful length, it reads like it was
+  generated — because it reads like everything else.
+- **Keep the personality.** Opinions, dry asides, running jokes — those are the point.
+  A human writer takes a stance; keep sentences that sound like a person typed them.
 - **Second person.** Address the reader ("you'll see," "your system") — the course is a
   conversation, not a textbook.
 
@@ -114,3 +126,25 @@ lesson:
   `src/App.tsx`'s `mdxComponents`.
 - Run `npm run build` before committing — MDX errors break the build, and the build is
   the linter.
+
+## 10. The slop blacklist: words and tics that fail the voice
+
+AI-generated prose has a recognizable accent. These markers never survive a tone pass:
+
+- **The words:** *delve*, *tapestry*, *vibrant*, *robust* (outside a quoted title), *leverage*
+  (as a verb for "use"), *unlock*/*unleash* (for "enable"), *game-changer*, *cutting-edge*.
+- **The phrases:** "in today's fast-paced world," "it's worth noting / it's important to
+  note," "moreover / furthermore / in conclusion," "whether you're a beginner or a seasoned
+  pro," "let's dive in / dive deep," "buckle up," "the truth is," "boils down to,"
+  "testament to," "this one trick," "not only X but also Y" parallelisms.
+- **The tics:** opening with "Imagine..." more than once per course; stacked rhetorical
+  questions that answer themselves; em-dash asides in every sentence (a few per section is
+  style, one per sentence is a crutch); "In summary" closers; paragraphs that sound
+  important but say nothing.
+- **The test:** if a paragraph could be dropped into any company's white paper without
+  changing a word, rewrite it until it couldn't. Human-positive means it sounds like *someone*
+  — the coffee-chat mentor of §1, with opinions, concrete examples, and the running jokes —
+  not like *no one in particular*.
+
+Tightening never changes technical meaning. If a fix would alter what a sentence claims
+about a system, a protocol, or a number — don't make it; leave the sentence alone.

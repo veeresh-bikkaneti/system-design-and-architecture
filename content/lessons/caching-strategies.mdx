@@ -13,8 +13,8 @@ export const meta = {
 Almost every performance win in backend engineering is secretly a caching win. When a
 homepage loads in 40 milliseconds instead of 400, when a Black Friday sale doesn't melt the
 database, when an API serves a million identical requests without breaking a sweat — there is
-almost always a cache doing the heavy lifting. Caching is the single highest-leverage
-optimization you can apply to a system, and also one of the easiest to get subtly wrong.
+almost always a cache doing the heavy lifting. Caching is the best bang-for-buck
+optimization in backend engineering — and also one of the easiest to get subtly wrong.
 
 Think of a cache like a **chef's mise en place** — the little bowls of chopped ingredients
 sitting within arm's reach. The walk-in freezer (your database) holds everything, but walking
@@ -60,9 +60,9 @@ your application code now owns all the invalidation logic. Most teams using **Me
 
 In **read-through**, the cache itself knows how to load from the database on a miss — your
 application only ever talks to the cache. In **write-through**, every write goes to the cache
-*and* the database synchronously, so the cache stays fresh on the write path — though concurrent
-reads racing a write, or a partial failure between the two writes, can still surface briefly
-stale data (but writes pay the cost of both).
+*and* the database synchronously, so the cache stays fresh on the write path. The price:
+every write waits on both. And even so, concurrent reads racing a write — or a partial
+failure between the two writes — can still surface briefly stale data.
 
 ```mermaid
 flowchart LR
@@ -75,7 +75,7 @@ flowchart LR
 ```
 
 **Write-behind** (write-back) flips the trade: the write lands in the cache and returns
-immediately; the database is updated asynchronously. Writes get blazing fast, but if the
+immediately; the database is updated asynchronously. Writes feel instant, but if the
 cache node dies before the flush, that write is gone forever. Databases like **Cassandra**
 pair the async memtable → SSTable flush with a durable **commit log** written synchronously
 before the write is acknowledged — that pairing is precisely what makes their write-behind

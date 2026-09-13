@@ -132,7 +132,7 @@ Congratulations, you've built a single point of overload with extra steps.
 1. Partition when one node can no longer hold the data or serve the load — not before.
    Sharding adds real operational complexity, and premature sharding is a tax you pay every
    day.
-2. The partition key is the highest-leverage decision in the design; it should match your
+2. The partition key is the most consequential decision in the design; it should match your
    queries, spread load evenly, and dodge hot keys.
 3. Every strategy trades something: range gives you scans but risks hot spots, hash gives you
    balance but punishes range queries, directory gives you flexibility but adds a critical

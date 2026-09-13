@@ -68,7 +68,8 @@ PoP — during a security incident, those seconds feel very long.
 The industry's favorite dodge is **content versioning**: never change a file in place;
 instead, ship `app.v2.js` alongside `app.v1.js` and update the reference. Immutable assets
 get year-long TTLs and never need purging. Your HTML (short TTL, or uncached) points at the
-new filenames. This one trick eliminates an entire class of staleness bugs.
+new filenames. Stop mutating files in place and a whole class of staleness bugs simply
+disappears.
 
 ## Dynamic content acceleration
 
