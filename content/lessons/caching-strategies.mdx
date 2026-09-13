@@ -1,0 +1,192 @@
+export const meta = {
+  slug: 'caching-strategies',
+  title: 'Caching Strategies',
+  tier: 'intermediate',
+  order: 10,
+  summary:
+    'Cache-aside, read-through, write-through, and write-behind: where caches live, how data gets in and out, and how to survive eviction, TTLs, and stampedes.',
+  estimatedMinutes: 18,
+};
+
+## Why this matters
+
+Almost every performance win in backend engineering is secretly a caching win. When a
+homepage loads in 40 milliseconds instead of 400, when a Black Friday sale doesn't melt the
+database, when an API serves a million identical requests without breaking a sweat — there is
+almost always a cache doing the heavy lifting. Caching is the single highest-leverage
+optimization you can apply to a system, and also one of the easiest to get subtly wrong.
+
+Think of a cache like a **chef's mise en place** — the little bowls of chopped ingredients
+sitting within arm's reach. The walk-in freezer (your database) holds everything, but walking
+back and forth to it for every single order would bring the kitchen to its knees. The
+ingredients you use constantly live right next to the stove. Caching is mise en place for
+data: keep the hot stuff close.
+
+## The core trade-off
+
+A cache buys you **speed** and **reduced load** in exchange for **staleness** and
+**complexity**. There are only two hard problems in computer science, as the old joke goes —
+cache invalidation, naming things, and off-by-one errors. (The joke itself contains an
+off-by-one error. You're welcome.) Every strategy below is a different answer to one
+question: *when this data changes, who is responsible for making the cache agree?*
+
+## Cache-aside (lazy loading)
+
+The most common pattern. Your application checks the cache first; on a miss, it loads from
+the database and stores the result in the cache for next time.
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant Cache as Cache (Redis)
+    participant DB as Database
+
+    App->>Cache: GET user:42
+    Cache-->>App: MISS
+    App->>DB: SELECT * FROM users WHERE id=42
+    DB-->>App: row
+    App->>Cache: SET user:42 = row (TTL 300s)
+    App-->>App: serve row
+```
+
+The beauty: the cache only ever holds data something actually asked for — no wasted memory.
+The danger: the first request after a deploy (or a cache flush) hits the database hard, and
+your application code now owns all the invalidation logic. Most teams using **Memcached** or
+**Redis** start here.
+
+{/* ANIMATION: RequestFlow showing a cache-aside read path — cache hit vs cache miss with the database round-trip highlighted */}
+
+## Read-through and write-through
+
+In **read-through**, the cache itself knows how to load from the database on a miss — your
+application only ever talks to the cache. In **write-through**, every write goes to the cache
+*and* the database synchronously, so the cache is never stale (but writes pay the cost of
+both).
+
+```mermaid
+flowchart LR
+    subgraph "Write-through"
+        A1[App] --> C1[Cache] --> D1[Database]
+    end
+    subgraph "Write-behind"
+        A2[App] --> C2[Cache] -. "async flush" .-> D2[Database]
+    end
+```
+
+**Write-behind** (write-back) flips the trade: the write lands in the cache and returns
+immediately; the database is updated asynchronously. Writes get blazing fast, but if the
+cache node dies before the flush, that write is gone forever. Databases like **Cassandra**
+use this internally (memtable → SSTable); application caches rarely should, unless you can
+afford to lose recent writes.
+
+## Eviction: when the pantry is full
+
+Memory is finite, so caches evict. The classics:
+
+- **LRU** (least recently used) — evict whatever hasn't been touched in the longest. Great
+  default; **Redis** and **Memcached** both offer it.
+- **LFU** (least frequently used) — evict the least popular. Better when a few hot keys
+  dominate, worse when access patterns shift suddenly.
+- **TTL** (time to live) — don't even wait for pressure; expire entries after N seconds.
+  Simple, predictable, and the reason your "new profile picture" takes five minutes to show up.
+
+TTL deserves special respect: it is the *dumbest* invalidation strategy and therefore the
+most reliable. Short TTLs mean fresher data and more database load; long TTLs mean the
+reverse. Picking a TTL is picking where you live on that line — there is no universal right
+answer, only the one your users will tolerate.
+
+## The thundering herd
+
+Here's the failure mode that pages people at 3 AM. A popular key expires (or the cache
+restarts). A thousand requests arrive at once, *all* miss, and *all* stampede the database
+with the same expensive query. The database, which was happily idle a moment ago, falls over.
+
+```mermaid
+sequenceDiagram
+    participant R as 1000 Requests
+    participant Cache as Cache
+    participant DB as Database
+
+    R->>Cache: GET hot:key (expired!)
+    Cache-->>R: MISS × 1000
+    R->>DB: Same expensive query × 1000
+    Note over DB: Database falls over
+```
+
+Defenses, from simplest to fanciest:
+
+1. **Request coalescing / single-flight** — only the first request hits the database; the
+   rest wait for its result. Many cache libraries do this automatically.
+2. **Probabilistic early expiration** — refresh keys *before* they expire, with a little
+   randomness so they don't all refresh at once.
+3. **Stale-while-revalidate** — serve the slightly-old value immediately and refresh in the
+   background. Users get speed *and* freshness, eventually.
+
+## Where caches live
+
+Caching isn't one layer — it's a stack. Browser caches, **CDN** edge caches (next lesson!),
+application caches like Redis, database query caches, even CPU caches. Each layer trades a
+different amount of staleness for a different amount of speed. When debugging "why is this
+slow," walk the stack top-down: the fix is usually a missing layer, not a faster database.
+
+## Takeaways
+
+1. Cache-aside is the default starting pattern: lazy, simple, and your app owns invalidation.
+2. Write-through keeps the cache fresh at the cost of write latency; write-behind is fast but can lose data.
+3. TTLs are the most reliable invalidation strategy — dumb beats clever.
+4. Plan for the thundering herd *before* your hottest key expires: coalesce, pre-refresh, or serve stale.
+
+<Quiz
+  lessonSlug="caching-strategies"
+  questions={[
+    {
+      question: "In the cache-aside pattern, what happens on a cache miss?",
+      options: [
+        "The cache itself loads the data from the database and returns it",
+        "The application loads the data from the database, stores it in the cache, then serves it",
+        "The request fails and the client must retry",
+        "The application writes a placeholder and serves stale data",
+      ],
+      correctIndex: 1,
+    },
+    {
+      question: "What is the main risk of the write-behind strategy?",
+      options: [
+        "Reads become slower because the cache must check the database first",
+        "Writes can be lost if the cache fails before flushing to the database",
+        "The database receives every write twice, doubling load",
+        "Cache hit ratios drop because entries are never evicted",
+      ],
+      correctIndex: 1,
+    },
+    {
+      question: "A 'thundering herd' (cache stampede) happens when...",
+      options: [
+        "Too many cache nodes join the cluster at once",
+        "A popular key expires and many requests simultaneously hit the database with the same query",
+        "The eviction policy deletes keys faster than they are written",
+        "Two caches in different regions return conflicting values",
+      ],
+      correctIndex: 1,
+    },
+    {
+      question: "Which of these is a defense against the thundering herd, as described in the lesson?",
+      options: [
+        "Increasing the TTL on all keys to the maximum",
+        "Disabling the cache during traffic spikes",
+        "Request coalescing (single-flight): only the first request queries the database while others wait",
+        "Switching from LRU to LFU eviction",
+      ],
+      correctIndex: 2,
+    },
+  ]}
+/>
+
+---
+
+## Sources & further reading
+
+- Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017), Ch. 11 — caching in stream processing and derived data.
+- Redis documentation, "Eviction policies" — LRU/LFU variants in practice.
+- Marc Brooker (AWS), "DynamoDB and caching" / AWS Architecture Blog posts on request coalescing and DAX.
+- Facebook Engineering, "Scaling Memcached at Facebook" (NSDI 2013) — cache consistency and thundering-herd mitigation at massive scale.
