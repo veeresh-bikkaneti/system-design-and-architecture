@@ -100,7 +100,8 @@ Back-of-envelope math for a typical 5-node etcd cluster:
 - **Election time**: roughly one election timeout (150–300 ms) to notice the leader is
   gone, plus a round trip to campaign. Budget ~0.5 s of unavailability per leader failure.
   During that window, writes block — reads can be served stale by followers, or linearly
-  via the leader (etcd's default serializable reads go through the leader's quorum check).
+  via the leader (etcd's default *linearizable* reads go through the leader's quorum
+  check; opt-in *serializable* reads are served stale by any member).
 - **Throughput**: a single leader serializes all writes through its log. etcd handles
   ~10k writes/sec on decent hardware — plenty for metadata and config, laughable for a
   product database. Consensus is for *control planes*, not data planes.
@@ -189,7 +190,7 @@ Raft yourself for production unless implementing Raft *is* your product.
 
 ## Sources & further reading
 
-- Diego Ongaro & John Ousterhout, "In Search of an Understandable Consensus Algorithm (Extended Version)" (USENIX ATC 2014) — the Raft paper itself.
+- Diego Ongaro & John Ousterhout, "In Search of an Understandable Consensus Algorithm" (USENIX ATC 2014, pp. 305–319) — the Raft paper itself. The extended version (tech report, raft.github.io/raft.pdf) adds the full safety proofs.
 - The Raft interactive visualization at raft.github.io — watch elections and log replication play out.
 - etcd documentation, "Operations guide" — quorum math, defragmentation, and disaster recovery in production.
 - Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017), Ch. 9 — consensus, total order broadcast, and why you shouldn't hand-roll it.

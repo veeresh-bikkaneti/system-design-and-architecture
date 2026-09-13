@@ -76,7 +76,7 @@ request generates ~1.7 TB of trace data *per day* — per service. So you **samp
   1% you keep is random — the one failed checkout in a million successes is almost
   certainly *not* in your sample. Precisely when you need traces most, you don't have them.
 - **Tail-based sampling** — buffer spans, decide after seeing the outcome: keep 100% of
-  errors and slow requests, 0.1% of the boring successes. Needs a collector
+  errors and slow requests, 1% of the boring successes. Needs a collector
   (**OpenTelemetry Collector**) with memory to hold the buffer, but it keeps exactly the
   traces you'll actually open.
 
@@ -117,7 +117,7 @@ The numbers make trade-offs concrete. 99.9% ("three nines") = 43 min/month downt
 engineering cost** while the user-visible difference shrinks. This is why "how many nines"
 is a *business* negotiation, not an engineering aspiration — and why alerting should fire
 on **burn rate** (how fast you're spending the budget) rather than on every blip. A
-5-minute spike that consumes 2% of the monthly budget is not a page; a sustained burn that
+5-minute spike that consumes ~12% of the monthly budget is not a page; a sustained burn that
 eats 20% in an hour is.
 
 ## Takeaways
@@ -187,7 +187,7 @@ eats 20% in an hour is.
 
 ## Sources & further reading
 
-- Google SRE Book (site reliability workbook), Ch. 4–6 — SLIs, SLOs, and error budgets; free online at sre.google.
+- Betsy Beyer et al., *Site Reliability Engineering* (Google / O'Reilly, 2016), Ch. 4 ("Service Level Objectives") — SLIs, SLOs, and error budgets; free online at sre.google.
 - Brendan Gregg, "The USE Method" — utilization/saturation/errors for resource analysis.
 - OpenTelemetry documentation — traces, spans, and the Collector for tail-based sampling.
 - Cindy Sridharan, "Distributed Systems Observability" (O'Reilly, 2018) — the metrics/logs/traces synthesis for microservices.

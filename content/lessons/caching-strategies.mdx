@@ -60,8 +60,9 @@ your application code now owns all the invalidation logic. Most teams using **Me
 
 In **read-through**, the cache itself knows how to load from the database on a miss — your
 application only ever talks to the cache. In **write-through**, every write goes to the cache
-*and* the database synchronously, so the cache is never stale (but writes pay the cost of
-both).
+*and* the database synchronously, so the cache stays fresh on the write path — though concurrent
+reads racing a write, or a partial failure between the two writes, can still surface briefly
+stale data (but writes pay the cost of both).
 
 ```mermaid
 flowchart LR
@@ -76,8 +77,11 @@ flowchart LR
 **Write-behind** (write-back) flips the trade: the write lands in the cache and returns
 immediately; the database is updated asynchronously. Writes get blazing fast, but if the
 cache node dies before the flush, that write is gone forever. Databases like **Cassandra**
-use this internally (memtable → SSTable); application caches rarely should, unless you can
-afford to lose recent writes.
+pair the async memtable → SSTable flush with a durable **commit log** written synchronously
+before the write is acknowledged — that pairing is precisely what makes their write-behind
+safe, and why they don't lose acknowledged writes on a crash. Application caches rarely have
+that safety net, so they should avoid write-behind unless you can afford to lose recent
+writes.
 
 ## Eviction: when the pantry is full
 
@@ -186,7 +190,7 @@ slow," walk the stack top-down: the fix is usually a missing layer, not a faster
 
 ## Sources & further reading
 
-- Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017), Ch. 11 — caching in stream processing and derived data.
+- Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017), Ch. 12 — "A cache often contains an aggregation of data" and caches as derived data.
 - Redis documentation, "Eviction policies" — LRU/LFU variants in practice.
 - Marc Brooker (AWS), "DynamoDB and caching" / AWS Architecture Blog posts on request coalescing and DAX.
-- Facebook Engineering, "Scaling Memcached at Facebook" (NSDI 2013) — cache consistency and thundering-herd mitigation at massive scale.
+- Rajesh Nishtala et al., "Scaling Memcache at Facebook" (NSDI 2013) — cache consistency and thundering-herd mitigation at massive scale.

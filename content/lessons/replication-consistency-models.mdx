@@ -105,8 +105,11 @@ particular weirdness:
   time-travel backwards when your requests bounce between replicas.
 - **Monotonic writes** — your writes apply in the order you made them.
 - **Causal consistency** — if you reply to a comment, everyone sees the comment before
-  your reply. The strongest model that's still available during partitions, and what
-  systems like **CockroachDB** aim to give you cheaply.
+  your reply. The strongest model an *always-available* system can provide during
+  partitions — it's what AP-oriented designs like the COPS geo-replicated store aim for.
+  (Systems like **CockroachDB** instead pay for *stronger*, serializable guarantees —
+  causal consistency is deliberately weaker, which is why it's cheap enough to keep
+  serving through a partition.)
 
 Stronger guarantees cost latency and availability — there's no free consistency, only
 consistency whose price you've decided to pay.
@@ -118,8 +121,8 @@ collide. Strategies:
 
 - **Last-write-wins (LWW)** — highest timestamp wins. Simple, and silently *deletes* the
   loser's data. Fine for caches; terrifying for shopping carts.
-- **Application merge** — the app gets both versions and reconciles (DynamoDB-style
-  version vectors; CRDTs for counters, sets, and text).
+- **Application merge** — the app gets both versions and reconciles (Dynamo/Riak-style
+  vector clocks; CRDTs for counters, sets, and text).
 - **Avoid conflicts structurally** — design so concurrent writes to the same key are rare
   (per-user partitions, single writers per entity).
 
@@ -148,8 +151,8 @@ collide. Strategies:
       options: [
         "W=1, R=1",
         "W=2, R=2 (because R + W > N)",
-        "W=1, R=3",
-        "W=3, R=1",
+        "W=2, R=1",
+        "W=1, R=2",
       ],
       correctIndex: 1,
     },
@@ -183,4 +186,3 @@ collide. Strategies:
 - Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017), Ch. 5 — replication, the definitive treatment.
 - Werner Vogels, "Eventually Consistent" (ACM Queue, 2008) — Dynamo's philosophy from Amazon's CTO.
 - DeCandia et al., "Dynamo: Amazon's Highly Available Key-Value Store" (SOSP 2007) — leaderless replication, quorums, and vector clocks.
-- CockroachDB documentation, "Consistency" — causal consistency and closed timestamps in a modern distributed SQL database.
