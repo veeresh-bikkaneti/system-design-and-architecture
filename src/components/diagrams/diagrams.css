@@ -1,0 +1,130 @@
+/* Animated diagram styles. Imported directly by the diagram components
+   (PacketFlow, StepThrough, VsToggle) and MermaidDiagram — mirroring the
+   badges.css pattern. src/index.css is intentionally untouched. */
+
+/* ------------------------------------------------------------------ */
+/* StepThrough: warm amber highlight glow (overrides the violet glow   */
+/* defined in src/index.css; double class keeps this winning on        */
+/* specificity regardless of stylesheet order).                         */
+/* ------------------------------------------------------------------ */
+
+@keyframes stepthrough-glow-amber {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 2px rgb(217 119 6 / 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 7px rgb(217 119 6 / 0.65));
+  }
+}
+
+.stepthrough-highlight.stepthrough-highlight {
+  animation: stepthrough-glow-amber 2.4s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/* MermaidDiagram: make flowcharts and sequence diagrams feel alive.    */
+/* Scoped under .mermaid-diagram (set on the MermaidDiagram wrapper).  */
+/* Mermaid v11 emits flowchart edges as <path class="flowchart-link">  */
+/* inside g.edgePath, flowchart nodes as <g class="node"> inside       */
+/* g.nodes, sequence-diagram messages as line.messageLine0/1 and actors */
+/* as g.actor. Animations are transform/opacity/dash-offset only, so   */
+/* they stay legible in both light and dark color schemes.             */
+/* ------------------------------------------------------------------ */
+
+.mermaid-diagram .flowchart-link,
+.mermaid-diagram .messageLine0,
+.mermaid-diagram .messageLine1 {
+  animation: mermaid-dash-flow 2.6s linear infinite;
+}
+
+/* Give solid flowchart edges a dash pattern so the flow is visible.
+   Dotted edges (edge-pattern-dotted) keep their own pattern — the
+   dash-offset animation still makes them crawl gently. Sequence-diagram
+   reply lines (messageLine1) likewise keep their dotted pattern. */
+.mermaid-diagram .edge-pattern-solid.flowchart-link,
+.mermaid-diagram .messageLine0 {
+  stroke-dasharray: 7 5;
+}
+
+@keyframes mermaid-dash-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+/* Nodes fade and rise in on render, with a gentle cascade so the       */
+/* diagram draws itself in reading order.                               */
+.mermaid-diagram .node,
+.mermaid-diagram .actor {
+  animation: mermaid-node-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes mermaid-node-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mermaid-diagram .nodes .node:nth-child(1),
+.mermaid-diagram .actor:nth-of-type(1) {
+  animation-delay: 0.05s;
+}
+.mermaid-diagram .nodes .node:nth-child(2),
+.mermaid-diagram .actor:nth-of-type(2) {
+  animation-delay: 0.12s;
+}
+.mermaid-diagram .nodes .node:nth-child(3),
+.mermaid-diagram .actor:nth-of-type(3) {
+  animation-delay: 0.19s;
+}
+.mermaid-diagram .nodes .node:nth-child(4),
+.mermaid-diagram .actor:nth-of-type(4) {
+  animation-delay: 0.26s;
+}
+.mermaid-diagram .nodes .node:nth-child(5),
+.mermaid-diagram .actor:nth-of-type(5) {
+  animation-delay: 0.33s;
+}
+.mermaid-diagram .nodes .node:nth-child(6),
+.mermaid-diagram .actor:nth-of-type(6) {
+  animation-delay: 0.4s;
+}
+.mermaid-diagram .nodes .node:nth-child(7),
+.mermaid-diagram .actor:nth-of-type(7) {
+  animation-delay: 0.47s;
+}
+.mermaid-diagram .nodes .node:nth-child(8),
+.mermaid-diagram .actor:nth-of-type(8) {
+  animation-delay: 0.54s;
+}
+.mermaid-diagram .nodes .node:nth-child(9),
+.mermaid-diagram .actor:nth-of-type(9) {
+  animation-delay: 0.61s;
+}
+.mermaid-diagram .nodes .node:nth-child(n + 10) {
+  animation-delay: 0.68s;
+}
+
+/* ------------------------------------------------------------------ */
+/* Reduced motion: every diagram animation stops, everywhere. The       */
+/* matching rules in src/index.css cover .packetflow/.pf-dot, the      */
+/* stepthrough glow and .vs-panel-enter; these cover the amber glow     */
+/* override above and all mermaid animation.                           */
+/* ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .stepthrough-highlight.stepthrough-highlight,
+  .mermaid-diagram .flowchart-link,
+  .mermaid-diagram .messageLine0,
+  .mermaid-diagram .messageLine1,
+  .mermaid-diagram .node,
+  .mermaid-diagram .actor {
+    animation: none;
+  }
+}

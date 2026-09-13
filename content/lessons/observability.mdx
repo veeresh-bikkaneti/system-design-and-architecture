@@ -99,7 +99,43 @@ request IDs). High-cardinality data belongs in **logs and traces**, which are de
 it. The cardinality explosion is the #1 self-inflicted observability outage; the second is
 alerting on the wrong thing (see below).
 
-{/* ANIMATION: TraceView showing a request's span tree with the slowest span highlighted, then drilling into its logs */}
+<StepThrough
+  title="Reading a trace: find the slow span"
+  nodes={[
+    { id: "req", label: "GET /checkout · 412ms", x: 240, y: 42, w: 170 },
+    { id: "gw", label: "gateway · 8ms", x: 75, y: 128, w: 120 },
+    { id: "orders", label: "orders svc · 380ms", x: 240, y: 128, w: 140 },
+    { id: "notify", label: "notify svc · 24ms", x: 405, y: 128, w: 130 },
+    { id: "inv", label: "inventory · 12ms", x: 150, y: 214, w: 130 },
+    { id: "pay", label: "payments · 350ms", x: 330, y: 214, w: 140 },
+    { id: "fraud", label: "fraud check · 340ms", x: 330, y: 282, w: 150, h: 32 },
+  ]}
+  edges={[
+    { from: "req", to: "gw" },
+    { from: "req", to: "orders" },
+    { from: "req", to: "notify" },
+    { from: "orders", to: "inv" },
+    { from: "orders", to: "pay" },
+    { from: "pay", to: "fraud" },
+  ]}
+  steps={[
+    {
+      title: "One request, seven spans",
+      caption: "A single GET /checkout fans out into a tree of spans. The trace shows the whole causality tree — now, which span is eating the budget?",
+      highlight: ["req"],
+    },
+    {
+      title: "Follow the slow branch",
+      caption: "orders svc: 380 of the 412 ms. Inside it, payments: 350 ms — and inside that, the fraud check: 340 ms. One look and you know who owns the latency.",
+      highlight: ["orders", "pay", "fraud"],
+    },
+    {
+      title: "Drill from span to logs",
+      caption: "The fraud check span carries the trace ID. Jump from the span straight into its structured logs — request IDs, not timestamps, connect the two pillars.",
+      highlight: ["fraud"],
+    },
+  ]}
+/>
 
 ## SLIs, SLOs, and error budgets: alerting like an adult
 

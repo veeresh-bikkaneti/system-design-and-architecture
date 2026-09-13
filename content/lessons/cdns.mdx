@@ -39,7 +39,29 @@ copy. The metric that runs the whole business is the **cache hit ratio**: the fr
 requests served from the edge without touching your origin. Static assets (images, video,
 JS bundles) routinely hit 95%+; personalized API responses might be near 0%.
 
-{/* ANIMATION: GlobeMap showing a request from Sydney hitting the local edge PoP vs traveling to a Virginia origin, with latency counters */}
+<VsToggle
+  title="One request from Sydney, two possible journeys"
+  a={{
+    label: "Edge hit — Sydney PoP",
+    title: "~10 ms: served from the edge",
+    points: [
+      "The request lands at the Sydney Point of Presence",
+      "The bytes are already cached there — the origin is never involved",
+      "Origin bill for this request: zero",
+    ],
+    note: "Static assets routinely hit 95%+ cache hit ratios — this is the common case.",
+  }}
+  b={{
+    label: "Edge miss — Virginia origin",
+    title: "~200 ms: cross-Pacific round trip",
+    points: [
+      "The Sydney PoP has no copy, so the request travels to the origin in Virginia",
+      "The origin serves the bytes and fills the edge cache on the way back",
+      "The next Sydney user gets the 10 ms path instead",
+    ],
+    note: "The first user in a region always pays the full round trip.",
+  }}
+/>
 
 ## The cache hierarchy
 

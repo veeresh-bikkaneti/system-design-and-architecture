@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import './diagrams.css';
 
 /**
  * One side of a {@link VsToggle} comparison.
@@ -48,14 +49,14 @@ export function VsToggle({ title, a, b, defaultSide = 'a' }: VsToggleProps) {
   const accent =
     side === 'a'
       ? {
-          chip: 'bg-violet-100 text-violet-800 dark:bg-violet-950/70 dark:text-violet-200',
-          dot: 'bg-violet-500',
-          border: 'border-violet-200 dark:border-violet-800',
+          chip: 'bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-200',
+          dot: 'bg-amber-500',
+          border: 'border-amber-200 dark:border-amber-800',
         }
       : {
-          chip: 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-200',
-          dot: 'bg-sky-500',
-          border: 'border-sky-200 dark:border-sky-800',
+          chip: 'bg-orange-100 text-orange-900 dark:bg-orange-950/70 dark:text-orange-200',
+          dot: 'bg-orange-500',
+          border: 'border-orange-200 dark:border-orange-800',
         };
 
   return (

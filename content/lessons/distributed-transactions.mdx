@@ -72,7 +72,40 @@ round trip made it unpopular. The industry verdict: 2PC is fine *within* one dat
 cluster (where the coordinator is really the primary and failures are fenced), and
 increasingly avoided *across* independent services — which is where **sagas** come in.
 
-{/* ANIMATION: StepThrough showing 2PC: prepare votes, coordinator crash, participants blocked holding locks, then recovery */}
+<StepThrough
+  title="Two-phase commit: the blocking problem"
+  nodes={[
+    { id: "coord", label: "Coordinator", x: 240, y: 70 },
+    { id: "a", label: "Participant A", x: 130, y: 210 },
+    { id: "b", label: "Participant B", x: 350, y: 210 },
+  ]}
+  edges={[
+    { from: "coord", to: "a" },
+    { from: "coord", to: "b" },
+  ]}
+  steps={[
+    {
+      title: "Prepare phase: everyone votes YES",
+      caption: "The coordinator asks A and B: can you commit? Both vote YES — and now hold their locks, waiting for the final decision.",
+      highlight: ["coord", "a", "b"],
+    },
+    {
+      title: "The coordinator crashes",
+      caption: "Before sending the decision, the coordinator dies. A and B have voted YES; they can neither commit nor abort on their own.",
+      highlight: ["coord"],
+    },
+    {
+      title: "Participants are blocked",
+      caption: "A and B sit on their locks with throughput at zero, waiting for a coordinator that may never come back. This is the blocking problem.",
+      highlight: ["a", "b"],
+    },
+    {
+      title: "Recovery unblocks them",
+      caption: "The coordinator recovers, replays its log, learns the prepared transaction, and finally sends COMMIT. The locks release.",
+      highlight: ["coord", "a", "b"],
+    },
+  ]}
+/>
 
 ## Sagas: embracing the lack of atomicity
 

@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import mermaid from 'mermaid';
+import './diagrams/diagrams.css';
 
 let initialized = false;
 function ensureInitialized() {
@@ -58,7 +59,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
   return (
     <div
       ref={containerRef}
-      className="my-2 overflow-x-auto rounded-md border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950 [&_svg]:mx-auto [&_svg]:max-w-full"
+      className="mermaid-diagram my-2 overflow-x-auto rounded-md border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950 [&_svg]:mx-auto [&_svg]:max-w-full"
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: svg ?? '' }}
     />
