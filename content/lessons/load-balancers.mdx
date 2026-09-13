@@ -10,31 +10,57 @@ export const meta = {
 
 ## Why this matters
 
-A single server can only handle so many concurrent connections before latency climbs and it
-falls over. A **load balancer** sits in front of a pool of servers and spreads incoming requests
-across them, giving you horizontal scalability and resilience to individual server failure.
+Every website you've ever used without thinking about it was quietly load balanced. One
+server can only handle so many requests before it starts sweating — latency climbs, requests
+queue up, and eventually the whole thing falls over. A **load balancer** is how we go from
+"one big server doing its best" to "many servers sharing the work," and it's the reason your
+favorite apps survive traffic spikes, celebrity tweets, and the occasional server that just
+gives up on life.
+
+## Picture a restaurant host
+
+Meet **Rita**, the host at the busiest restaurant in town. Rita does three things, and they are
+*exactly* what a load balancer does:
+
+1. **She greets everyone at the door** — one entrance, all the incoming guests (requests).
+2. **She seats guests across the dining room** — spreading them among waiters and tables
+   (servers) so no single waiter gets 40 tables while another stands around polishing
+   glasses.
+3. **She knows who's actually on shift** — if a waiter called in sick (a failed server), Rita
+   simply stops seating people at their section. The dining room barely notices.
+
+That's the whole concept. One smart greeter in front of a pool of workers:
 
 ```mermaid
 flowchart LR
-    C[Clients] --> LB[Load Balancer]
+    C[Clients] --> LB[Rita the Load Balancer]
     LB --> S1[Server 1]
     LB --> S2[Server 2]
     LB --> S3[Server 3]
-    LB -. "health checks" .-> S1
-    LB -. "health checks" .-> S2
-    LB -. "health checks" .-> S3
+    LB -. "health checks: who's on shift?" .-> S1
+    LB -. "health checks: who's on shift?" .-> S2
+    LB -. "health checks: who's on shift?" .-> S3
 ```
 
-## Where load balancing happens
+(Rita never takes a bathroom break. We'll come back to why that's a problem.)
 
-- **DNS load balancing** — a domain resolves to multiple IPs; crude, but cheap and works at the
-  very edge before a connection is even opened.
-- **Layer 4 (transport)** — balances based on IP address and TCP/UDP port, without looking at
-  the request content. Fast, protocol-agnostic, but can't route by URL path or header.
-- **Layer 7 (application)** — terminates HTTP(S) and can route based on path, host header,
-  cookies, or request body. More flexible, more CPU cost per request.
+## Where Rita works: DNS, Layer 4, Layer 7
 
-## Routing algorithms
+Requests pass through several layers before reaching your app, and Rita can stand at more
+than one door:
+
+- **DNS load balancing** — the restaurant's phone book lists several addresses; callers pick
+  one. Crude, but cheap — it works before a connection is even opened.
+- **Layer 4 (transport)** — Rita glances at the name tag (IP address and port) and points you
+  to a table *without reading your reservation*. Fast and works for any protocol, but she
+  can't route you to the sushi bar versus the grill.
+- **Layer 7 (application)** — Rita actually reads your reservation: "party of four, sushi
+  bar, and you're a regular." She routes based on URL path, host header, or cookies. Smarter,
+  but it costs more of her attention per guest.
+
+## How Rita picks a table: the algorithms
+
+Seating a Friday-night crowd is a strategy question, and Rita has several playbooks:
 
 | Algorithm | How it picks a server | Good for |
 | --- | --- | --- |
@@ -44,13 +70,30 @@ flowchart LR
 | IP hash | Hashes client IP to pick a server | Session affinity without shared state |
 | Consistent hashing | Maps both servers and keys onto a ring | Caches, sharded stores — minimizes reshuffling when nodes change |
 
-## Health checks and failover
+Round robin is the classic "your turn, my turn" — dead simple, and surprisingly effective when
+every request costs about the same. Least connections is what Rita reaches for when one table
+is a family of twelve settling in for the evening and another is a coffee-and-go: raw
+headcounts lie, so she watches *active* load instead.
 
-A load balancer is only as good as its view of backend health. It periodically probes each
-server (a TCP connect, or an HTTP `GET /health`) and removes unhealthy nodes from rotation. This
-turns a single server crash into a brief capacity dip instead of an outage.
+```mermaid
+flowchart TD
+    R{New request arrives} --> A{Is it special?}
+    A -->|Just a regular| RR[Round robin: next table in line]
+    A -->|Needs the sushi bar| L7["Layer 7: /sushi/* goes to the sushi pool"]
+    A -->|A returning regular| IH[IP hash: same table as last time]
+```
+
+## Health checks: who's actually on shift
+
+Rita's superpower is that she never sends a guest to a table whose waiter just quit. The load
+balancer periodically probes each server — a TCP connect, or an HTTP `GET /health` — and pulls
+unhealthy nodes out of rotation. This turns a single server crash into a brief capacity dip
+instead of an outage. Your users keep eating; they never know a waiter left mid-shift.
 
 ## Layer 7 example: routing by path
+
+A Layer 7 balancer like Rita-with-a-reservation-list can front an entire fleet of independently
+scaled services behind one hostname:
 
 ```mermaid
 flowchart LR
@@ -60,15 +103,17 @@ flowchart LR
     LB --> N3["/static/* → CDN pool"]
 ```
 
-This kind of routing is what lets a single public hostname front a whole fleet of independently
-scaled microservices.
+This is what lets one public address — `app.example.com` — quietly serve orders, users, and
+images from completely different server pools, each scaled for its own appetite.
 
-## Single point of failure — solved twice
+## The bathroom-break problem
 
-The load balancer itself would be a single point of failure if there were only one instance. In
-practice, teams run at least two load balancer nodes behind a floating (virtual) IP managed by a
-protocol like VRRP or a cloud provider's managed load balancer, so there's no single machine that
-can take the whole system down.
+Rita is indispensable. But if Rita is the *only* host and she steps away for five minutes,
+the entire restaurant grinds to a halt. A lone load balancer is a single point of failure.
+The fix is delightfully simple: **hire two hosts**. Run at least two load balancer nodes
+behind one floating (virtual) IP, managed by a protocol like VRRP or a cloud provider's
+managed load balancer. One is active, the other waits in the wings — if the active host
+faints, the standby picks up the clipboard without the diners noticing:
 
 ```mermaid
 flowchart LR
@@ -78,15 +123,32 @@ flowchart LR
     LB2 --> POOL
 ```
 
+So Rita finally gets her bathroom break — as long as there's a second Rita on standby.
+(They split tips.)
+
 ## Takeaways
 
-1. Load balancing is what turns "one big server" into "many small, replaceable servers."
-2. Layer 4 is faster; Layer 7 is smarter — most production systems use both, in layers.
-3. The choice of algorithm matters most when backends are stateful or heterogeneous in capacity.
+1. A load balancer is the host of your restaurant: one door, smart seating, and a live sense
+   of who's actually on shift.
+2. Layer 4 is faster (glances at the name tag); Layer 7 is smarter (reads the reservation) —
+   most production systems use both, in layers.
+3. The algorithm matters most when backends are stateful or unevenly sized — otherwise round
+   robin and a smile go a long way.
+4. Even Rita needs a backup: always run redundant load balancers behind a virtual IP.
 
 <Quiz
   lessonSlug="load-balancers"
   questions={[
+    {
+      question: "In the lesson's analogy, what does Rita the restaurant host represent?",
+      options: [
+        "A database server",
+        "The load balancer — greeting requests, seating them across servers, and tracking server health",
+        "A firewall blocking unwanted guests",
+        "The DNS phone book",
+      ],
+      correctIndex: 1,
+    },
     {
       question: "What is the key difference between Layer 4 and Layer 7 load balancing?",
       options: [
