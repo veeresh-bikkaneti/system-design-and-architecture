@@ -137,8 +137,8 @@ writes") to dodge exactly this.
 
 ## Stage 2.5: The chalkboard by the window (caching)
 
-Before we leave the database behind, one more trick — and it's the highest-leverage one on
-this whole list. Some questions get asked *constantly*: "what's today's special?", "is the
+Before we leave the database behind, one more trick — and it's the one with the biggest
+payoff on this whole list. Some questions get asked *constantly*: "what's today's special?", "is the
 truck open?" Making the cook look it up in the recipe book every time is silly when the
 answer barely changes. So you put a **chalkboard by the window** with the top ten answers
 written on it. The cashier reads the chalkboard; the cook is only bothered when the answer
@@ -231,8 +231,8 @@ flowchart TD
     R -->|users 0–9| S3[Volume 3<br/>Shard]:::data
 ```
 
-But — and the style guide of engineering honesty requires this "but" — sharding is the
-most expensive stage on this list. Queries that used to touch one database now might touch
+But — and here the "but" is doing honest work — sharding is the most expensive stage on
+this list. Queries that used to touch one database now might touch
 many ("find every customer named Lee" means asking all three volumes). Rebalancing shards
 as data grows is delicate surgery. And some operations, like transactions across shards,
 range from painful to genuinely impossible. Shard when the math says you must, not before.
