@@ -45,8 +45,8 @@ and how the code reads. If the hotel calls it a folio, your code calls it a `Fol
 an `InvoiceRecord`, not `BillingDocV2`.
 
 This sounds soft until you've debugged a system where "order" meant four different
-things depending on which service you asked. Then it sounds like the cheapest insurance
-policy you ever bought.
+things depending on which service you asked. Then it sounds like the cheapest night
+audit you ever ran.
 
 ## Bounded contexts: draw the property lines
 
@@ -58,8 +58,11 @@ Account (folio, charges, payment method) describe the same human being and share
 That isn't duplication; it's honesty. Forcing one `Guest` object across all three is
 exactly how you earn the 2 a.m. page from the introduction.
 
-Contexts still talk to each other — just not through shared tables or direct calls. They
-exchange **integration events** over async transport. The front desk publishes
+Contexts still talk to each other — not through shared tables, but through published
+interfaces and integration events. Direct synchronous calls between contexts are common
+too (often behind an anti-corruption layer); the point is that contexts never reach into
+each other's tables or private models. They exchange **integration events** over async
+transport. The front desk publishes
 `GuestCheckedIn`; housekeeping hears it and schedules a turnover for checkout day;
 billing hears it and opens a folio. Each context translates the event into its own
 language on arrival.
@@ -75,7 +78,7 @@ One caution: a bounded context is a modeling boundary, not a microservice. You c
 three contexts in one deployable or split one context across services. Confuse the two
 and you'll build a distributed monolith with extra YAML.
 
-## Aggregates: the bouncers of your invariants
+## Aggregates: the clerk guarding the reservation book
 
 Inside a context, some rules must never break halfway: a room-night can't be sold twice,
 you can't check in against a cancelled reservation, and checkout can't precede check-in.
@@ -117,8 +120,8 @@ system the same property: a past you can audit and a present you can explain.
 ## Event storming: the whole hotel on one wall
 
 So where do these events come from? You put everyone in a room — developers, the
-front-desk manager, the housekeeping lead, the billing person who knows where the bodies
-are buried — and you cover a wall in sticky notes. No laptops. This is **event
+front-desk manager, the housekeeping lead, the billing veteran who knows where every
+stray charge hides — and you cover a wall in sticky notes. No laptops. This is **event
 storming**, and the order of operations is the entire trick. Walk through it:
 
 <StepThrough
@@ -273,10 +276,11 @@ flowchart LR
 
 Watch one event's journey: written to the outbox in the same transaction as the booking,
 then propagated outward through the relay, the broker, and into the billing context.
-Since this is the advanced tier, the failure modes:
+Now the failure modes worth internalizing:
 
-- **The polling interval is your latency floor.** Poll every 500 ms and every
-  integration event arrives at least half a second stale. Tune the interval, or skip
+- **The polling interval caps freshness.** Poll every 500 ms and each
+  integration event waits *up to* half a second (average ~250 ms) before the relay
+  even sees it. Tune the interval, or skip
   polling with change-data-capture (Debezium tailing the database log) if you need
   better.
 - **The relay can publish twice.** Crash after publishing but before marking the row
@@ -299,9 +303,9 @@ replayable past. And the failure mode to respect is **versioning**: rename
 event unless you upcast old ones on read. Treat event names as a public API to your
 future self, and name them accordingly.
 
-Notice the through-line of the whole lesson: domain events are the vocabulary, the
-outbox is the delivery truck, and event sourcing is what happens when you keep every
-word ever spoken.
+Notice the through-line of the whole lesson: domain events are the hotel's logbook,
+the outbox is how the front desk reliably radios each entry across the street, and
+event sourcing is never tearing a page out of that logbook.
 
 ## Takeaways
 
@@ -382,10 +386,10 @@ word ever spoken.
 
 ## Sources & further reading
 
-- Eric Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software* (Addison-Wesley, 2003) — the "blue book"; ubiquitous language, bounded contexts, aggregates, and the original domain-event modeling guidance.
+- Eric Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software* (Addison-Wesley, 2003) — the "blue book"; ubiquitous language, bounded contexts, and aggregates.
 - Vaughn Vernon, *Implementing Domain-Driven Design* (Addison-Wesley, 2013) — the "red book"; tactical patterns and domain events in real codebases.
 - Martin Fowler, "DomainEvent" (martinfowler.com) — the canonical short definition of a domain event.
 - Microsoft, "Domain events: design and implementation" (Microsoft Learn, .NET Architecture Guides) — persisting events in the same transaction and dispatching after commit via an in-process dispatcher.
 - Gojko Adzic, *Bridging the Communication Gap* (book tip) — specification by example: concrete examples as the cheapest shared understanding, graduating into living documentation.
-- software-architektur.tv, [Nicole Rauch zu DDD, Event Storming & Specification by Example](https://software-architektur.tv/2020/09/10/folge017.html) (Folge 17, 2020) — event storming as collaborative DDD modeling; specification by example as building the right thing.
+- software-architektur.tv, [Nicole Rauch zu DDD, Event Storming & Specification by Example](https://software-architektur.tv/2020/09/10/folge017.html) (Folge 15, 2020) — event storming as collaborative DDD modeling; specification by example as building the right thing.
 - [Domain Event pattern](https://badia-kharroubi.gitbooks.io/microservices-architecture/content/patterns/tactical-patterns/domain-event-pattern.html) (GitBook, *Microservices Architecture*) — the characteristics checklist: immutability, past-tense naming, timestamps, and entity identity.
