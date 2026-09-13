@@ -1,0 +1,159 @@
+export const meta = {
+  slug: 'cdns',
+  title: 'Content Delivery Networks',
+  tier: 'intermediate',
+  order: 11,
+  summary:
+    'How CDNs put your content on every continent: edge PoPs, cache hierarchies, TTLs and purging, origin shields, and accelerating dynamic content.',
+  estimatedMinutes: 15,
+};
+
+## Why this matters
+
+The speed of light is not a suggestion — it's a hard limit. A user in Sydney requesting a
+file from a server in Virginia waits roughly 200 milliseconds *just for the round trip*,
+before your server does a single useful thing. No amount of code optimization fixes physics.
+A **CDN (Content Delivery Network)** fixes it the only way physics allows: by moving the
+content closer to the user. Netflix, YouTube, and every fast website you've ever used lean on
+this trick.
+
+Picture a popular restaurant chain. The flagship kitchen in one city makes an incredible
+sauce — but shipping every serving across the country would be slow and expensive. So the
+chain opens **regional kitchens** that keep the sauce ready to go. Diners everywhere get the
+same dish, fast. A CDN is a network of regional kitchens for your bytes: hundreds of edge
+locations (Points of Presence, or **PoPs**) that cache your content near your users.
+
+## The request path
+
+```mermaid
+flowchart LR
+    U[User in Sydney] --> E[Edge PoP<br/>Sydney]
+    E -->|Cache HIT| U2[Response in ~10ms]
+    E -->|Cache MISS| O[Origin server<br/>Virginia]
+    O --> E2[Fill edge cache]
+    E2 --> U3[Response in ~200ms<br/>next user gets 10ms]
+```
+
+The first user in a region pays the full round trip; everyone after them gets the cached
+copy. The metric that runs the whole business is the **cache hit ratio**: the fraction of
+requests served from the edge without touching your origin. Static assets (images, video,
+JS bundles) routinely hit 95%+; personalized API responses might be near 0%.
+
+{/* ANIMATION: GlobeMap showing a request from Sydney hitting the local edge PoP vs traveling to a Virginia origin, with latency counters */}
+
+## The cache hierarchy
+
+Large CDNs don't have just one layer. A typical setup:
+
+```mermaid
+flowchart TD
+    U[User] --> E[Edge PoP<br/>~hundreds worldwide]
+    E -->|miss| R[Regional cache<br/>~dozens worldwide]
+    R -->|miss| S[Origin shield<br/>single layer in front of origin]
+    S -->|miss| O[Your origin server]
+```
+
+Each layer shields the one below it. The **origin shield** is the unsung hero: a single
+caching layer that collapses duplicate misses from many edges into one request to your
+origin. Without it, a cache flush across 300 edges means 300 simultaneous requests to your
+origin — the thundering herd's globe-trotting cousin (see *Caching Strategies*).
+
+## TTLs, purging, and versioning
+
+Everything cached at the edge eventually goes stale, and CDNs manage that with the same
+tools you already know: **TTLs** and **purging**. Purge ("invalidate this URL everywhere,
+now") sounds perfect until you learn it can take seconds to minutes to propagate to every
+PoP — during a security incident, those seconds feel very long.
+
+The industry's favorite dodge is **content versioning**: never change a file in place;
+instead, ship `app.v2.js` alongside `app.v1.js` and update the reference. Immutable assets
+get year-long TTLs and never need purging. Your HTML (short TTL, or uncached) points at the
+new filenames. This one trick eliminates an entire class of staleness bugs.
+
+## Dynamic content acceleration
+
+"What about content that *can't* be cached — personalized pages, API responses?" CDNs still
+help, through the boring magic of better networking:
+
+- **Persistent, warm connections** between edge and origin (no TCP/TLS handshake per request).
+- **Smarter routing** — the CDN's private backbone often beats the public internet's
+  meandering path. (Your packets take the highway; everyone else takes side streets.)
+- **TLS termination at the edge** — the expensive handshake happens close to the user.
+
+**Cloudflare**, **CloudFront**, **Fastly**, and **Akamai** all sell this. Nobody will ever
+thank you for the 80 milliseconds you shaved off their API call, but the conversion-rate
+graphs will.
+
+## Picking and configuring
+
+A few practical trade-offs worth knowing:
+
+- **Pull vs. push**: in *pull* (origin pull) the CDN fetches from your origin on miss —
+  simplest, and what most sites use. In *push*, you upload content to the CDN's storage
+  directly — better for huge files (video libraries) where you don't want origins involved.
+- **Anycast routing**: your domain resolves to one IP advertised from every PoP; BGP
+  routing sends each user to the nearest one. This is why one DNS answer serves the planet.
+- **Cost model**: you pay mostly for egress bandwidth and requests. A misconfigured cache
+  (low hit ratio) doesn't just hurt latency — it shows up on the invoice, twice.
+
+## Takeaways
+
+1. CDNs beat the speed of light by moving content to edge PoPs near users; the cache hit ratio is the metric that matters.
+2. Layer the caches — edge, regional, origin shield — so misses don't stampede your origin.
+3. Version static assets immutably instead of purging; purge is slower and scarier than it looks.
+4. Even uncacheable dynamic content gets faster through warm connections and better routing.
+
+<Quiz
+  lessonSlug="cdns"
+  questions={[
+    {
+      question: "What is a CDN's primary answer to the latency imposed by the speed of light?",
+      options: [
+        "Compressing content more aggressively",
+        "Moving cached copies of content to edge PoPs near users",
+        "Upgrading the origin server's CPU",
+        "Reducing the number of HTTP requests per page",
+      ],
+      correctIndex: 1,
+    },
+    {
+      question: "What does an 'origin shield' do?",
+      options: [
+        "Encrypts traffic between the user and the edge",
+        "Blocks DDoS attacks at the network edge",
+        "Collapses duplicate cache misses from many edges into a single request to the origin",
+        "Automatically scales the origin server up and down",
+      ],
+      correctIndex: 2,
+    },
+    {
+      question: "Why do teams version static assets (app.v2.js) instead of overwriting app.js?",
+      options: [
+        "Versioned files compress better",
+        "Immutable versioned files can use very long TTLs and never need purging",
+        "CDNs refuse to cache files without version numbers",
+        "Browsers require version numbers to parse JavaScript",
+      ],
+      correctIndex: 1,
+    },
+    {
+      question: "How does a CDN speed up dynamic, uncacheable content?",
+      options: [
+        "By caching it anyway and hoping nobody notices",
+        "Through warm persistent connections, smarter routing, and TLS termination at the edge",
+        "By converting dynamic pages into static HTML",
+        "It cannot help at all with dynamic content",
+      ],
+      correctIndex: 1,
+    },
+  ]}
+/>
+
+---
+
+## Sources & further reading
+
+- Cloudflare Learning Center, "What is a CDN?" and "How CDN caching works" — the clearest vendor-neutral explainer set.
+- AWS documentation, "Amazon CloudFront" — origin shields, cache behaviors, invalidation.
+- Fastly engineering blog — edge computing and purging at scale (notably "Instant Purge" internals).
+- Nygren, Sitaraman & Wein, "Networked Systems and the Internet" / ACM SIGCOMM papers on CDN measurement — for the academic view of anycast and hit ratios.
