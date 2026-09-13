@@ -1,6 +1,6 @@
-import { HashRouter, Route, Routes } from 'react-router-dom';
+import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { MDXProvider } from '@mdx-js/react';
-import { isValidElement } from 'react';
+import { isValidElement, useEffect } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
@@ -37,10 +37,20 @@ function Pre(props: ComponentPropsWithoutRef<'pre'>) {
 
 const mdxComponents = { Quiz, PacketFlow, StepThrough, VsToggle, pre: Pre };
 
+// Keep the viewport at the top when the route changes (e.g. Home -> lesson).
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [pathname]);
+  return null;
+}
+
 function App() {
   return (
     <MDXProvider components={mdxComponents}>
       <HashRouter>
+        <ScrollToTop />
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<HomePage />} />
