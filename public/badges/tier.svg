@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" role="img" aria-label="Tier completion badge">
+  <defs>
+    <linearGradient id="tier-shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c4b5fd"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <path d="M42 0 L56 0 L52 40 L38 40 Z" fill="#4c1d95"/>
+  <path d="M64 0 L78 0 L82 40 L68 40 Z" fill="#4c1d95"/>
+  <path d="M60 44 L90 56 L90 84 C90 102 75 112 60 118 C45 112 30 102 30 84 L30 56 Z" fill="url(#tier-shield)" stroke="#ede9fe" stroke-width="4"/>
+  <path d="M60 50 L84 60 L84 83 C84 98 72 106 60 111 C48 106 36 98 36 83 L36 60 Z" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="2"/>
+  <path d="M46 78 l14 11 l14 -11" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M46 90 l14 11 l14 -11" fill="none" stroke="#ffffff" stroke-opacity="0.7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" role="img" aria-label="Quiz ace badge">
+  <defs>
+    <linearGradient id="ace-medal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="1" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <path d="M42 0 L56 0 L52 52 L38 52 Z" fill="#92400e"/>
+  <path d="M64 0 L78 0 L82 52 L68 52 Z" fill="#92400e"/>
+  <circle cx="60" cy="82" r="36" fill="url(#ace-medal)" stroke="#fef3c7" stroke-width="4"/>
+  <circle cx="60" cy="82" r="28" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="2"/>
+  <ellipse cx="48" cy="66" rx="10" ry="5" fill="#ffffff" fill-opacity="0.3" transform="rotate(-30 48 66)"/>
+  <polygon points="60,60 64.7,73.5 79,73.8 67.6,82.5 71.8,96.2 60,88 48.2,96.2 52.4,82.5 41,73.8 55.3,73.5" fill="#ffffff"/>
+</svg>

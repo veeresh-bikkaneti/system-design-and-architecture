@@ -1,13 +1,17 @@
 import { NavLink } from 'react-router-dom';
 import { lessons, tierLabels, tierOrder } from '../lib/lessons';
+import { getBadgesWithStatus } from '../lib/badges';
 import { isTierUnlocked } from '../lib/progress-gate';
 import { useProgressStore } from '../store/progress';
 
 export function Sidebar() {
   const completedLessons = useProgressStore((state) => state.completedLessons);
+  const quizResults = useProgressStore((state) => state.quizResults);
   const total = lessons.length;
   const completedCount = completedLessons.length;
   const percent = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+  const badgeStatuses = getBadgesWithStatus({ completedLessons, quizResults });
+  const unlockedBadgeCount = badgeStatuses.filter((badge) => badge.unlocked).length;
 
   return (
     <nav className="flex h-full w-full flex-col gap-6 overflow-y-auto p-4">
@@ -34,6 +38,23 @@ export function Sidebar() {
             {completedCount} / {total} lessons ({percent}%)
           </p>
         </div>
+
+        <NavLink
+          to="/badges"
+          className={({ isActive }) =>
+            `flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+              isActive
+                ? 'bg-violet-100 font-medium text-violet-900 dark:bg-violet-900/40 dark:text-violet-100'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+            }`
+          }
+        >
+          <span aria-hidden="true">🏅</span>
+          <span>Badges</span>
+          <span className="ml-auto rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            {unlockedBadgeCount}/{badgeStatuses.length}
+          </span>
+        </NavLink>
       </div>
 
       {tierOrder.map((tier) => {

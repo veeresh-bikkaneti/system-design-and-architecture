@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" role="img" aria-label="Lesson completion badge">
+  <defs>
+    <linearGradient id="lesson-medal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7dd3fc"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <path d="M42 0 L56 0 L52 52 L38 52 Z" fill="#1e40af"/>
+  <path d="M64 0 L78 0 L82 52 L68 52 Z" fill="#1e40af"/>
+  <circle cx="60" cy="82" r="36" fill="url(#lesson-medal)" stroke="#dbeafe" stroke-width="4"/>
+  <circle cx="60" cy="82" r="28" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="2"/>
+  <ellipse cx="48" cy="66" rx="10" ry="5" fill="#ffffff" fill-opacity="0.25" transform="rotate(-30 48 66)"/>
+  <path d="M48 82 l9 9 l16 -19" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
