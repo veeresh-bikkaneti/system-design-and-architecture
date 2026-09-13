@@ -63,3 +63,48 @@ body {
 .lesson-prose hr {
   @apply my-8 border-slate-200 dark:border-slate-800;
 }
+
+/* Animated diagram components (src/components/diagrams) */
+
+/* PacketFlow: pause the traveling request dots while hovering the diagram */
+.packetflow:hover .pf-dot {
+  animation-play-state: paused;
+}
+
+/* StepThrough: pulsing glow on the currently highlighted diagram nodes */
+@keyframes stepthrough-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 2px rgb(139 92 246 / 0.35));
+  }
+  50% {
+    filter: drop-shadow(0 0 7px rgb(139 92 246 / 0.7));
+  }
+}
+.stepthrough-highlight {
+  animation: stepthrough-glow 1.8s ease-in-out infinite;
+}
+
+/* StepThrough + VsToggle: panel content fades/slides in when it changes */
+@keyframes vs-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.vs-panel-enter {
+  animation: vs-panel-enter 0.3s ease-out;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .packetflow .pf-dot,
+  .stepthrough-highlight,
+  .vs-panel-enter {
+    animation: none;
+  }
+}
