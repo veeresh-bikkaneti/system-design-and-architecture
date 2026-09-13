@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" role="img" aria-label="Course completion badge">
+  <defs>
+    <radialGradient id="course-medal" cx="0.35" cy="0.3" r="1">
+      <stop offset="0" stop-color="#fef9c3"/>
+      <stop offset="0.55" stop-color="#facc15"/>
+      <stop offset="1" stop-color="#b45309"/>
+    </radialGradient>
+  </defs>
+  <path d="M42 0 L56 0 L52 52 L38 52 Z" fill="#78350f"/>
+  <path d="M64 0 L78 0 L82 52 L68 52 Z" fill="#78350f"/>
+  <circle cx="60" cy="82" r="38" fill="url(#course-medal)" stroke="#fefce8" stroke-width="4"/>
+  <circle cx="60" cy="82" r="30" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="2" stroke-dasharray="4 4"/>
+  <polygon points="40,92 43,66 52,76 60,58 68,76 77,66 80,92" fill="#ffffff"/>
+  <rect x="40" y="92" width="40" height="6" rx="3" fill="#ffffff"/>
+  <circle cx="60" cy="58" r="4" fill="#ffffff"/>
+</svg>

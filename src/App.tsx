@@ -5,6 +5,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
 import { LessonPage } from './pages/LessonPage';
+import { BadgesPage, BadgeDetailPage } from './pages/BadgesPage';
 import { Quiz } from './components/Quiz';
 import { MermaidDiagram } from './components/MermaidDiagram';
 
@@ -41,6 +42,8 @@ function App() {
           <Route element={<Layout />}>
             <Route index element={<HomePage />} />
             <Route path="lesson/:slug" element={<LessonPage />} />
+            <Route path="badges" element={<BadgesPage />} />
+            <Route path="badges/:id" element={<BadgeDetailPage />} />
           </Route>
         </Routes>
       </HashRouter>
