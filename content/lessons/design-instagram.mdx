@@ -261,7 +261,7 @@ The design above is the happy path. The interview points come from naming what b
 - **The thundering herd.** A photo goes viral and a million phones request the same
   CDN URL within a minute — the classic stampede from the Caching Strategies lesson.
   The CDN's edge cache absorbs it, but the *first* fetch per PoP still hits origin.
-  Request collapsing at the edge (one origin fetch per PoP per object) is what keeps
+  Request coalescing at the edge (one origin fetch per PoP per object) is what keeps
   that first fetch from becoming a million of them.
 - **Duplicate uploads.** The user taps "post" twice, or the app retries on a flaky
   connection. Without an **idempotency key** (a client-generated upload ID the API
@@ -356,5 +356,6 @@ middle. That's a passing answer.
   PostgreSQL in production, with photo IDs generated to encode their shard.
 - Amazon S3 documentation — object storage semantics: write-once blobs, eleven nines of
   durability, and the read-many model the upload pipeline relies on.
-- Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017), Ch. 5 —
-  covers the fan-out vs fan-in trade-off between doing work on write versus on read.
+- Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017), Ch. 5
+  (Replication) — the write-vs-read work trade-off as it applies to derived views and
+  followers.

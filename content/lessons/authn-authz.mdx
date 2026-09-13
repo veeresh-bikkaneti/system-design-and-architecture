@@ -126,7 +126,7 @@ flowchart TD
     T["eyJhbGciOi... · the token string"]:::security --> H["Header: signing algorithm + token type"]:::security
     T --> P["Payload: claims — who, what, until when"]:::security
     T --> S["Signature: computed over header.payload with the server's secret"]:::security
-    S --> V["Anyone can verify the signature. Tamper with a claim and verification fails."]:::security
+    S --> V["Anyone holding the verification key can verify the signature (HS256: the shared secret; RS256: the public key). Tamper with a claim and verification fails."]:::security
 ```
 
 The payload carries **claims** — small assertions like `sub` (the subject: user 42),

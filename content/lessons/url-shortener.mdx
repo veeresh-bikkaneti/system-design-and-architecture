@@ -172,13 +172,14 @@ is just a lookup, cache invalidation is almost a non-issue — a short URL's des
 rarely changes.
 
 <PacketFlow
-  stages={["Browser", "API", "Key service"]}
+  stages={["Browser", "API"]}
   servers={["db-shard-1", "db-shard-2", "db-shard-3"]}
   requestLabel="POST"
 />
 
-The shorten path above: your POST arrives, the API spends a pre-fetched ticket from the
-key service, and the row lands on the shard its key hashes to. Now the redirect path,
+The shorten path above: your POST arrives, the API spends a pre-fetched ticket from its
+local batch (refilled from the key service in the background — no per-request
+coordination), and the row lands on the shard its key hashes to. Now the redirect path,
 where the cache earns its keep:
 
 <PacketFlow
@@ -216,7 +217,7 @@ breaks:
 
 - **The key service goes down.** App servers keep shortening from their local batches —
   that's the whole point of batching. Size batches for hours of runway (a batch of 100,000
-  keys at ~100 shortens/sec buys you ~15 minutes; size up from there), alert loudly, and
+  keys at ~100 shortens/sec buys you ~17 minutes; size up from there), alert loudly, and
   fix the service. If batches run dry, shortens degrade — but redirects never notice,
   because the redirect path doesn't touch the KGS.
 - **A database shard goes down.** Every short key on that shard stops resolving. Sharding
@@ -349,6 +350,6 @@ sequenceDiagram
 
 ## Sources & further reading
 
-- Bitly Engineering blog — posts on scaling Bitly's URL-shortening infrastructure to billions of requests.
+- Bitly Engineering blog (blog.bitly.com) — engineering posts on scaling their URL-shortening infrastructure.
 - Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017), Ch. 5 (Replication) and Ch. 6 (Partitioning) — the theory behind the sharding and replica decisions in this lesson.
 - R. Fielding & J. Reschke, RFC 7231 §6.4.2 (2014) — the semantics of 301 Moved Permanently.
