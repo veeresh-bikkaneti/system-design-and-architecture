@@ -1,13 +1,13 @@
 import './badges.css';
 
 const CONFETTI_COLORS = [
-  '#f43f5e',
   '#f59e0b',
+  '#f97316',
+  '#fbbf24',
   '#10b981',
-  '#3b82f6',
-  '#8b5cf6',
+  '#ef4444',
   '#ec4899',
-  '#facc15',
+  '#14b8a6',
 ];
 
 /**
