@@ -54,7 +54,29 @@ The danger: the first request after a deploy (or a cache flush) hits the databas
 your application code now owns all the invalidation logic. Most teams using **Memcached** or
 **Redis** start here.
 
-{/* ANIMATION: RequestFlow showing a cache-aside read path — cache hit vs cache miss with the database round-trip highlighted */}
+<VsToggle
+  title="Cache-aside read path: hit vs miss"
+  a={{
+    label: "Cache hit",
+    title: "Served from Redis in ~1 ms",
+    points: [
+      "The app checks the cache first — and key user:42 is right there",
+      "No database query, no round trip, no waiting",
+      "Hot keys stay warm while their TTL keeps refreshing",
+    ],
+    note: "The happy path — design so this is 90%+ of your reads.",
+  }}
+  b={{
+    label: "Cache miss",
+    title: "The full database round trip",
+    points: [
+      "The app finds nothing in the cache for user:42",
+      "It loads the row from the database, then SETs it back into the cache with a 300s TTL",
+      "The first request after a deploy or flush hammers the database — the thundering herd",
+    ],
+    note: "Design for this path — it is where the outages hide.",
+  }}
+/>
 
 ## Read-through and write-through
 

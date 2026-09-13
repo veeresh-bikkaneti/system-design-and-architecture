@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import './diagrams.css';
 
 /**
  * Props for {@link PacketFlow}.
@@ -128,7 +129,7 @@ export function PacketFlow({
                 width={NODE_W}
                 height={NODE_H}
                 rx={9}
-                className="fill-violet-50 stroke-violet-400 dark:fill-violet-950/60 dark:stroke-violet-500"
+                className="fill-amber-50 stroke-amber-500 dark:fill-amber-950/50 dark:stroke-amber-500"
                 strokeWidth={1.5}
               />
               <text
@@ -138,7 +139,7 @@ export function PacketFlow({
                 dominantBaseline="central"
                 fontSize={12}
                 fontWeight={600}
-                className="fill-violet-900 dark:fill-violet-200"
+                className="fill-amber-950 dark:fill-amber-200"
               >
                 {label}
               </text>
@@ -154,7 +155,7 @@ export function PacketFlow({
                 width={NODE_W}
                 height={NODE_H}
                 rx={9}
-                className="fill-emerald-50 stroke-emerald-400 dark:fill-emerald-950/60 dark:stroke-emerald-500"
+                className="fill-orange-50 stroke-orange-400 dark:fill-orange-950/50 dark:stroke-orange-500"
                 strokeWidth={1.5}
               />
               <text
@@ -164,7 +165,7 @@ export function PacketFlow({
                 dominantBaseline="central"
                 fontSize={12}
                 fontWeight={600}
-                className="fill-emerald-900 dark:fill-emerald-200"
+                className="fill-orange-950 dark:fill-orange-200"
               >
                 {label}
               </text>

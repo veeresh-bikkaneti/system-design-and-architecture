@@ -66,7 +66,40 @@ flowchart TD
     S["Sliding window<br/>counts trailing 60s<br/>= 200 in 60s — rejected ✓"]
 ```
 
-{/* ANIMATION: TokenBucket showing tokens refilling, a burst draining the bucket, and requests getting 429s until refill */}
+<StepThrough
+  title="Token bucket under a burst"
+  nodes={[
+    { id: "client", label: "Client", x: 90, y: 150 },
+    { id: "bucket", label: "Token bucket", x: 240, y: 150, w: 130 },
+    { id: "api", label: "API", x: 390, y: 150 },
+  ]}
+  edges={[
+    { from: "client", to: "bucket" },
+    { from: "bucket", to: "api" },
+  ]}
+  steps={[
+    {
+      title: "Tokens refill steadily",
+      caption: "The bucket refills at a fixed rate — say 10 tokens per second, up to a cap of 50. Each token is permission for one request.",
+      highlight: ["bucket"],
+    },
+    {
+      title: "Steady traffic flows",
+      caption: "Requests arrive, each spends a token, and the bucket refills behind them. Everything passes — the savings account stays funded.",
+      highlight: ["client", "bucket", "api"],
+    },
+    {
+      title: "A burst drains the bucket",
+      caption: "Sixty requests arrive at once and spend every saved token. Bursts are allowed — you saved up for them — but the account is now empty.",
+      highlight: ["bucket", "client"],
+    },
+    {
+      title: "429s until refill",
+      caption: "With no tokens left, further requests are rejected with 429 Too Many Requests until the bucket refills. Back off and retry.",
+      highlight: ["client"],
+    },
+  ]}
+/>
 
 ## Distributed rate limiting
 

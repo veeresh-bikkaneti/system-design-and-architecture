@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import './diagrams.css';
 
 /**
  * A node drawn on the {@link StepThrough} diagram canvas (480x300).
@@ -138,7 +139,7 @@ export function StepThrough({
                   strokeWidth={active ? 2.5 : 1.5}
                   className={
                     active
-                      ? 'fill-violet-100 stroke-violet-500 dark:fill-violet-950/70 dark:stroke-violet-400'
+                      ? 'fill-amber-100 stroke-amber-500 dark:fill-amber-950/60 dark:stroke-amber-400'
                       : 'fill-slate-50 stroke-slate-300 dark:fill-slate-900 dark:stroke-slate-600'
                   }
                 />
@@ -151,7 +152,7 @@ export function StepThrough({
                   fontWeight={active ? 700 : 500}
                   className={
                     active
-                      ? 'fill-violet-900 dark:fill-violet-100'
+                      ? 'fill-amber-950 dark:fill-amber-100'
                       : 'fill-slate-600 dark:fill-slate-300'
                   }
                 >
@@ -165,7 +166,7 @@ export function StepThrough({
 
       {/* Step content */}
       <div key={index} className="vs-panel-enter">
-        <p className="text-xs font-medium uppercase tracking-wide text-violet-600 dark:text-violet-400">
+        <p className="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
           Step {index + 1} of {steps.length}
         </p>
         <h5 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -197,7 +198,7 @@ export function StepThrough({
               onClick={() => goTo(i)}
               className={`h-2 rounded-full transition-all ${
                 i === index
-                  ? 'w-6 bg-violet-500'
+                  ? 'w-6 bg-amber-500'
                   : 'w-2 bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 dark:hover:bg-slate-600'
               }`}
             />

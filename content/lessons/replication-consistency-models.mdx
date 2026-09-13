@@ -66,7 +66,12 @@ and acknowledged by a **quorum**. No failover drama — every node is equal — 
 writes to different nodes create conflicts that somebody must resolve. **Cassandra**,
 **DynamoDB**, and **Riak** live here.
 
-{/* ANIMATION: RequestFlow showing a leaderless write fanning out to 3 replicas with W=2 acknowledgments, then a read with R=2 */}
+<PacketFlow
+  stages={["Client", "Coordinator node"]}
+  servers={["Replica A", "Replica B", "Replica C"]}
+  requestLabel="W"
+  duration={5}
+/>
 
 ## Quorums: the tunable middle
 

@@ -40,7 +40,12 @@ decoupling buys you three things: **temporal decoupling** (B can be down when A 
 **load leveling** (spikes become a backlog, not an outage), and **independent scaling**
 (add consumers without touching producers).
 
-{/* ANIMATION: QueueDepth showing producers spiking while consumers drain at a steady rate — the backlog absorbing a flash sale */}
+<PacketFlow
+  stages={["Producers", "Durable queue"]}
+  servers={["consumer-1", "consumer-2", "consumer-3"]}
+  requestLabel="order"
+  duration={5}
+/>
 
 ## Delivery guarantees: pick your poison
 

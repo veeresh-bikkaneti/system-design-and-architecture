@@ -51,7 +51,43 @@ randomized timeouts make it overwhelmingly likely that one retries first and win
 Deterministic timeouts would livelock forever, like two people repeatedly saying "no, you
 go first" in a doorway.
 
-{/* ANIMATION: StepThrough showing a 5-node cluster: leader heartbeats, leader crash, randomized election timeouts, and a new leader elected */}
+<StepThrough
+  title="Raft: losing a leader"
+  nodes={[
+    { id: "n1", label: "N1", x: 70, y: 150 },
+    { id: "n2", label: "N2", x: 155, y: 150 },
+    { id: "n3", label: "N3 · leader", x: 240, y: 150 },
+    { id: "n4", label: "N4", x: 325, y: 150 },
+    { id: "n5", label: "N5", x: 410, y: 150 },
+  ]}
+  steps={[
+    {
+      title: "Steady state: heartbeats",
+      caption: "N3 is leader for term 7. Every ~50–100 ms it sends empty AppendEntries heartbeats to all followers, resetting their election timers.",
+      highlight: ["n3"],
+    },
+    {
+      title: "The leader crashes",
+      caption: "N3 goes silent mid-term. Followers stop receiving heartbeats — but each one's election timer keeps ticking.",
+      highlight: [],
+    },
+    {
+      title: "Election timeouts fire — randomly",
+      caption: "Timers are randomized (150–300 ms), so N1 times out first instead of everyone firing at once. That randomization is the quiet genius.",
+      highlight: ["n1"],
+    },
+    {
+      title: "N1 campaigns for votes",
+      caption: "N1 becomes a candidate, increments to term 8, votes for itself, and asks N2, N4, and N5 for their votes.",
+      highlight: ["n1", "n2", "n4", "n5"],
+    },
+    {
+      title: "A new leader is elected",
+      caption: "N1 wins a majority — 3 of 5 votes — and becomes leader for term 8. Heartbeats resume, and the cluster is healthy again.",
+      highlight: ["n1"],
+    },
+  ]}
+/>
 
 ## Log replication: the actual work
 

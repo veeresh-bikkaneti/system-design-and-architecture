@@ -85,7 +85,41 @@ consistent hashing distributes unevenly when N is small — so production system
 distribution and making heterogeneous hardware natural (big machine gets more virtual
 nodes). **Dynamo**, **Cassandra**, and **Riak** all do this.
 
-{/* ANIMATION: HashRing showing keys assigned around a ring, then a new shard joining and only its arc's keys migrating */}
+<StepThrough
+  title="Consistent hashing: a new shard joins"
+  nodes={[
+    { id: "s1", label: "Shard S1", x: 240, y: 52, w: 90 },
+    { id: "s2", label: "Shard S2", x: 345, y: 155, w: 90 },
+    { id: "s4", label: "Shard S4", x: 240, y: 258, w: 90 },
+    { id: "s3", label: "Shard S3", x: 135, y: 155, w: 90 },
+    { id: "ka", label: "key A", x: 160, y: 95, w: 80, h: 32 },
+    { id: "kb", label: "key B", x: 320, y: 220, w: 80, h: 32 },
+    { id: "kc", label: "key C", x: 155, y: 220, w: 80, h: 32 },
+  ]}
+  edges={[
+    { from: "s1", to: "s2" },
+    { from: "s2", to: "s4" },
+    { from: "s4", to: "s3" },
+    { from: "s3", to: "s1" },
+  ]}
+  steps={[
+    {
+      title: "Keys on the ring",
+      caption: "Three shards sit on the hash ring. Key A hashes into S1's arc, key C into S3's — every key belongs to the first shard clockwise from it.",
+      highlight: ["s1", "s2", "s3", "ka", "kc"],
+    },
+    {
+      title: "Shard S4 joins",
+      caption: "S4 lands on the ring between S2 and S3 and claims the arc from S2's position to its own.",
+      highlight: ["s4"],
+    },
+    {
+      title: "Only the arc migrates",
+      caption: "Key B — the only key in S4's new arc — moves over from S3. Everything else stays put: about 1/N of keys move, not (N−1)/N.",
+      highlight: ["s4", "kb"],
+    },
+  ]}
+/>
 
 ## The numbers: resharding cost and shard sizing
 
