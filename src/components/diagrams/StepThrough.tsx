@@ -94,9 +94,9 @@ export function StepThrough({
   const goTo = (i: number) => setIndex(Math.min(Math.max(i, 0), steps.length - 1));
 
   return (
-    <div className="not-prose my-8 rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-950">
+    <div className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-slate-800 dark:bg-slate-950">
       {title && (
-        <h4 className="mb-3 text-base font-semibold text-slate-900 dark:text-slate-100">
+        <h4 className="diagram-mono mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-slate-400">
           {title}
         </h4>
       )}
@@ -119,7 +119,7 @@ export function StepThrough({
                 y1={from.y}
                 x2={to.x}
                 y2={to.y}
-                className="stroke-slate-300 dark:stroke-slate-600"
+                className="stroke-stone-300 dark:stroke-slate-600"
                 strokeWidth={2}
               />
             );
@@ -140,7 +140,7 @@ export function StepThrough({
                   className={
                     active
                       ? 'fill-amber-100 stroke-amber-500 dark:fill-amber-950/60 dark:stroke-amber-400'
-                      : 'fill-slate-50 stroke-slate-300 dark:fill-slate-900 dark:stroke-slate-600'
+                      : 'fill-white stroke-stone-300 dark:fill-slate-900 dark:stroke-slate-600'
                   }
                 />
                 <text
@@ -148,12 +148,12 @@ export function StepThrough({
                   y={n.y}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={12}
+                  fontSize={11}
                   fontWeight={active ? 700 : 500}
                   className={
                     active
-                      ? 'fill-amber-950 dark:fill-amber-100'
-                      : 'fill-slate-600 dark:fill-slate-300'
+                      ? 'diagram-mono fill-amber-950 dark:fill-amber-100'
+                      : 'diagram-mono fill-stone-600 dark:fill-slate-300'
                   }
                 >
                   {n.label}
@@ -166,7 +166,7 @@ export function StepThrough({
 
       {/* Step content */}
       <div key={index} className="vs-panel-enter">
-        <p className="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
+        <p className="diagram-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-400">
           Step {index + 1} of {steps.length}
         </p>
         <h5 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">

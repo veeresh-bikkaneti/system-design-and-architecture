@@ -54,22 +54,22 @@ export function VsToggle({ title, a, b, defaultSide = 'a' }: VsToggleProps) {
           border: 'border-amber-200 dark:border-amber-800',
         }
       : {
-          chip: 'bg-orange-100 text-orange-900 dark:bg-orange-950/70 dark:text-orange-200',
-          dot: 'bg-orange-500',
-          border: 'border-orange-200 dark:border-orange-800',
+          chip: 'bg-cyan-100 text-cyan-900 dark:bg-cyan-950/70 dark:text-cyan-200',
+          dot: 'bg-cyan-500',
+          border: 'border-cyan-200 dark:border-cyan-800',
         };
 
   return (
-    <div className="not-prose my-8 rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-950">
+    <div className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-slate-800 dark:bg-slate-950">
       {title && (
-        <h4 className="mb-3 text-base font-semibold text-slate-900 dark:text-slate-100">
+        <h4 className="diagram-mono mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-slate-400">
           {title}
         </h4>
       )}
 
       {/* Segmented toggle */}
       <div
-        className="relative mx-auto grid max-w-md grid-cols-2 rounded-lg bg-slate-100 p-1 dark:bg-slate-800"
+        className="relative mx-auto grid max-w-md grid-cols-2 rounded-lg bg-stone-200/70 p-1 dark:bg-slate-800"
         role="tablist"
         aria-label={title ?? 'Scenario comparison'}
       >
@@ -103,12 +103,12 @@ export function VsToggle({ title, a, b, defaultSide = 'a' }: VsToggleProps) {
       {/* Scenario panel */}
       <div
         key={side}
-        className={`vs-panel-enter mt-4 rounded-lg border ${accent.border} bg-slate-50 p-4 dark:bg-slate-900/60`}
+        className={`vs-panel-enter mt-4 rounded-lg border ${accent.border} bg-white p-4 dark:bg-slate-900/60`}
       >
         <div className="flex items-center gap-2">
           <span className={`h-2.5 w-2.5 rounded-full ${accent.dot}`} aria-hidden="true" />
           <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${accent.chip}`}
+            className={`diagram-mono rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${accent.chip}`}
           >
             {scenario.label}
           </span>
