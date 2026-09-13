@@ -105,7 +105,7 @@ flowchart LR
 
 ## The honest trade-offs
 
-A gateway is a **single point of leverage** and therefore a **single point of failure**.
+A gateway is a **single point of control** and therefore a **single point of failure**.
 If it goes down, everything behind it is unreachable — so it must be deployed redundantly
 across zones, with health checks and fast failover. It also adds latency (one more hop,
 usually single-digit milliseconds) and can become a **bottleneck of ownership**: when every
