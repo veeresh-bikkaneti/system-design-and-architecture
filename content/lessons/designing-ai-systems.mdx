@@ -372,7 +372,7 @@ you fix it. Dashboards watch the restaurant. Mystery diners taste the food.
 
 1. **Every LLM request walks one pipeline:** prompt → guardrails → context assembly → inference → guardrails → trace. The model is the most expensive, least reliable part; everything around it feeds it better context and checks its work.
 2. **RAG puts knowledge in files, not weights.** Chunk, embed, index, retrieve, rerank, generate. It wins when facts change, data is private, or answers need receipts; the failure mode is garbage in, gospel out — debug retrieval before blaming the model.
-3. **Fine-tuning teaches behavior; RAG teaches facts.** Use both: fine-tune for house style, retrieve for knowledge. The VsToggle above is the decision in one screen.
+3. **Fine-tuning teaches behavior; RAG teaches facts.** Use both: fine-tune for house style, retrieve for knowledge. The comparison above is the decision in one screen.
 4. **An agent is a loop, not a call.** Plan → act (tool use) → observe, with the model choosing each step. Cap iterations and dollars, treat tool output as untrusted, and start with workflows until the steps genuinely can't be fixed in advance.
 5. **Vector DBs sell one triangle:** recall vs. latency vs. cost. Approximate search is the only option at scale; metadata filtering and chunk quality matter more than which index you pick.
 6. **Inference economics are KV-cache economics.** Decode is memory-bandwidth-bound, so batch continuously, page the cache (PagedAttention: 2–4× throughput), quantize deliberately, and cache repeated prefixes — stable content first.
