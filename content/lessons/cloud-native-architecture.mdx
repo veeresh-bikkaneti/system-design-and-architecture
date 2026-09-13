@@ -307,8 +307,9 @@ Watch one request travel through everything you've just learned:
    latency-sensitive APIs, long jobs, and persistent connections. Budget for cold
    starts on the first press of the day.
 5. **Twelve-factor's big three:** keep processes stateless, put config in the
-   environment, and treat databases and queues as attached backing services. The
-   cloud will kill your processes; design so you don't mind.
+   environment, and design for disposability — treating databases and queues as
+   attached backing services. The cloud will kill your processes; design so you
+   don't mind.
 6. **The meter is always running.** Pay-as-you-go rewards workloads that scale
    to zero and punishes forgotten ones. Tag everything, alert on budgets, and
    reserve capacity for the load you know is coming.
