@@ -5,7 +5,7 @@ export const meta = {
   order: 2,
   summary:
     'Five principles for code that survives contact with the future: one job per class, extend without rewriting, substitutes that keep their promises, small interfaces, and dependencies that point at abstractions — told through a home kitchen.',
-  estimatedMinutes: 15,
+  estimatedMinutes: 17,
 };
 
 ## Why this matters
@@ -159,6 +159,22 @@ survive the broiler the way the cast iron would. A substitute that can't keep th
 contract isn't a substitute — it's a surprise. LSP is the principle that says surprises
 are bugs.
 
+### Liskov violations in the wild
+
+This isn't a textbook curiosity — two of the most-used classes in Java history violate
+it. `java.util.Stack` extends `Vector`, so a stack *inherits* methods like
+`insertElementAt` that let you jam an element into the middle — shattering the
+last-in-first-out contract every stack recipe depends on. `java.util.Properties`
+extends `Hashtable`, inheriting `put(Object, Object)`, which happily accepts
+non-string keys that `getProperty` will then never find. In both cases the subclass
+*looks* substitutable and quietly isn't: the oat cream that curdles in the pan.
+Joshua Bloch holds both up in *Effective Java* as cautionary tales for the same
+verdict — inheritance models "is-a," and when the "is-a" is a lie, every caller pays.
+
+The test is always behavioral: can a caller use the subtype without knowing it isn't
+the supertype? If answering that requires reading the subclass's source code, the
+contract is already broken.
+
 ## I — Interface segregation: the right menu
 
 Your TV remote has eighty buttons. You use nine. The other seventy-one are a maze you
@@ -260,6 +276,27 @@ Watch a swap happen, step by step:
     },
   ]}
 />
+
+### DIP at the boundary: from classes to microservices
+
+Here's the part most SOLID tutorials skip: dependency inversion doesn't stop at
+classes. Scale it up one level and it becomes the rule that keeps microservices
+sane.
+
+Your order service needs to charge cards. The naive version hardwires to the
+payments team's HTTP API — URLs, payload shapes, and error codes scattered through
+the order logic. When payments ships v2, or you switch providers, you're rewriting
+the order service. The inverted version: the order service depends on a `Payments`
+**port** — an interface it owns — and a small **adapter** translates that port into
+whatever the payments API actually speaks. Provider changes mean rewriting the
+adapter. The order service never notices.
+
+If that sounds familiar, it should: the anti-corruption layer from the
+anti-corruption layer lesson *is* dependency inversion at the bounded-context
+boundary. Same lamp, bigger apartment. And the distributed version of the hardwired
+lamp is the service that reads another service's database directly — no interface,
+no adapter, just a live wire into someone else's schema. It works until the other
+team renames a column, and then you find out what "coupled" really costs.
 
 ## The junk drawer tour: violations you'll meet in the wild
 

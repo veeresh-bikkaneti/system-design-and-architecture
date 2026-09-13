@@ -5,7 +5,7 @@ export const meta = {
   order: 9,
   summary:
     'Networks fail, so we retry — but a retry can double-charge a credit card. How idempotency keys and idempotent operations make retries safe.',
-  estimatedMinutes: 14,
+  estimatedMinutes: 17,
 };
 
 ## Why this matters
@@ -160,8 +160,57 @@ flowchart TD
 One subtlety the diagram hides: the "key seen before?" check and the store must be atomic.
 Two retries racing each other could both see "not seen," both execute, and both store —
 the double-charge you were trying to prevent. The standard fix is a uniqueness constraint
-on the key column: the loser's insert fails, it reads the winner's stored response, and
-returns that. Your database already knows how to do atomic inserts; let it.
+on the key column: the loser's insert fails, and once the winner finishes it reads the
+winner's stored response and returns that (if the winner is still in flight, the loser
+returns 409 instead — see below). Your database already knows how to do atomic inserts; let it.
+
+## The key has three states, not two
+
+That flowchart asks "key seen before?" — but "seen" hides two very different situations,
+and handling them the same way is a bug. A key is really in one of three states:
+
+1. **Unseen.** Execute the operation, store key → response, return it. The normal path.
+2. **Seen and completed.** Skip execution, replay the stored response. The lit button.
+3. **Seen but still in progress.** The first request hasn't finished — remember timeout
+   case 3, *slow, not lost*. There's no stored response to replay yet, and executing
+   again would double-apply the effect. So what do you return?
+
+Stripe's answer, and the industry convention: **409 Conflict** — "a request with this
+key is already being processed." The client treats a 409 like a timeout: back off, wait,
+retry later with the *same* key. Eventually the first request finishes and stores its
+response, and a subsequent retry gets the replay. Back to the elevator: the button is
+lit, but the car hasn't arrived yet. Pressing again doesn't summon a second car — it
+just reminds you one is already coming.
+
+```mermaid
+flowchart TD
+    R["Request arrives<br/>with Idempotency-Key"]:::client --> L{"Key state?"}:::service
+    L -->|"Unseen"| E["Execute, store key → response"]:::service
+    L -->|"Completed"| P["Replay stored response"]:::service
+    L -->|"In progress"| C["409 Conflict<br/>client backs off, retries same key"]:::service
+    E --> R2["Return fresh response"]:::service
+```
+
+Two more details that separate a real implementation from a sketch:
+
+- **Same key, different body.** A key is supposed to identify *one* logical operation.
+  If a retry arrives with the same key but different parameters, that's not a retry —
+  it's a bug in the client, or someone probing. Stripe rejects it with **400** (an
+  `idempotency_error`); the IETF draft recommends **422** for a payload mismatch, and
+  some implementations hash the request body and compare it against the hash stored
+  with the key — a fingerprint check. Either way, never silently execute a mismatched request
+  under an existing key.
+- **Who mints the key?** Usually the client, but not always. A plain browser form with
+  no JavaScript can't generate UUIDs — so the server can mint the key instead: the
+  first POST returns `201` with the key in a header or the body, and the client attaches
+  it to any retries. Same contract, the key just originates on the other side of the
+  wire.
+
+And the test that proves all of this works: fire N requests carrying the *same* key at
+the *same* instant and assert exactly one side effect. Exactly one charge, one order,
+one row. If your system fails that test, the key column is missing its uniqueness
+constraint — go back and add it. Concurrency is where idempotency designs go to be
+graded, and the grader is strict.
 
 ## Failure modes: where idempotency breaks
 
@@ -269,6 +318,10 @@ what's the key?"
 5. Exactly-once delivery is impossible over a real network; build effectively-once
    instead: at-least-once delivery (like SQS standard queues) plus idempotent consumers
    that dedupe on a key.
+6. A key has three states, not two: unseen (execute and store), in progress (return
+   409 — the client backs off and retries with the same key), and completed (replay
+   the stored response). A key reused with different parameters is a bug, not a
+   retry — reject it.
 
 <Quiz
   lessonSlug="idempotency"
@@ -313,6 +366,16 @@ what's the key?"
       ],
       correctIndex: 0,
     },
+    {
+      question: "A retry carrying the same idempotency key arrives while the first request is still being processed. What should the server do?",
+      options: [
+        "Execute the operation again so the client gets a faster response",
+        "Return 409 Conflict, so the client backs off and retries later with the same key",
+        "Replay the stored response from the first request",
+        "Reject the key as expired and ask the client to generate a new one",
+      ],
+      correctIndex: 1,
+    },
   ]}
 />
 
@@ -323,3 +386,4 @@ what's the key?"
 - Stripe, "Idempotent requests," Stripe API documentation — the canonical idempotency-key design: client-supplied keys, stored responses, minimum 24-hour retention.
 - Amazon Web Services, "Amazon SQS standard queues" documentation — at-least-once delivery semantics and why consumers must handle duplicates.
 - Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017), Ch. 11 — end-to-end exactly-once semantics in stream processing and why effectively-once is the achievable goal.
+- IETF HTTPAPI Working Group, "The Idempotency-Key HTTP Header Field," draft-ietf-httpapi-idempotency-key-header — the (now expired) IETF draft for the `Idempotency-Key` header field itself.
