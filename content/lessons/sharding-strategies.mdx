@@ -26,8 +26,8 @@ sharding scheme is one of these three library layouts.
 
 ## Strategy 1: Key-based (hash) sharding
 
-`shard = hash(key) mod N`. Deterministic, uniform-ish distribution, trivially computable —
-no lookup needed. **Cassandra**, **DynamoDB**, and **Redis Cluster** all hash the key.
+`shard = hash(key) mod N`. Deterministic, uniform-ish distribution, trivially computable.
+No lookup needed. **Cassandra**, **DynamoDB**, and **Redis Cluster** all hash the key.
 
 ```mermaid
 flowchart LR
@@ -59,7 +59,7 @@ whose price you've itemized.
 ## Strategy 3: Directory-based sharding
 
 Keep a **lookup service** mapping each key (or key range) to its shard. Maximum
-flexibility — move any key anywhere, split hot shards surgically — at the cost of the
+flexibility: move any key anywhere, split hot shards surgically — at the cost of the
 directory itself: it's a critical-path lookup on every request (cache it aggressively) and
 a new thing to keep highly available. Useful when your sharding needs are irregular enough
 that no formula works, e.g., multi-tenant SaaS where one whale customer deserves their own
@@ -114,7 +114,7 @@ Bad keys: timestamps (hotspot), booleans (two shards, one idle), tenant ID when 
 is 80% of traffic (the whale problem — give the whale its own shard via directory-based
 routing).
 
-Changing the shard key later is a full data migration — the most expensive schema change
+Changing the shard key later is a full data migration. The most expensive schema change
 there is. Spend the design meeting. Future you, paged at 3 AM because shard 7 of 8 is at
 100% CPU, will be grateful.
 

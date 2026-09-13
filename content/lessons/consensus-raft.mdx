@@ -110,7 +110,7 @@ Back-of-envelope math for a typical 5-node etcd cluster:
 
 **Split brain that isn't**: a network partition splits 5 nodes into 3+2. The side with 3
 elects a leader and keeps committing; the side with 2 can't reach majority, so its would-be
-leader's writes never commit and clients get errors. No divergence, ever — the minority
+leader's writes never commit and clients get errors. No divergence, ever. The minority
 partition *stops* rather than going rogue. Compare with the AP systems from your CAP lesson
 and notice the price being paid: availability.
 
