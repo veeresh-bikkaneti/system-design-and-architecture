@@ -128,7 +128,7 @@ certificate (normal TLS), but both sides presenting certificates to each other. 
 order service shows its SVID; the payments service verifies the signature chain *and*
 checks policy — "is `spiffe://prod/orders` allowed to call my charge endpoint?" Identity
 answers *who is calling*; policy answers *whether this caller may do this thing*. That
-is the authN/authZ split from the earlier lesson, now applied to every hop between
+is the authN/authZ split from [the earlier lesson](#/lesson/authn-authz), now applied to every hop between
 machines, not just at the edge.
 
 Short lifetimes do quiet, enormous work here. A database password that lives for a year
@@ -326,6 +326,14 @@ are a feature. They are also, at 2 a.m., extremely loud.
 />
 
 ---
+
+## Go deeper
+
+Want to keep pulling this thread? These talks and tutorials go further than we did here:
+
+- [USENIX Enigma 2016 - NSA TAO Chief on Disrupting Nation State Hackers](https://www.youtube.com/watch?v=bDJb8WOJYdA) — Rob Joyce, USENIX Enigma 2016. The attacker's case against castle-and-moat security — why the hard shell fails.
+- [What is BeyondCorp? What is IAP](https://www.youtube.com/watch?v=TtmsV-xq0r0) — Max Saltonstall, YouTube. No-VPN, per-request identity and device checks via Identity-Aware Proxy.
+- [SPIFFE Project Intro - Andrew Jessup & Emiliano Berenbaum, Scytale, Inc.](https://www.youtube.com/watch?v=0LSaNrOabH4) — Andrew Jessup & Emiliano Berenbaum, KubeCon + CloudNativeCon EU 2018. Short-lived workload identity documents — the mechanism behind mTLS at scale.
 
 ## Sources & further reading
 

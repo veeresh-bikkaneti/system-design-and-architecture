@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import mermaid from 'mermaid';
+import { motion, useReducedMotion } from 'motion/react';
 import './diagrams/diagrams.css';
 
 const MONO_STACK = '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
@@ -97,6 +98,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [svg, setSvg] = useState<string | null>(null);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     let cancelled = false;
@@ -134,10 +136,25 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
     );
   }
 
+  // Scroll-triggered entrance, per the motion-framer skill: the "Gentle"
+  // spring preset (stiffness 100, damping 20), fired once when the diagram
+  // scrolls into view. Transform + opacity only (hardware-accelerated);
+  // skipped entirely when the user prefers reduced motion. The in-SVG
+  // motion (flowing edges, node cascade) lives in diagrams.css.
+  const entrance = reduceMotion
+    ? {}
+    : {
+        initial: { opacity: 0, y: 28 },
+        whileInView: { opacity: 1, y: 0 },
+        viewport: { once: true, margin: '-60px' },
+        transition: { type: 'spring' as const, stiffness: 100, damping: 20 },
+      };
+
   return (
-    <div
+    <motion.div
       ref={containerRef}
       className="mermaid-diagram diagram-panel my-2 overflow-x-auto rounded-xl border border-stone-200 bg-stone-50 p-4 shadow-soft dark:border-slate-800 dark:bg-slate-950 [&_svg]:mx-auto [&_svg]:max-w-full"
+      {...entrance}
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: svg ?? '' }}
     />

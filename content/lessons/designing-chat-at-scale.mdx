@@ -268,7 +268,7 @@ flowchart LR
 ## Offline delivery: the overnight holding room
 
 When Bob's tube is cut — phone off, app killed, gremlin activity — his canisters wait in
-the **overnight holding room**: a per-user offline queue on the server. The moment Bob
+the **overnight holding room**: a per-user [offline queue](#/lesson/message-queues) on the server. The moment Bob
 reconnects, his phone asks "anything for me?" and drains the queue in sequence-number
 order, acking as it goes. Only acked messages leave the room.
 
@@ -460,6 +460,14 @@ between detection speed, battery, and server load, and you picked a number on pu
 />
 
 ---
+
+## Go deeper
+
+Want to keep pulling this thread? These talks and tutorials go further than we did here:
+
+- [Scaling to Millions of Simultaneous Connections: Rick Reed](https://www.youtube.com/watch?v=wDk6l3tPBuw) — Rick Reed (WhatsApp), Erlang Factory SF Bay Area 2012 (~45 min). The classic WhatsApp talk the lesson cites — the primary source behind its connection math.
+- [How WhatsApp Handles Millions of Messages | System Design](https://www.youtube.com/watch?v=ctkknHdnxrc) — System Design channel, YouTube (~47 min). WebSockets, connection registry, ordering, presence, and group fan-out end to end.
+- [WhatsApp handles 3 MILLION TCP Connections Per Server! How do they do it?](https://www.youtube.com/watch?v=vQ5o4wPvUXg) — Hussein Nasser, The Backend Engineering Show. How one server holds millions of persistent chat connections.
 
 ## Sources & further reading
 
