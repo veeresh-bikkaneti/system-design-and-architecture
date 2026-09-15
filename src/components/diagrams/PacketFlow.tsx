@@ -1,5 +1,7 @@
 import { useId } from 'react';
+import { motion } from 'motion/react';
 import './diagrams.css';
+import { useDiagramEntrance } from './useDiagramEntrance';
 
 /**
  * Props for {@link PacketFlow}.
@@ -54,6 +56,9 @@ export function PacketFlow({
 }: PacketFlowProps) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const animName = `pf-flow-${uid}`;
+  // Scroll-triggered entrance shared with every other diagram component
+  // (MermaidDiagram, StepThrough, VsToggle) — see useDiagramEntrance.
+  const entrance = useDiagramEntrance();
 
   const serverCount = Math.max(1, servers.length);
   const gap = 76;
@@ -86,7 +91,7 @@ export function PacketFlow({
   });
 
   return (
-    <div className="not-prose my-8">
+    <motion.div className="not-prose my-8" {...entrance}>
       <div className="packetflow diagram-panel overflow-x-auto rounded-xl border border-stone-200 bg-stone-50 p-4 shadow-soft dark:border-slate-800 dark:bg-slate-950">
         <style>{dots.map((d) => d.keyframes).join('\n')}</style>
         <p className="diagram-mono mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400 dark:text-slate-500">
@@ -126,7 +131,11 @@ export function PacketFlow({
           {/* Stage nodes: first stage is the client (cyan), later stages are
               infra hops (amber) */}
           {stages.map((label, i) => (
-            <g key={`s-${i}`}>
+            <g
+              key={`s-${i}`}
+              className="pf-node"
+              style={{ animationDelay: `${0.05 + i * 0.07}s` }}
+            >
               <rect
                 x={stageX(i)}
                 y={midY - NODE_H / 2}
@@ -160,7 +169,11 @@ export function PacketFlow({
 
           {/* Server nodes: backend services (emerald) */}
           {servers.map((label, i) => (
-            <g key={`srv-${i}`}>
+            <g
+              key={`srv-${i}`}
+              className="pf-node"
+              style={{ animationDelay: `${0.05 + (stages.length + i) * 0.07}s` }}
+            >
               <rect
                 x={serverX}
                 y={serverCy(i) - NODE_H / 2}
@@ -223,6 +236,6 @@ export function PacketFlow({
           Hover to pause the animation
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { DEFAULT_MODEL, useAISettingsStore } from '../store/aiSettings';
+import {
+  DEFAULT_MODEL,
+  DEFAULT_PROVIDER,
+  PROVIDER_PRESETS,
+  isAIProvider,
+  useAISettingsStore,
+  type AIProvider,
+} from '../store/aiSettings';
 
 export interface SettingsModalProps {
   onClose: () => void;
@@ -33,16 +40,28 @@ function KeyIcon({ className }: { className?: string }) {
   );
 }
 
+const PROVIDER_ORDER: AIProvider[] = ['anthropic', 'openai', 'custom'];
+
 export function SettingsModal({ onClose }: SettingsModalProps) {
   const apiKey = useAISettingsStore((state) => state.apiKey);
+  const provider = useAISettingsStore((state) => state.provider);
+  const baseUrl = useAISettingsStore((state) => state.baseUrl);
   const model = useAISettingsStore((state) => state.model);
   const setApiKey = useAISettingsStore((state) => state.setApiKey);
+  const setProvider = useAISettingsStore((state) => state.setProvider);
+  const setBaseUrl = useAISettingsStore((state) => state.setBaseUrl);
   const setModel = useAISettingsStore((state) => state.setModel);
   const clear = useAISettingsStore((state) => state.clear);
 
   const [keyDraft, setKeyDraft] = useState(apiKey);
+  const [providerDraft, setProviderDraft] = useState<AIProvider>(
+    isAIProvider(provider) ? provider : DEFAULT_PROVIDER,
+  );
+  const [baseUrlDraft, setBaseUrlDraft] = useState(baseUrl);
   const [modelDraft, setModelDraft] = useState(model || DEFAULT_MODEL);
   const [showKey, setShowKey] = useState(false);
+
+  const preset = PROVIDER_PRESETS[providerDraft];
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -52,15 +71,30 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
+  function handleProviderChange(next: AIProvider) {
+    setProviderDraft(next);
+    // Point the endpoint and model at the new provider's defaults; the user
+    // can still edit both fields afterwards.
+    const nextPreset = PROVIDER_PRESETS[next];
+    setBaseUrlDraft(nextPreset.defaultBaseUrl);
+    setModelDraft(nextPreset.defaultModel);
+  }
+
   function handleSave() {
+    // setProvider resets endpoint + model to the provider defaults first,
+    // then the explicit setters apply whatever the user typed.
+    setProvider(providerDraft);
+    setBaseUrl(baseUrlDraft.trim() || preset.defaultBaseUrl);
+    setModel(modelDraft.trim() || preset.defaultModel);
     setApiKey(keyDraft.trim());
-    setModel(modelDraft.trim() || DEFAULT_MODEL);
     onClose();
   }
 
   function handleClear() {
     clear();
     setKeyDraft('');
+    setProviderDraft(DEFAULT_PROVIDER);
+    setBaseUrlDraft(PROVIDER_PRESETS[DEFAULT_PROVIDER].defaultBaseUrl);
     setModelDraft(DEFAULT_MODEL);
   }
 
@@ -88,7 +122,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               AI Tutor settings
             </h2>
             <p className="text-xs text-stone-500 dark:text-zinc-400">
-              Bring your own key \u2014 optional, always.
+              Bring your own key — optional, always.
             </p>
           </div>
           <button
@@ -104,10 +138,56 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         <div className="space-y-4">
           <div>
             <label
+              htmlFor="ai-provider"
+              className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-zinc-300"
+            >
+              Provider
+            </label>
+            <select
+              id="ai-provider"
+              value={providerDraft}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (isAIProvider(next)) handleProviderChange(next);
+              }}
+              className={inputClasses}
+            >
+              {PROVIDER_ORDER.map((id) => (
+                <option key={id} value={id}>
+                  {PROVIDER_PRESETS[id].label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="ai-endpoint"
+              className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-zinc-300"
+            >
+              Endpoint URL
+            </label>
+            <input
+              id="ai-endpoint"
+              type="url"
+              autoComplete="off"
+              spellCheck={false}
+              value={baseUrlDraft}
+              onChange={(e) => setBaseUrlDraft(e.target.value)}
+              placeholder={preset.defaultBaseUrl || 'https://your-endpoint.example.com/v1'}
+              className={inputClasses}
+            />
+            <p className="mt-1 text-[11px] leading-snug text-stone-500 dark:text-zinc-500">
+              {preset.endpointHint}
+            </p>
+          </div>
+
+          <div>
+            <label
               htmlFor="ai-api-key"
               className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-zinc-300"
             >
-              Anthropic API key
+              {preset.keyLabel}
             </label>
             <div className="flex gap-2">
               <input
@@ -117,7 +197,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 spellCheck={false}
                 value={keyDraft}
                 onChange={(e) => setKeyDraft(e.target.value)}
-                placeholder="sk-ant-..."
+                placeholder={preset.keyPlaceholder}
                 className={`${inputClasses} min-w-0 flex-1`}
               />
               <button
@@ -142,7 +222,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               type="text"
               value={modelDraft}
               onChange={(e) => setModelDraft(e.target.value)}
-              placeholder={DEFAULT_MODEL}
+              placeholder={preset.defaultModel || 'model-name'}
               className={inputClasses}
             />
           </div>
@@ -150,7 +230,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           <p className="rounded-xl border border-amber-200/60 bg-amber-50/60 p-3 text-xs leading-relaxed text-stone-600 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-zinc-400">
             Your key is session-based: it lives only in this page&#8217;s memory
             and disappears when you reload or close the tab. It is never saved
-            anywhere. It goes straight from your browser to Anthropic&#8217;s API
+            anywhere. It goes straight from your browser to {preset.apiNoun}
             &#8212; there&#8217;s no server in between &#8212; and it&#8217;s never sent
             anywhere else.
           </p>

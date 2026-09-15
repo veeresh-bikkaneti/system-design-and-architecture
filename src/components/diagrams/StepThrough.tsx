@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { motion } from 'motion/react';
 import './diagrams.css';
+import { useDiagramEntrance } from './useDiagramEntrance';
 
 /**
  * A node drawn on the {@link StepThrough} diagram canvas (480x300).
@@ -93,8 +95,16 @@ export function StepThrough({
 
   const goTo = (i: number) => setIndex(Math.min(Math.max(i, 0), steps.length - 1));
 
+  // Scroll-triggered entrance shared with every other diagram component
+  // (MermaidDiagram, PacketFlow, VsToggle) — see useDiagramEntrance.
+  // The step highlight glow stays interactive; only the container reveals.
+  const entrance = useDiagramEntrance();
+
   return (
-    <div className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-slate-800 dark:bg-slate-950">
+    <motion.div
+      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-slate-800 dark:bg-slate-950"
+      {...entrance}
+    >
       {title && (
         <h4 className="diagram-mono mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-slate-400">
           {title}
@@ -213,6 +223,6 @@ export function StepThrough({
           Next →
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAISettingsStore } from '../store/aiSettings';
+import { DEFAULT_MODEL, PROVIDER_PRESETS, useAISettingsStore } from '../store/aiSettings';
 import { getLessonBySlug } from '../lib/lessons';
 import { buildSystemPrompt } from '../ai/systemPrompt';
 import { streamTutorReply, type TutorMessage } from '../ai/client';
@@ -113,6 +113,8 @@ export function ChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const apiKey = useAISettingsStore((state) => state.apiKey);
+  const provider = useAISettingsStore((state) => state.provider);
+  const baseUrl = useAISettingsStore((state) => state.baseUrl);
   const model = useAISettingsStore((state) => state.model);
   const location = useLocation();
 
@@ -163,7 +165,9 @@ export function ChatWidget() {
     try {
       await streamTutorReply({
         apiKey,
-        model: model || 'claude-opus-5',
+        provider,
+        baseUrl,
+        model: model || DEFAULT_MODEL,
         systemPrompt,
         messages: history,
         signal: controller.signal,
@@ -224,7 +228,9 @@ export function ChatWidget() {
                 Course Tutor
               </h2>
               <p className="truncate text-xs text-stone-500 dark:text-zinc-400">
-                {apiKey ? 'Powered by your API key' : 'Needs your API key to chat'}
+                {apiKey
+                  ? `Powered by your key (${PROVIDER_PRESETS[provider].label})`
+                  : 'Needs your API key to chat'}
               </p>
             </div>
             <div className="flex items-center gap-1">
@@ -251,7 +257,7 @@ export function ChatWidget() {
             {entries.length === 0 && (
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
                 <p className="text-xs leading-relaxed text-stone-600 dark:text-zinc-400">
-                  Ask about anything in the course \u2014 the tutor knows which lesson
+                  Ask about anything in the course — the tutor knows which lesson
                   you&apos;re on. Or try the example below.
                 </p>
               </div>
