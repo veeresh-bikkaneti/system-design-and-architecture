@@ -90,7 +90,7 @@ got harder:
    cross-shard writes simply never happen.
 3. **Rebalancing** — adding a new shard means moving data. With consistent hashing you move a
    slice; without it, you re-shelve the whole library. Schedule it off-hours and bring
-   snacks.
+   snacks. The advanced treatment — virtual nodes, live resharding, and hot-key surgery — is in [the sharding-strategies lesson](#/lesson/sharding-strategies).
 4. **Hot shards** — a celebrity's profile, a viral post: one key can get a million times the
    traffic of the average. Even a "perfectly even" hash can't save you from popularity. Teams
    handle this with caching, key splitting (the celebrity gets `celebrity_1`…`celebrity_N`
@@ -192,6 +192,14 @@ Congratulations, you've built a single point of overload with extra steps.
 />
 
 ---
+
+## Go deeper
+
+Want to keep pulling this thread? These talks and tutorials go further than we did here:
+
+- [What is Database Sharding?](https://www.youtube.com/watch?v=XP98YCr-iXQ) — Anton Putra (Senior SWE, Juniper Networks), YouTube tutorial (~9 min). Range, hash, directory, and geo strategies, plus shard-key choice.
+- [Database Sharding Explained](https://www.youtube.com/watch?v=DKzS7i2zD5k) — System Design From Zero, YouTube tutorial (~6 min). Hot shards, cross-shard queries, rebalancing, and key pitfalls.
+- [Database Sharding — When One Machine Is Not Enough](https://www.youtube.com/watch?v=lkoIT6cuOqc) — The Architecture Round, YouTube tutorial (~17 min). Hot keys, salting, and rebalancing without brownouts.
 
 ## Sources & further reading
 

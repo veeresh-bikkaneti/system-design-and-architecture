@@ -90,7 +90,7 @@ const tierMeta: Record<
   advanced: {
     tagline: 'Mastery',
     covers:
-      'The hard parts — consensus, transactions, failure — plus the modern frontiers: domain-driven design, a full Instagram-scale case study, and AI systems.',
+      'The hard parts — consensus, transactions, failure — plus the modern frontiers: domain-driven design, Instagram- and chat-scale case studies, multi-region active-active systems, GraphQL vs REST, zero trust, and AI agents.',
     outcomes: [
       'Reason about consensus, transactions, and consistency like a senior engineer',
       'Design for failure: breakers, bulkheads, backoff, graceful degradation',

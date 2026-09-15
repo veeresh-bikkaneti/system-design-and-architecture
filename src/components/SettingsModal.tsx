@@ -148,9 +148,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           </div>
 
           <p className="rounded-xl border border-amber-200/60 bg-amber-50/60 p-3 text-xs leading-relaxed text-stone-600 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-zinc-400">
-            Your key is stored only in this browser\u2019s local storage. It goes straight from
-            your browser to Anthropic\u2019s API \u2014 there\u2019s no server in between \u2014 and
-            it\u2019s never sent anywhere else.
+            Your key is session-based: it lives only in this page&#8217;s memory
+            and disappears when you reload or close the tab. It is never saved
+            anywhere. It goes straight from your browser to Anthropic&#8217;s API
+            &#8212; there&#8217;s no server in between &#8212; and it&#8217;s never sent
+            anywhere else.
           </p>
         </div>
 
@@ -160,14 +162,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             onClick={handleClear}
             className="rounded-xl border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-red-800 dark:hover:bg-red-950/40 dark:hover:text-red-300"
           >
-            Clear saved key
+            Clear key
           </button>
           <button
             type="button"
             onClick={handleSave}
             className="rounded-xl bg-amber-700 px-6 py-2 text-sm font-semibold text-white shadow-[0_2px_8px_rgb(180_83_9/0.3)] transition-all hover:-translate-y-px hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 active:translate-y-0"
           >
-            Save
+            Use key
           </button>
         </div>
       </div>

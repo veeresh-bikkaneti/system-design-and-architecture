@@ -57,7 +57,7 @@ facts never left.
 Say the mapping out loud once, because the whole lesson hangs on it:
 
 - **A ledger entry is an event.** `Deposited(500)`, `Withdrew(200)` — past tense,
-  immutable, a fact about something that already happened. (The DDD lesson's logbook,
+  immutable, a fact about something that already happened. ([The DDD lesson's logbook](#/lesson/domain-driven-design),
   same idea, now load-bearing.)
 - **The bound book is the event log.** Append-only. You never edit line 41; you append
   line 42.
@@ -279,9 +279,9 @@ the duplicates hidden where you can't monitor them. Prefer the visible kind.
 
 **The dual-write trap.** The classic failure: write the row to Postgres, then publish
 the event to Kafka, and crash between the two. Now the whiteboard and the ledger
-disagree and nobody knows. The DDD lesson's answer stands: the **transactional
+disagree and nobody knows. [The DDD lesson's answer](#/lesson/domain-driven-design) stands: the **transactional
 outbox** — the event lands in an outbox table inside the same transaction as the state
-change, and a relay publishes it afterward. One transaction, no distributed commit, no
+change, and a relay publishes it afterward. One transaction, no [distributed commit](#/lesson/distributed-transactions), no
 disagreement. If your event-sourced write side still dual-writes, the ledger has a hole
 in it.
 
@@ -379,6 +379,14 @@ with legal weight. The auditor will tell you when you've arrived. She always doe
 />
 
 ---
+
+## Go deeper
+
+Want to keep pulling this thread? These talks and tutorials go further than we did here:
+
+- [Greg Young - CQRS and Event Sourcing - Code on the Beach 2014](https://www.youtube.com/watch?v=JHGkaShoyNs) — Greg Young, Code on the Beach 2014 (~50 min). The append-only event log as source of truth, from the inventor of the CQRS term.
+- [Greg Young — A Decade of DDD, CQRS, Event Sourcing](https://www.youtube.com/watch?v=LDW0QWie21s) — Greg Young, DDD Europe 2016 (~50 min). A decade retrospective: evolution, replay, schema concerns, event names as public API.
+- [A practical introduction to DDD, CQRS & Event Sourcing](https://www.youtube.com/watch?v=r26BuahD8aM) — Dennis Doomen, KanDDDinsky 2019 (~45 min). A concrete example, plus when Event Sourcing and CQRS do not help.
 
 ## Sources & further reading
 

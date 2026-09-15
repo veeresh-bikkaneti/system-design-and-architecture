@@ -110,7 +110,7 @@ Database replication lag as typically under a second, and that's considered
 *good*.) So there is always a window — small, but real — where Chicago's book and
 Austin's book disagree.
 
-One callback to your CAP and replication lessons, and then we move on: you already
+One callback to your [CAP](#/lesson/cap-theorem) and [replication](#/lesson/replication-consistency-models) lessons, and then we move on: you already
 learned that perfect consistency, perfect availability, and a network partition
 can't all hold at once, and that quorums are how single-region systems vote on the
 truth. Across regions, voting gets too slow — nobody wants the hostess to wait for
@@ -331,6 +331,14 @@ availability; it gives you two primaries and a data integrity incident.
 />
 
 ---
+
+## Go deeper
+
+Want to keep pulling this thread? These talks and tutorials go further than we did here:
+
+- [AWS re:Invent 2025 — Global Resilient Apps: Multi-AZ/Region Architecture with ELB (NET311)](https://www.youtube.com/watch?v=_WFrt9ABrMM) — AWS Events, AWS re:Invent 2025. Multi-AZ vs multi-region, active-passive vs active-active, failover, RTO/RPO trade-offs.
+- [CRDTs: The Hard Parts](https://www.youtube.com/watch?v=x7drE24geUw) — Martin Kleppmann, Hydra 2020. Where CRDTs break in practice — the conflict-handling depth behind the lesson.
+- [How Stripe Moves Petabytes of Data with 5.5 Nines of Reliability](https://www.youtube.com/watch?v=icizosswxsM) — Jimmy Morzaria (Stripe), InfoQ. Bidirectional replication, idempotency via the oplog, split-brain and fencing in production.
 
 ## Sources & further reading
 
