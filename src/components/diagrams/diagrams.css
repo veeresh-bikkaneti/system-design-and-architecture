@@ -308,6 +308,27 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* PacketFlow: stage and server nodes cascade in on render, mirroring   */
+/* the Mermaid node cascade. Delays are set inline per node (stages      */
+/* first, then servers) so the pipeline draws itself left to right.     */
+/* ------------------------------------------------------------------ */
+
+.packetflow .pf-node {
+  animation: pf-node-in 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes pf-node-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Reduced motion: every diagram animation stops, everywhere. The       */
 /* matching rules in src/index.css cover .packetflow/.pf-dot, the      */
 /* stepthrough glow and .vs-panel-enter; these cover the amber glow     */
@@ -320,7 +341,8 @@
   .mermaid-diagram .messageLine0,
   .mermaid-diagram .messageLine1,
   .mermaid-diagram .node,
-  .mermaid-diagram .actor {
+  .mermaid-diagram .actor,
+  .packetflow .pf-node {
     animation: none;
   }
 }

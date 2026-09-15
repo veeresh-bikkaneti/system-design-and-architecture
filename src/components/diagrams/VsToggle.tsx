@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { motion } from 'motion/react';
 import './diagrams.css';
+import { useDiagramEntrance } from './useDiagramEntrance';
 
 /**
  * One side of a {@link VsToggle} comparison.
@@ -59,8 +61,17 @@ export function VsToggle({ title, a, b, defaultSide = 'a' }: VsToggleProps) {
           border: 'border-cyan-200 dark:border-cyan-800',
         };
 
+  // Scroll-triggered entrance shared with every other diagram component
+  // (MermaidDiagram, PacketFlow, StepThrough) — see useDiagramEntrance.
+  // The sliding indicator and panel swap stay interactive; only the
+  // container reveals.
+  const entrance = useDiagramEntrance();
+
   return (
-    <div className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-slate-800 dark:bg-slate-950">
+    <motion.div
+      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-slate-800 dark:bg-slate-950"
+      {...entrance}
+    >
       {title && (
         <h4 className="diagram-mono mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-slate-400">
           {title}
@@ -133,6 +144,6 @@ export function VsToggle({ title, a, b, defaultSide = 'a' }: VsToggleProps) {
           </p>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

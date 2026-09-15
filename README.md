@@ -14,11 +14,11 @@ There is no backend. The whole course is a static site, so your progress never l
 
 ## AI tutor (optional, bring your own key)
 
-Stuck on a lesson? The built-in AI tutor can explain concepts and sketch architecture diagrams for you. It needs an Anthropic API key, which you paste in temporarily — and our privacy promise is simple:
+Stuck on a lesson? The built-in AI tutor can explain concepts and sketch architecture diagrams for you. It runs on your own API key — paste it in temporarily, and pick Anthropic, OpenAI, or any OpenAI-compatible endpoint in the tutor's settings. Our privacy promise is simple:
 
 - **Session-based only.** Your key lives in this page's memory while the tab is open. Reload or close the tab and it's gone; you re-enter it next visit.
 - **Never captured, never stored.** We don't write your key to disk, to browser storage, or anywhere else. We never see it.
-- **Straight to the provider.** Your browser talks directly to Anthropic's API. There is no server in between, and your key is never sent anywhere else.
+- **Straight to the provider.** Your browser talks directly to your chosen provider's API. There is no server in between, and your key is never sent anywhere else.
 
 The tutor is strictly additive: every lesson, quiz, badge, and progress feature works with no key at all.
 
