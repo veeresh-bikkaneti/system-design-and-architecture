@@ -156,32 +156,32 @@ A few practical trade-offs worth knowing:
     {
       question: "What does an 'origin shield' do?",
       options: [
-        "Encrypts traffic between the user and the edge",
-        "Blocks DDoS attacks at the network edge",
         "Collapses duplicate cache misses from many edges into a single request to the origin",
         "Automatically scales the origin server up and down",
+        "Blocks DDoS attacks at the network edge",
+        "Encrypts traffic between the user and the edge",
       ],
-      correctIndex: 2,
+      correctIndex: 0,
     },
     {
       question: "Why do teams version static assets (app.v2.js) instead of overwriting app.js?",
       options: [
         "Versioned files compress better",
-        "Immutable versioned files can use very long TTLs and never need purging",
         "CDNs refuse to cache files without version numbers",
         "Browsers require version numbers to parse JavaScript",
+        "Immutable versioned files can use very long TTLs and never need purging",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question: "How does a CDN speed up dynamic, uncacheable content?",
       options: [
-        "By caching it anyway and hoping nobody notices",
-        "Through warm persistent connections, smarter routing, and TLS termination at the edge",
-        "By converting dynamic pages into static HTML",
         "It cannot help at all with dynamic content",
+        "By converting dynamic pages into static HTML",
+        "Through warm persistent connections, smarter routing, and TLS termination at the edge",
+        "By caching it anyway and hoping nobody notices",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
   ]}
 />

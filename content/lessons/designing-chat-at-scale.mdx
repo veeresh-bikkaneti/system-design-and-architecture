@@ -441,52 +441,52 @@ between detection speed, battery, and server load, and you picked a number on pu
     {
       question: "Why does the lesson choose WebSockets over long-polling for the chat channel?",
       options: [
-        "Long-polling cannot work over HTTPS, so it is unusable for encrypted chat apps",
-        "Chat needs full-duplex server push with minimal per-message overhead — long-polling pays a full HTTP request/response cycle per message and leaves a gap between polls, while SSE can only push one way",
-        "WebSocket connections never drop, so the gateway fleet needs no reconnection logic",
         "Long-polling is banned by RFC 6455, which reserves polling for file downloads only",
+        "Chat needs full-duplex server push with minimal per-message overhead — long-polling pays a full HTTP request/response cycle per message and leaves a gap between polls, while SSE can only push one way",
+        "Long-polling cannot work over HTTPS, so it is unusable for encrypted chat apps",
+        "WebSocket connections never drop, so the gateway fleet needs no reconnection logic",
       ],
       correctIndex: 1,
     },
     {
       question: "Alice's 'on my way' and 'bring snacks' arrive at Bob's phone in reverse order. What fixes the display order?",
       options: [
+        "The per-conversation sequence number stamped by the chat service — the single ordering authority — letting Bob's phone slot messages into pigeonhole order",
         "The client-generated message ID, which also encrypts the message content",
         "The heartbeat interval, which forces the network to deliver packets in order",
         "The directory lookup, which re-sorts messages by sender before forwarding",
-        "The per-conversation sequence number stamped by the chat service — the single ordering authority — letting Bob's phone slot messages into pigeonhole order",
-      ],
-      correctIndex: 3,
-    },
-    {
-      question: "What caused the 2 a.m. page in the lesson's presence story?",
-      options: [
-        "Every 'came online' event fanned out a presence update to all of the user's contacts — with ~200 contacts each, a million app-opens became hundreds of millions of writes that melted the shared database",
-        "The WebSocket gateways ran out of memory because presence updates are larger than chat messages",
-        "End-to-end encryption prevented the server from reading presence updates, so they queued forever",
-        "The offline message queue filled up with presence updates and blocked real messages",
       ],
       correctIndex: 0,
     },
     {
+      question: "What caused the 2 a.m. page in the lesson's presence story?",
+      options: [
+        "End-to-end encryption prevented the server from reading presence updates, so they queued forever",
+        "The WebSocket gateways ran out of memory because presence updates are larger than chat messages",
+        "The offline message queue filled up with presence updates and blocked real messages",
+        "Every 'came online' event fanned out a presence update to all of the user's contacts — with ~200 contacts each, a million app-opens became hundreds of millions of writes that melted the shared database",
+      ],
+      correctIndex: 3,
+    },
+    {
       question: "Under end-to-end encryption, what can the chat server still see and route on?",
       options: [
-        "The full message text, since the server holds a copy of every private key for recovery",
         "Nothing at all — E2EE makes the server completely blind, including to who is talking to whom",
-        "The envelope metadata: sender ID, recipient ID, message ID, timestamp, and size — the address label on a sealed envelope. Content-dependent features like server-side search move to the endpoints",
         "Only the message size, because sender and recipient identities are also encrypted",
+        "The envelope metadata: sender ID, recipient ID, message ID, timestamp, and size — the address label on a sealed envelope. Content-dependent features like server-side search move to the endpoints",
+        "The full message text, since the server holds a copy of every private key for recovery",
       ],
       correctIndex: 2,
     },
     {
       question: "Why does the lesson prescribe at-least-once delivery plus idempotent handling instead of exactly-once?",
       options: [
+        "Idempotency keys are only needed for payments, so chat systems skip them and accept duplicates",
+        "Exactly-once doubles the server count, and the budget only covers at-least-once",
         "Exactly-once requires WebSockets, which the lesson rejected for the realtime channel",
         "Exactly-once is impossible over an unreliable network — the sender cannot tell a lost message from a lost acknowledgement, so it must retry; client-generated message IDs let every layer dedupe, making duplicates unobservable",
-        "Exactly-once doubles the server count, and the budget only covers at-least-once",
-        "Idempotency keys are only needed for payments, so chat systems skip them and accept duplicates",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
   ]}
 />

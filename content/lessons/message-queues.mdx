@@ -145,20 +145,20 @@ zero shame about it.
     {
       question: "What does a message queue primarily decouple?",
       options: [
-        "The database from the cache",
-        "Producers from consumers, in both time and scaling",
-        "The frontend from the backend",
         "Synchronous from asynchronous code in a single process",
+        "The frontend from the backend",
+        "Producers from consumers, in both time and scaling",
+        "The database from the cache",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question: "With at-least-once delivery, what must your consumers be?",
       options: [
-        "Synchronous",
-        "Idempotent — safe to process the same message twice",
-        "Written in the same language as the producer",
         "Limited to one message per second",
+        "Idempotent — safe to process the same message twice",
+        "Synchronous",
+        "Written in the same language as the producer",
       ],
       correctIndex: 1,
     },
@@ -166,21 +166,21 @@ zero shame about it.
       question: "In Kafka, what limits how many consumers in a group can work in parallel?",
       options: [
         "The number of brokers in the cluster",
-        "The number of partitions in the topic",
         "The retention period of the log",
         "The size of each message",
+        "The number of partitions in the topic",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question: "What is a dead-letter queue (DLQ) for?",
       options: [
-        "Storing messages that were successfully processed, for auditing",
         "Shunting aside messages that repeatedly fail processing so they don't clog the main queue",
-        "Encrypting messages that contain sensitive data",
         "Holding messages during a planned broker upgrade",
+        "Storing messages that were successfully processed, for auditing",
+        "Encrypting messages that contain sensitive data",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
   ]}
 />

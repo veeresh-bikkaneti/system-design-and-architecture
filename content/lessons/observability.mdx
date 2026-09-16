@@ -161,8 +161,9 @@ Raw metrics don't tell you what's *acceptable*. The SRE vocabulary fixes that:
   things — until it's spent.
 
 The numbers make trade-offs concrete. 99.9% ("three nines") = 43 min/month downtime;
-99.99% = 4.3 min/month; 99.999% = 26 sec/month. Each additional nine roughly **doubles the
-engineering cost** while the user-visible difference shrinks. This is why "how many nines"
+99.99% = 4.3 min/month; 99.999% = 26 sec/month. The engineering cost of each
+additional nine grows steeply and non-linearly while the user-visible difference shrinks.
+This is why "how many nines"
 is a *business* negotiation, not an engineering aspiration — and why alerting should fire
 on **burn rate** (how fast you're spending the budget) rather than on every blip. A
 5-minute spike that consumes ~12% of the monthly budget is not a page; a sustained burn that
@@ -175,7 +176,7 @@ eats 20% in an hour is.
 1. Metrics tell you *when*, logs tell you *what*, traces tell you *why across services* — invest in all three, correlate them.
 2. Dashboard by RED (services) and USE (resources); measure latency in percentiles, because averages hide the tail.
 3. Sample traces tail-based (keep all errors, few successes) and never put high-cardinality values in metric labels.
-4. Define SLIs/SLOs, compute the error budget in minutes, and alert on burn rate — each extra nine costs roughly double.
+4. Define SLIs/SLOs, compute the error budget in minutes, and alert on burn rate — each extra nine costs steeply more, and non-linearly.
 
 <Quiz
   lessonSlug="observability"
@@ -184,37 +185,37 @@ eats 20% in an hour is.
       question: "What does the RED mnemonic stand for when monitoring a service?",
       options: [
         "Redundancy, Encryption, Durability",
-        "Rate, Errors, Duration",
         "Retries, Escalations, Downtime",
         "Reads, Events, Deploys",
+        "Rate, Errors, Duration",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question: "Why are latency percentiles (p99) preferred over averages?",
       options: [
+        "Averages hide tail latency — a good average can conceal a terrible experience for 1% of users",
         "Averages are harder to compute",
-        "Averages hide tail latency — a good average can conceal 1% of users having a terrible experience",
         "Percentiles require less storage",
         "Averages cannot be graphed over time",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
     {
       question: "What is the key advantage of tail-based over head-based trace sampling?",
       options: [
         "It uses less memory in the collector",
-        "It keeps 100% of errors and slow requests instead of a random subset, so the traces you need actually exist",
         "It requires no collector infrastructure",
+        "It keeps 100% of errors and slow requests instead of a random subset, so the traces you actually need exist",
         "It samples before the request starts, reducing overhead",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question: "What is a 'cardinality explosion' in metrics?",
       options: [
         "Too many dashboards being created",
-        "Adding a high-cardinality label (like user_id) creates a separate time series per value, exploding memory and storage",
+        "A high-cardinality label (like user_id) creates one time series per value, exploding memory and storage",
         "Metrics being sampled too aggressively",
         "Alerts firing in a cascading pattern",
       ],
@@ -223,13 +224,13 @@ eats 20% in an hour is.
     {
       question: "A 99.9% SLO over 30 days allows roughly how much downtime (the error budget)?",
       options: [
-        "About 43 minutes per month",
         "About 7 hours per month",
         "About 4 minutes per month",
+        "About 43 minutes per month",
         "Zero — 99.9% means no downtime",
       ],
-      correctIndex: 0,
-    },
+      correctIndex: 2,
+    }
   ]}
 />
 

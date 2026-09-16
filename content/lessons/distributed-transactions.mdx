@@ -205,42 +205,42 @@ spans services. Reserve 2PC for single-cluster cases where the database does it 
     {
       question: "In two-phase commit, what does it mean for participants to be 'blocked'?",
       options: [
-        "They are waiting for more participants to join",
-        "The coordinator crashed after YES votes but before the decision, so participants hold locks indefinitely, unable to commit or abort",
-        "The network is too slow for the prepare phase",
         "Two transactions are deadlocking on the same row",
+        "The coordinator crashed after YES votes but before the decision, so participants hold locks indefinitely, unable to commit or abort",
+        "They are waiting for more participants to join",
+        "The network is too slow for the prepare phase",
       ],
       correctIndex: 1,
     },
     {
       question: "What does a saga use instead of rollback?",
       options: [
-        "Database savepoints",
         "Compensating actions that semantically undo each completed step, run in reverse order",
-        "A global lock held for the saga's duration",
         "Automatic retries until the step succeeds",
+        "A global lock held for the saga's duration",
+        "Database savepoints",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
     {
       question: "What bug does the transactional outbox pattern fix?",
       options: [
         "Slow queries blocking the event loop",
-        "The dual-write problem: crashing between a database update and publishing its event",
         "Cache stampedes on hot keys",
+        "The dual-write problem: crashing between a database update and publishing its event",
         "Deadlocks between concurrent transactions",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question: "What consistency does a saga provide compared to ACID?",
       options: [
-        "Full ACID atomicity and isolation",
-        "Eventual atomicity — all-or-nothing eventually, but intermediate states are visible",
-        "Stronger than ACID, with causal ordering",
         "No consistency at all — steps are independent",
+        "Full ACID atomicity and isolation",
+        "Stronger than ACID, with causal ordering",
+        "Eventual atomicity — all-or-nothing eventually, but intermediate states are visible",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
   ]}
 />

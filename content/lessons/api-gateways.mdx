@@ -143,30 +143,30 @@ protection, plus per-service sidecars for fine-grained policy.
     {
       question: "How does an API gateway differ from a plain load balancer?",
       options: [
-        "A gateway only works with HTTP/2",
         "A load balancer distributes traffic across instances of the same service; a gateway routes between different services and adds auth, rate limiting, and request shaping",
-        "A gateway replaces the need for DNS",
         "There is no difference — the terms are interchangeable",
+        "A gateway replaces the need for DNS",
+        "A gateway only works with HTTP/2",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
     {
       question: "In the gateway pattern, where is a client's JWT typically validated?",
       options: [
         "In each microservice independently",
-        "Once at the gateway, which forwards the caller's identity to inner services",
         "In the database, via a stored procedure",
+        "Once at the gateway, which forwards the caller's identity to inner services",
         "By the client itself before sending the request",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question: "What is the BFF (Backend for Frontend) pattern?",
       options: [
-        "A testing strategy where backends test frontends",
-        "Giving each client type (web, mobile, partners) its own tailored gateway layer over shared services",
         "Running the backend and frontend in the same process",
+        "Giving each client type (web, mobile, partners) its own tailored gateway layer over shared services",
         "A database replication strategy",
+        "A testing strategy where backends test frontends",
       ],
       correctIndex: 1,
     },
@@ -174,11 +174,11 @@ protection, plus per-service sidecars for fine-grained policy.
       question: "What is the main availability risk of an API gateway?",
       options: [
         "It makes individual services slower to deploy",
-        "It is a single point of failure — if it goes down, everything behind it is unreachable",
-        "It prevents the use of caching",
         "It forces all services to use the same programming language",
+        "It prevents the use of caching",
+        "It is a single point of failure — if it goes down, everything behind it is unreachable",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
   ]}
 />

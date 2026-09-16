@@ -356,42 +356,42 @@ with legal weight. The auditor will tell you when you've arrived. She always doe
     {
       question: "An account's stream holds 2 million events and replay folds 20,000 events per second. Why does the lesson introduce snapshots?",
       options: [
-        "So a restart replays from the latest snapshot instead of event one — turning a 100-second rebuild into milliseconds",
         "So auditors can delete old events they no longer need",
         "So the event log can be compacted down to one entry per account",
+        "So a restart replays from the latest snapshot instead of event one — turning a 100-second rebuild into milliseconds",
         "So projections no longer need checkpoints",
       ],
-      correctIndex: 0,
+      correctIndex: 2,
     },
     {
       question: "Your team proposes CQRS for a simple settings page where reads and writes share one shape at modest scale. What is the lesson's verdict?",
       options: [
-        "Do it — CQRS is the default architecture for all new services",
-        "Do it — the read side will eventually need its own database anyway",
-        "Do it — separate models are always safer than shared ones",
         "Skip it — without a real asymmetry in scale or shape between reads and writes, it is complexity with a name",
+        "Do it — separate models are always safer than shared ones",
+        "Do it — the read side will eventually need its own database anyway",
+        "Do it — CQRS is the default architecture for all new services",
       ],
-      correctIndex: 3,
+      correctIndex: 0,
     },
     {
       question: "The projector receives the same Deposited event twice. What keeps the account correct?",
       options: [
-        "The broker's exactly-once delivery guarantee",
-        "The consumer is idempotent: the event's unique id makes the duplicate recognizable, so applying it twice changes nothing",
-        "Duplicates are impossible in an append-only log",
         "The snapshot absorbs the duplicate automatically",
+        "The consumer is idempotent: the event's unique id makes the duplicate recognizable, so applying it twice changes nothing",
+        "The broker's exactly-once delivery guarantee",
+        "Duplicates are impossible in an append-only log",
       ],
       correctIndex: 1,
     },
     {
       question: "Five years in, the business renames the Deposited event to AccountCredited. How do you keep reading the old stored events?",
       options: [
-        "Rewrite every old event in the log to the new name",
         "Delete events older than the rename — history before the rename is expendable",
-        "Upcast on read: translate old events to the new schema as they are loaded, leaving raw history untouched",
+        "Rewrite every old event in the log to the new name",
         "Create a new aggregate and migrate all accounts to it",
+        "Upcast on read: translate old events to the new schema as they are loaded, leaving raw history untouched",
       ],
-      correctIndex: 2,
+      correctIndex: 3,
     },
   ]}
 />

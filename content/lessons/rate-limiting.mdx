@@ -44,8 +44,9 @@ flowchart LR
 
 Token bucket is the crowd favorite because it allows **bursts**: a user who's been quiet
 accumulates tokens and can then fire off 100 requests at once. Real-world traffic *is*
-bursty, so this matches reality. **Stripe**, **GitHub**, and **AWS** APIs all document
-token-bucket-style limits.
+bursty, so this matches reality. Large API providers — **Stripe**, **GitHub**, and **AWS**
+among them — publish rate-limit headers consistent with token-bucket behavior: quotas that
+refill over time and tolerate bursts.
 
 ### Leaky bucket
 
@@ -61,8 +62,8 @@ The naive approach: "100 requests per minute," counted on minute boundaries. The
 11:59:59 a user fires 100 requests, at 12:00:00 the counter resets and they fire 100 more —
 200 requests in two seconds, technically "within the limit." The **sliding window** fixes
 this by counting the last 60 seconds continuously. Sliding-window counters (often
-implemented in **Redis** with expiring keys) are the pragmatic default for per-user API
-limits.
+implemented in **Redis** as a sorted set of per-request timestamps) are the pragmatic
+default for per-user API limits.
 
 ```mermaid
 flowchart TD
@@ -111,13 +112,24 @@ flowchart TD
 
 One server can count in memory. Ten servers behind a load balancer cannot — each sees only
 a tenth of a user's traffic, so each allows ten times too much. The standard fix: a shared
-counter in **Redis**, incremented per request with a TTL:
+sliding window in **Redis**, built from a sorted set of per-request timestamps:
 
 ```
-INCR ratelimit:{user_id}:{window}
-EXPIRE ratelimit:{user_id}:{window} 60
-→ if value > 100: reject with 429
+now = current timestamp in ms
+window_start = now - 60_000
+
+ZADD ratelimit:{user_id} now now                                # log this request's timestamp
+ZREMRANGEBYSCORE ratelimit:{user_id} -inf window_start          # evict anything older than 60s
+count = ZCOUNT ratelimit:{user_id} window_start now             # how many are left in the window?
+EXPIRE ratelimit:{user_id} 60                                   # don't let idle keys pile up
+→ if count > 100: reject with 429
 ```
+
+No minute boundaries, no reset moments — every request is judged against the trailing 60
+seconds, which is what kills the 11:59:59 → 12:00:00 trick from two sections ago. One
+honest caveat: the simpler `INCR` + `EXPIRE` version of this snippet is a *fixed* window,
+and it carries exactly that boundary exploit. If you copy the fixed-window version
+anywhere, you now know precisely what you're buying.
 
 This works beautifully until Redis becomes the thing you're protecting *from* — at very
 high scale, teams use **local buckets with periodic sync**, or probabilistic structures,
@@ -173,42 +185,42 @@ monitoring getting 429'd during the outage it's trying to report.
     {
       question: "How does a token bucket differ from a leaky bucket?",
       options: [
-        "Token bucket allows bursts (saved-up tokens); leaky bucket smooths traffic to a fixed rate",
-        "Leaky bucket allows bursts; token bucket enforces a fixed rate",
-        "Token bucket only works for read requests",
-        "They are two names for the same algorithm",
+        "Leaky bucket allows bursts because it queues them; token bucket smooths to a fixed rate",
+        "Token bucket only works for read requests; writes need a leaky bucket",
+        "Token bucket allows bursts (saved-up tokens); leaky bucket smooths to a fixed rate",
+        "They are two names for the same algorithm, differing only in jargon",
       ],
-      correctIndex: 0,
+      correctIndex: 2,
     },
     {
       question: "What is the flaw in a naive fixed-window rate limiter?",
       options: [
-        "It uses too much memory",
-        "A user can make double the limit in a short burst straddling the window boundary",
-        "It cannot distinguish between different users",
-        "It requires synchronized clocks",
+        "A user can make double the limit by straddling the window boundary",
+        "It stores a timestamp per request, so memory grows with traffic",
+        "One shared counter can't tell users apart, so one abuser punishes everyone",
+        "It requires synchronized clocks across all the servers counting",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
     {
       question: "Why can't each server behind a load balancer just count requests locally?",
       options: [
-        "Local counters are too slow",
-        "Each server sees only a fraction of a user's traffic, so each would allow the full limit",
-        "Load balancers strip the headers needed for counting",
-        "Local memory is cleared on every request",
+        "In-memory local counters are too slow for the request hot path",
+        "Load balancers strip the client-identifying headers counting needs",
+        "Local memory is wiped on every request, so counters never accumulate",
+        "Each server sees a fraction of traffic, so each allows the full limit",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question: "What should an API return when a client exceeds its rate limit?",
       options: [
-        "HTTP 500 Internal Server Error",
-        "HTTP 403 Forbidden",
+        "HTTP 500 Internal Server Error, since the server is overwhelmed",
         "HTTP 429 Too Many Requests, ideally with a Retry-After header",
-        "HTTP 200 with an empty body",
+        "HTTP 403 Forbidden — the client did something disallowed",
+        "HTTP 200 OK with an empty body, silently dropping the request",
       ],
-      correctIndex: 2,
+      correctIndex: 1,
     },
   ]}
 />
@@ -226,7 +238,7 @@ Want to keep pulling this thread? These talks and tutorials go further than we d
 
 ## Sources & further reading
 
-- Stripe API documentation, "Rate limits" — token-bucket limits and headers in a production API.
+- Stripe API documentation, "Rate limits" — rate limits and headers in a production API.
 - GitHub REST API documentation, "Rate limits" — primary/secondary limits and how to respect them.
 - Cloudflare Learning Center, "What is rate limiting?" — edge enforcement and DDoS context.
 - AWS Architecture Blog, "Rate limiting with API Gateway" / token-bucket via Redis patterns — distributed counting implementations.

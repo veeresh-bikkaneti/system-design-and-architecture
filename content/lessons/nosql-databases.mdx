@@ -108,7 +108,7 @@ together (embed) or keep them in separate folders with a cross-reference (refere
       "Updating one shared item updates it everywhere at once",
       "Best when items are shared, huge, or change independently",
     ],
-    note: "More flexible, but reads now need two lookups (or a join-like $lookup).",
+    note: "More flexible, but reads now need two lookups instead of one.",
   }}
 />
 
@@ -190,6 +190,11 @@ stated without taking sides:
 | **Consistency** | Strong guarantees (ACID transactions) are the default | Tunable; many stores trade strict consistency for availability and speed |
 | **Best when** | Your data is uniform and your questions are unpredictable | Your data is varied/huge and your access patterns are known |
 
+One term from that row deserves a plain-English unpacking: **ACID** is four promises bundled
+into every transaction — **a**tomicity (all-or-nothing), **c**onsistency (your data's rules
+always hold), **i**solation (concurrent transactions don't trip over each other),
+**d**urability (committed means it survives a crash) — the reason money lives in the cabinet.
+
 That last row is the decision in one line. The cabinet shines when the *questions* are
 unpredictable — "slice last quarter's sales seventeen ways" — because the relational
 model can answer questions you never planned for. The bins shine when the *access pattern*
@@ -241,7 +246,8 @@ Walk the shelves with a real scenario in mind:
   connections. Don't fight the corkboard.
 - **Bank ledgers, inventory counts, anything where money must never be wrong** →
   **Stay with the filing cabinet.** ACID transactions exist for a reason, and "eventually
-  consistent" is a terrifying phrase next to someone's paycheck.
+  consistent" — every bin agreeing *eventually*, not right now — is a terrifying phrase
+  next to someone's paycheck.
 
 One more piece of senior-engineer honesty: the most common real-world answer is "more than
 one." A single system routinely keeps user accounts in a relational database, sessions in
@@ -255,7 +261,8 @@ grown-up architecture.
 
 ## Takeaways
 
-1. **NoSQL means "not only SQL," not "no SQL ever."** It's four families of flexible
+1. **NoSQL is often read as "not only SQL,"** not "no SQL ever" — a popular backronym (the
+   1998 original just meant "non-SQL"). It's four families of flexible
    storage — key-value, document, wide-column, graph — each a specialist.
 2. **Key-value** (Dynamo-style): look up a blob by its label. Fastest, simplest, scales
    beautifully; can't search inside the blobs.
@@ -277,10 +284,10 @@ grown-up architecture.
       question:
         "In the storage-room analogy, what makes the NoSQL 'labeled bins' different from the relational 'filing cabinet'?",
       options: [
-        "The bins are physically larger than the cabinet drawers",
-        "The cabinet requires every folder to match a fixed form, while each bin can hold whatever shows up",
-        "The bins are slower but cheaper than the cabinet",
-        "The cabinet stores numbers and the bins store text",
+        "The bins are physically larger than the cabinet's drawers",
+        "The cabinet forces every folder to match one fixed form, while each bin holds whatever shows up",
+        "The bins are slower but cheaper than the cabinet per gigabyte",
+        "The cabinet stores numbers while the bins store free-form text",
       ],
       correctIndex: 1,
     },
@@ -288,10 +295,10 @@ grown-up architecture.
       question:
         "You need to store millions of user sessions, always looked up by session ID, as fast as possible. Which shelf do you walk to?",
       options: [
-        "Document store, because sessions are JSON",
-        "Graph store, because sessions are connected to users",
+        "Document store, because session payloads are JSON documents",
+        "Graph store, because sessions are connected to their users",
         "Key-value store — lookup by a single label is exactly what it's built for",
-        "Wide-column store, because there are millions of them",
+        "Wide-column store, because millions of rows is its specialty",
       ],
       correctIndex: 2,
     },
@@ -299,10 +306,10 @@ grown-up architecture.
       question:
         "Why is a graph store (the corkboard) better than a relational table for 'friends of friends of friends' queries?",
       options: [
-        "Graph stores keep connections as first-class citizens, so hopping node to node stays fast at any depth",
-        "Relational databases cannot store friendship data at all",
-        "Graph stores automatically delete inactive friendships",
-        "The corkboard uses less disk space for every query type",
+        "Graph stores keep connections as first-class citizens, so hopping stays fast at any depth",
+        "Relational databases cannot store friendship data in any form",
+        "Graph stores automatically delete friendships that go inactive",
+        "The corkboard uses less disk space for every type of query",
       ],
       correctIndex: 0,
     },
@@ -310,8 +317,8 @@ grown-up architecture.
       question:
         "According to the lesson's decision guide, which workload should stay in the relational 'filing cabinet'?",
       options: [
-        "Clickstream event logs",
-        "A social network's friend graph",
+        "Clickstream event logs, written by the millions",
+        "A social network's friend graph and its connections",
         "Product catalog with wildly varying attributes",
         "Bank ledgers — where ACID transactions guarantee money is never wrong",
       ],

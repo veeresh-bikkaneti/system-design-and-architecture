@@ -124,42 +124,42 @@ seven services and one missing trace span.
     {
       question: "According to Conway's law, what shapes a system's architecture?",
       options: [
-        "The programming languages chosen",
-        "The organization's own communication structure",
         "The cloud provider's service catalog",
         "The CAP theorem trade-offs",
+        "The organization's own communication structure",
+        "The programming languages chosen",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question: "What is a 'distributed monolith'?",
       options: [
         "A monolith deployed across multiple regions",
-        "Many separately-deployed services that are still tightly coupled — requiring lockstep deployments with none of the autonomy benefits",
         "A monolith that uses a distributed database",
         "Microservices that share a single database",
+        "Many separately-deployed services that are still tightly coupled — requiring lockstep deployments with none of the autonomy benefits",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question: "What is the main advantage of a modular monolith over a naive monolith?",
       options: [
-        "It deploys faster because modules deploy independently",
-        "Strict internal boundaries keep the operational simplicity of one deployable while making future extraction mechanical",
-        "It eliminates the need for automated tests",
         "Modules can be written in different languages",
+        "Strict internal boundaries keep the operational simplicity of one deployable while making future extraction mechanical",
+        "It deploys faster because modules deploy independently",
+        "It eliminates the need for automated tests",
       ],
       correctIndex: 1,
     },
     {
       question: "When is starting with microservices most defensible?",
       options: [
-        "Always — it's the modern default",
         "When multiple teams need to ship and scale independently and domain boundaries are well understood",
-        "When the team is small and wants to move fast",
         "When the domain boundaries are still unclear",
+        "When the team is small and wants to move fast",
+        "Always — it's the modern default",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
   ]}
 />

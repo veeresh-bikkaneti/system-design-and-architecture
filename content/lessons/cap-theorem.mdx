@@ -118,8 +118,9 @@ details.
    design for them explicitly.
 2. During a partition you must choose: serve everyone with possibly stale data (AP), or serve
    only what you can guarantee is correct (CP).
-3. "Consistency" here means **linearizability** — a much stronger guarantee than the "C" in
-   ACID. Same word, different level of commitment.
+3. CAP's C means **linearizability** — every read sees the latest completed write, as if
+   there were only one copy — which is a different idea from ACID's C (transactions
+   preserve your data's rules). Same word, different meaning entirely.
 4. Most real systems are tunable (e.g., Cassandra's quorum reads/writes) rather than strictly
    CP or AP — CAP is a lens for reasoning, not a rigid checklist.
 
@@ -130,36 +131,36 @@ details.
       question: "The phone line between your two diners is cut. A CP system will...",
       options: [
         "Keep seating customers and serving whatever's on the board, stale or not",
-        "Refuse requests it can't guarantee are correct until it can reach the other diner",
-        "Shut down both diners permanently",
+        "Shut down both diners permanently rather than risk a wrong answer",
         "Invent new specials on the spot and hope for the best",
+        "Refuse requests it can't guarantee are correct until it can reach the other diner",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question: "What is a 'partition' in the context of the CAP theorem?",
       options: [
-        "A logical division of a database's rows across servers",
         "Two nodes that are both alive and reachable by clients, but unable to reach each other",
-        "A firewall rule blocking client traffic",
-        "A scheduled maintenance window",
+        "A logical division of a database's rows across its servers",
+        "A firewall rule that blocks all client traffic to the cluster",
+        "A scheduled maintenance window during off-peak hours",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
     {
       question: "When there is NO network partition, a distributed system can be...",
       options: [
         "Only consistent, never available",
-        "Both consistent and available at the same time",
         "Only available, never consistent",
+        "Both consistent and available at the same time",
         "Neither — the theorem forbids it",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question: "Which of these is an example of an AP system, as described in the lesson?",
-      options: ["ZooKeeper", "etcd", "Cassandra", "HBase"],
-      correctIndex: 2,
+      options: ["ZooKeeper", "Cassandra", "etcd", "HBase"],
+      correctIndex: 1,
     },
   ]}
 />

@@ -339,31 +339,31 @@ Watch one request travel through everything you've just learned:
       question:
         "A flood takes out one availability zone in your region, but your service stays up. What did you most likely do right?",
       options: [
-        "You deployed to multiple regions on different continents",
-        "You kept all your servers in the cheapest AZ to save money",
         "You ran copies of your app across at least two AZs, so the surviving wing kept serving traffic",
         "You used serverless functions, which are immune to datacenter failures",
+        "You deployed to multiple regions on different continents",
+        "You kept all your servers in the cheapest AZ to save money",
       ],
-      correctIndex: 2,
+      correctIndex: 0,
     },
     {
       question:
         "Your five-person startup needs a database. Following this lesson's rule of thumb, what should you choose?",
       options: [
-        "Self-host Postgres on VMs — it's cheaper per unit and you keep full control",
-        "A managed database service — your scarcest resource is attention, and the landlord handles patching, backups, and failover",
         "Skip the database entirely and keep state in the app processes",
         "Run the database on the same machine as the app to avoid network latency",
+        "Self-host Postgres on VMs — it's cheaper per unit and you keep full control",
+        "A managed database service — your scarcest resource is attention, and the landlord handles patching, backups, and failover",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question: "In the Kubernetes mental model from this lesson, what is a Service?",
       options: [
-        "A tray carrying one or more containers that must be served together",
-        "The shift manager's standing order to keep N trays on the counter",
-        "The fixed counter number — a stable address in front of disposable pods",
         "One of the landlord's machines that the trays sit on",
+        "A tray carrying one or more containers that must be served together",
+        "The fixed counter number — a stable address in front of disposable pods",
+        "The shift manager's standing order to keep N trays on the counter",
       ],
       correctIndex: 2,
     },
@@ -371,20 +371,20 @@ Watch one request travel through everything you've just learned:
       question:
         "Your API serves steady, latency-sensitive traffic 24/7. Why is serverless likely a misfit here?",
       options: [
+        "Serverless only works for batch jobs that run once a night",
         "Serverless functions can't talk to databases at all",
         "You'd pay per-portion prices for all-you-can-eat traffic, and cold starts would hit your most latency-sensitive requests",
-        "Serverless only works for batch jobs that run once a night",
         "Serverless functions can't scale past ten concurrent requests",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question:
         "Which of these is NOT one of the twelve-factor rules emphasized in this lesson?",
       options: [
         "Keep processes stateless and share-nothing",
-        "Store config in the environment, not in the code",
         "Treat backing services as attached resources reachable by URL",
+        "Store config in the environment, not in the code",
         "Write all application code in twelve separate files",
       ],
       correctIndex: 3,
@@ -393,10 +393,10 @@ Watch one request travel through everything you've just learned:
       question:
         "Your cloud invoice doubled even though traffic stayed flat. Which FinOps practice would have caught this earliest?",
       options: [
-        "Moving everything to the most expensive region for better latency",
-        "Tagging resources by owner with budget alerts, so the forgotten test environment pages someone before the 1st",
-        "Turning off autoscaling so capacity never changes",
         "Prepaying for reserved capacity equal to your peak traffic",
+        "Tagging resources by owner with budget alerts, so the forgotten test environment pages someone before the 1st",
+        "Moving everything to the most expensive region for better latency",
+        "Turning off autoscaling so capacity never changes",
       ],
       correctIndex: 1,
     },

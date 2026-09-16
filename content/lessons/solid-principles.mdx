@@ -291,27 +291,6 @@ Watch a swap happen, step by step:
   ]}
 />
 
-### DIP at the boundary: from classes to microservices
-
-Here's the part most SOLID tutorials skip: dependency inversion doesn't stop at
-classes. Scale it up one level and it becomes the rule that keeps microservices
-sane.
-
-Your order service needs to charge cards. The naive version hardwires to the
-payments team's HTTP API — URLs, payload shapes, and error codes scattered through
-the order logic. When payments ships v2, or you switch providers, you're rewriting
-the order service. The inverted version: the order service depends on a `Payments`
-**port** — an interface it owns — and a small **adapter** translates that port into
-whatever the payments API actually speaks. Provider changes mean rewriting the
-adapter. The order service never notices.
-
-If that sounds familiar, it should: the anti-corruption layer from the
-anti-corruption layer lesson *is* dependency inversion at the bounded-context
-boundary. Same lamp, bigger apartment. And the distributed version of the hardwired
-lamp is the service that reads another service's database directly — no interface,
-no adapter, just a live wire into someone else's schema. It works until the other
-team renames a column, and then you find out what "coupled" really costs.
-
 🎥 **Learn more:** [Dependency Inversion: Stop `new`-ing up your dependencies (SOLID Principles)](https://www.youtube.com/watch?v=HAEjhJe0JhM) — Software Topics. Shows how to replace hardwired instantiations with abstractions and dependency injection for testable, decoupled code.
 
 ## The junk drawer tour: violations you'll meet in the wild
@@ -361,19 +340,19 @@ build.
       options: [
         "The open/closed principle — it can't be extended with new report types",
         "The Liskov substitution principle — it isn't substitutable for its parent",
-        "The single responsibility principle — it has three reasons to change",
         "The dependency inversion principle — it depends on low-level details",
+        "The single responsibility principle — it has three reasons to change",
       ],
-      correctIndex: 2,
+      correctIndex: 3,
     },
     {
       question:
         "In the stand-mixer analogy, what does the mixer's attachment socket represent?",
       options: [
         "The stable interface that new behavior plugs into without modifying existing code",
-        "A base class that every attachment must inherit from",
-        "The database where the mixer stores its recipes",
-        "A performance trick for running the motor faster",
+        "A base class that every new attachment is forced to inherit from",
+        "The database where the mixer stores the recipes it knows",
+        "A performance trick for making the motor run faster",
       ],
       correctIndex: 0,
     },
@@ -381,21 +360,21 @@ build.
       question:
         "Square extends Rectangle, but setting a square's width also changes its height — breaking code written for rectangles. What does this violate?",
       options: [
-        "Interface segregation — the interface is too fat",
-        "Dependency inversion — it depends on concrete classes",
-        "The open/closed principle — the rectangle was modified",
+        "Interface segregation — clients are forced to depend on methods they don't use",
         "Liskov substitution — the subtype can't stand in for the supertype",
+        "The open/closed principle — someone modified the rectangle class",
+        "Dependency inversion — the square depends on a concrete class",
       ],
-      correctIndex: 3,
+      correctIndex: 1,
     },
     {
       question:
         "A Robot class is forced to implement eat() even though robots don't eat. What's the interface-segregation fix?",
       options: [
-        "Make eat() throw an error — that's honest enough",
-        "Delete the Robot class entirely",
-        "Split the fat interface into smaller ones, so Robot implements only what it uses",
-        "Merge eat() and work() into a single method",
+        "Make eat() throw an error — at least that's honest about it",
+        "Delete the Robot class entirely and only build for humans",
+        "Split the fat interface into smaller ones, so Robot only implements what it uses",
+        "Merge eat() and work() into one doEverything() method",
       ],
       correctIndex: 2,
     },
@@ -403,10 +382,10 @@ build.
       question:
         "Why should the recipe app depend on a Storage interface instead of directly on LocalDisk?",
       options: [
-        "Interfaces execute faster than concrete classes",
+        "Interfaces execute faster than concrete classes ever could",
         "So the app can swap in a cloud bucket or a test fake without changing its own code",
-        "Because the compiler requires every class to have an interface",
-        "To make the class diagram symmetrical",
+        "Because the compiler requires every class to declare an interface",
+        "To make the class diagram symmetrical, which impresses reviewers",
       ],
       correctIndex: 1,
     },

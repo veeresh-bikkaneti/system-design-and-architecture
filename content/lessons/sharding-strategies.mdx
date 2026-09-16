@@ -19,19 +19,21 @@ each one holds a fraction. It is the only strategy that scales writes indefinite
 is also the strategy most likely to ruin your quarter if you botch the shard key. Choose
 well and shards are invisible; choose badly and one shard melts while the others idle.
 
-The analogy: a **library with too many books for one building**. You could shelve by
-author's last initial (key-based: deterministic, but 'S' gets crushed), by acquisition
-date with ranges per building (range-based: great for date queries, terrible when this
-year's books are all anyone reads), or keep a master catalog saying which building holds
-what (directory-based: flexible, but the catalog becomes its own scaling problem). Every
-sharding scheme is one of these three library layouts.
+The analogy is the same library you split across branch buildings back in the partitioning
+lesson — same three layouts: shelve by author's last initial (key-based), by acquisition-date
+ranges per building (range-based), or keep a master catalog saying which building holds what
+(directory-based). This lesson doesn't re-teach those layouts; it goes one level down. Here
+you get the resize math that breaks naive key sharding, the mechanics of consistent hashing
+with virtual nodes, the true cost of resharding, and how to pick a shard key when the
+constraints fight each other.
 
 🎥 **Learn more:** [SD 11 | Database Sharding | System Design Course | Uplatz](https://www.youtube.com/watch?v=kKUsCSsBR3Y) — Uplatz. Uplatz walks through why one database hits a wall, what sharding is, and when to reach for it.
 
 ## Strategy 1: Key-based (hash) sharding
 
-`shard = hash(key) mod N`. Deterministic, uniform-ish distribution, trivially computable.
-No lookup needed. **Cassandra**, **DynamoDB**, and **Redis Cluster** all hash the key.
+The key-based layout, from the partitioning lesson: `shard = hash(key) mod N`.
+Deterministic, uniform-ish distribution, trivially computable. No lookup needed.
+**Cassandra**, **DynamoDB**, and **Redis Cluster** all hash the key.
 
 ```mermaid
 flowchart LR
@@ -50,10 +52,10 @@ different shards than the user, so joins become application-level scatter-gather
 
 ## Strategy 2: Range-based sharding
 
-Contiguous key ranges per shard: shard 1 holds A–F, shard 2 holds G–M, and so on.
-**HBase**, **Bigtable**, **CockroachDB**, and **MongoDB** (range sharding) work this way.
-Range queries are beautiful — "all orders in March" hits one or two shards instead of all
-of them.
+The range layout, from the partitioning lesson: contiguous key ranges per shard — shard 1
+holds A–F, shard 2 holds G–M, and so on. **HBase**, **Bigtable**, **CockroachDB**, and
+**MongoDB** (range sharding) work this way. Range queries are beautiful — "all orders in
+March" hits one or two shards instead of all of them.
 
 The failure mode has a name: the **hotspot**. Time-series data, auto-increment IDs, or
 anything monotonically increasing piles all writes onto the *last* shard — one machine
@@ -66,19 +68,22 @@ whose price you've itemized.
 
 ## Strategy 3: Directory-based sharding
 
-Keep a **lookup service** mapping each key (or key range) to its shard. Maximum
-flexibility: move any key anywhere, split hot shards surgically — at the cost of the
-directory itself: it's a critical-path lookup on every request (cache it aggressively) and
-a new thing to keep highly available. Useful when your sharding needs are irregular enough
-that no formula works, e.g., multi-tenant SaaS where one whale customer deserves their own
-shard.
+The card-catalog layout, from the partitioning lesson: keep a **lookup service** mapping
+each key (or key range) to its shard. Maximum flexibility: move any key anywhere, split hot
+shards surgically — at the cost of the directory itself: it's a critical-path lookup on
+every request (cache it aggressively) and a new thing to keep highly available (as the
+partitioning lesson says, the catalog must itself be replicated — replica set, quorum —
+never a lone process). Useful when your sharding needs are irregular enough that no formula
+works, e.g., multi-tenant SaaS where one whale customer deserves their own shard.
 
 🎥 **Learn more:** [Data Sharding UNLEASHED: Top 4 Algorithms to Master Database Scalability & Performance #systemdesign](https://www.youtube.com/watch?v=POb4gbP9Y4o) — SystemDR - Scalable System Design. Explains lookup-table routing that maps keys to shards directly — flexible placement, but the directory becomes a bottleneck.
 
 ## Consistent hashing: adding shards without the apocalypse
 
-The elegant fix for the `mod N` reshuffle. Hash both keys *and* shards onto a ring; each
-key belongs to the first shard clockwise from it.
+You met the ring idea in the partitioning lesson (and saw requests routed on one back in
+load balancers) — here are the mechanics that make it production-grade. The elegant fix
+for the `mod N` reshuffle: hash both keys *and* shards onto a ring; each key belongs to
+the first shard clockwise from it.
 
 ```mermaid
 flowchart TD
@@ -147,20 +152,22 @@ Some back-of-envelope arithmetic before you shard:
   count is not free.
 - **The hot-key ceiling**: sharding scales *aggregate* throughput, but a single hot key
   (the celebrity's profile, the viral post) still lives on one shard. If one key gets
-  50k writes/sec and a shard handles 10k, no shard count saves you — you need caching,
-  key-splitting, or a different design. Know your hottest key's traffic *before* choosing
-  N.
+  50k writes/sec and a shard handles 10k, no shard count saves you — you need the
+  partitioning lesson's tools (caching, key-splitting) or a different design. Know your
+  hottest key's traffic *before* choosing N.
 
 🎥 **Learn more:** [Database Sharding Explained: Partitioning, Hot Keys, and Safe Resharding](https://www.youtube.com/watch?v=jvdGEilH1x8) — DevLevel13. Walks through resharding without an outage via dual-write and shadow reads, plus how hot keys drive migration cost.
 
 ## Choosing the shard key (the decision you'll live with)
 
-The shard key determines data distribution, query patterns, and your future resharding
-pain. Good keys have **high cardinality** (many distinct values), **even distribution**,
-and **colocate related data** (a user's rows on one shard = single-shard transactions).
-Bad keys: timestamps (hotspot), booleans (two shards, one idle), tenant ID when one tenant
-is 80% of traffic (the whale problem — give the whale its own shard via directory-based
-routing).
+The partitioning lesson taught you what makes a key *good* — matches your access pattern,
+high cardinality, no monotonic hot keys. This section is about choosing when the
+constraints fight each other. The shard key determines data distribution, query patterns,
+and your future resharding pain. Good keys have **high cardinality** (many distinct values),
+**even distribution**, and **colocate related data** (a user's rows on one shard =
+single-shard transactions). Bad keys: timestamps (hotspot), booleans (two shards, one
+idle), tenant ID when one tenant is 80% of traffic (the whale problem — give the whale its
+own shard via directory-based routing).
 
 Changing the shard key later is a full data migration. The most expensive schema change
 there is. Spend the design meeting. Future you, paged at 3 AM because shard 7 of 8 is at
@@ -181,42 +188,42 @@ there is. Spend the design meeting. Future you, paged at 3 AM because shard 7 of
     {
       question: "What is the main problem with naive hash(key) mod N sharding when adding a shard?",
       options: [
-        "The hash function becomes slower",
+        "The hash function gets slower as N grows",
+        "Keys can no longer be looked up without a directory",
         "Almost all data must move because the modulus changed",
-        "Keys can no longer be looked up",
         "Range queries become impossible forever",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question: "What failure mode does range-based sharding suffer with monotonically increasing keys?",
       options: [
-        "Data is distributed too evenly",
         "The hotspot: all writes pile onto the last shard",
-        "Keys hash to the wrong shard",
-        "The directory service becomes a bottleneck",
+        "Data lands too evenly to be cached effectively",
+        "Keys hash to the wrong shard after every rebalance",
+        "The directory service becomes the bottleneck",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
     {
       question: "With consistent hashing, adding one shard to N approximately moves what fraction of keys?",
       options: [
-        "Nearly all of them",
+        "Exactly half of them",
         "About 1/N of them",
-        "Exactly half",
-        "None — keys never move",
+        "Nearly all of them",
+        "None — keys stay exactly where they are",
       ],
       correctIndex: 1,
     },
     {
       question: "Why do production consistent-hashing systems use virtual nodes?",
       options: [
-        "To encrypt the keys on the ring",
-        "To smooth out uneven distribution with few physical shards and support heterogeneous hardware",
-        "To reduce the number of hash computations",
-        "Virtual nodes eliminate the need for replication",
+        "To encrypt the keys sitting on the ring",
+        "To reduce the number of hash computations per lookup",
+        "To eliminate the need for replication entirely",
+        "To smooth uneven distribution with few shards and support heterogeneous hardware",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
   ]}
 />

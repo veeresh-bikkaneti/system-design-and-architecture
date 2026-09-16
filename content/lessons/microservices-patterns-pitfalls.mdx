@@ -319,21 +319,21 @@ into a network boundary. Brenda will be disappointed. That's fine.
       question:
         "Your team 'has microservices': 12 deployables. A one-line fix in orders requires the full regression suite, and all 12 services deploy together on Friday. What does the independent-deployability test say?",
       options: [
-        "You have microservices — 12 deployables is the definition",
-        "You have a modular monolith, which was the goal anyway",
         "You have a distributed monolith: it looks distributed, but nothing deploys independently",
+        "You have microservices — 12 deployables is the definition",
         "The test doesn't apply until you have at least 20 services",
+        "You have a modular monolith, which was the goal anyway",
       ],
-      correctIndex: 2,
+      correctIndex: 0,
     },
     {
       question:
         "Checkout calls inventory once per line item: 40 items × 25ms ≈ 1,000ms against a 300ms p99 budget. What fix does the lesson recommend?",
       options: [
         "Batch it: one call carrying all 40 items (~40ms)",
+        "Cache inventory responses for a week",
         "Add more inventory service replicas",
         "Raise the latency budget to 1,500ms",
-        "Cache inventory responses for a week",
       ],
       correctIndex: 0,
     },
@@ -351,32 +351,32 @@ into a network boundary. Brenda will be disappointed. That's fine.
       question: "What is temporal coupling?",
       options: [
         "Two services deployed at the same time of day",
-        "Service A can only answer while service B is up and reachable — availability becomes contagious",
-        "Two databases sharing the same system clock",
         "A cache whose TTL is set too short",
+        "Two databases sharing the same system clock",
+        "Service A can only answer while service B is up and reachable — availability becomes contagious",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question:
         "The lesson says to decompose services along what boundary — and where is the full treatment?",
       options: [
+        "Network zones — one service per availability zone",
+        "Team size — one service per developer",
         "Bounded contexts and subdomains — see the domain-driven-design lesson",
         "Database tables — one service per table",
-        "Team size — one service per developer",
-        "Network zones — one service per availability zone",
       ],
-      correctIndex: 0,
+      correctIndex: 2,
     },
     {
       question: "A three-person startup is choosing an architecture. The lesson's advice?",
       options: [
         "Microservices from day one — it's the modern default",
-        "Skip architecture entirely and rewrite everything later",
         "Start with a modular monolith; extract along seams that prove painful",
+        "Skip architecture entirely and rewrite everything later",
         "Build a distributed monolith first, then add independence later",
       ],
-      correctIndex: 2,
+      correctIndex: 1,
     },
   ]}
 />
