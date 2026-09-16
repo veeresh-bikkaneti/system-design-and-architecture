@@ -113,6 +113,48 @@ full" is a design decision, not an accident:
   practice from this lesson, make it DLQs. The poison message that crashes your consumer on
   every retry is not a hypothetical — it's a Tuesday.
 
+<StepThrough
+  title="Poison message meets the dead-letter queue"
+  nodes={[
+    { id: "producer", label: "Producer", x: 70, y: 110 },
+    { id: "queue", label: "Main queue", x: 205, y: 110 },
+    { id: "consumer", label: "Consumer", x: 340, y: 110 },
+    { id: "dlq", label: "Dead-letter queue", x: 205, y: 240 },
+  ]}
+  edges={[
+    { from: "producer", to: "queue" },
+    { from: "queue", to: "consumer" },
+    { from: "queue", to: "dlq" },
+  ]}
+  steps={[
+    {
+      title: "A poison message arrives",
+      caption: "The producer sends an order with a malformed field. The queue durably stores it — the queue did nothing wrong.",
+      highlight: ["producer", "queue"],
+    },
+    {
+      title: "Consumer chokes",
+      caption: "The consumer pulls the message, hits the malformed field, and crashes before acknowledging. No ack, no progress.",
+      highlight: ["consumer"],
+    },
+    {
+      title: "Retry, retry, retry",
+      caption: "The message becomes visible again, the consumer grabs it, crashes again — three attempts, three crashes. The main queue flows fine around it, but this message is in a crash loop.",
+      highlight: ["queue", "consumer"],
+    },
+    {
+      title: "Off to the dead-letter queue",
+      caption: "After N failed attempts the broker shunts the message to the DLQ for inspection instead of letting one bad message clog the queue forever.",
+      highlight: ["dlq"],
+    },
+    {
+      title: "Humans investigate",
+      caption: "The team inspects the DLQ, finds the malformed payload, and fixes the producer — the main queue never blocked, and no data was silently dropped.",
+      highlight: ["dlq"],
+    },
+  ]}
+/>
+
 <VideoCard videoId="lW68_KeMNnA" title="Your Stream Is Falling Behind: Backpressure, Lag, and Batching" source="Swetank Srivastava" description="Separates consumer lag from backpressure and shows how slowdowns travel upstream until spare capacity recovers" />
 
 ## Kafka vs. RabbitMQ vs. SQS

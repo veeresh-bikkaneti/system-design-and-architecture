@@ -76,11 +76,12 @@ flowchart LR
     H --> DB["Store only salt + hash"]:::data
 ```
 
-The practical recipe, the one OWASP's cheat sheet endorses: on signup, generate a random
-salt, hash `salt + password` with argon2id (or bcrypt with a cost factor around 10–12),
-store both. On login, re-hash what the user typed with the stored salt and compare. If the
-hashes match, the bouncer nods them through. You never learn the password, and neither does
-anyone who steals your disk.
+The practical recipe, the one OWASP's cheat sheet endorses: on signup, hash the password
+with argon2id (or bcrypt with a cost factor around 10–12) and store the single encoded
+string the function returns. Both algorithms generate their own random salt and bake it
+into that string — there is no separate salt for you to juggle. On login, run the same
+verify function against the stored hash. If it matches, the bouncer nods them through.
+You never learn the password, and neither does anyone who steals your disk.
 
 <VideoCard videoId="qM2X9VeNQ-w" title="Password Cracking Explained — See It Happen Live" source="The Exploit HQ" description="Cracks real hashes live, then shows bcrypt, Argon2, and salting as the defense." />
 
