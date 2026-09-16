@@ -104,6 +104,8 @@ flowchart LR
     end
 ```
 
+<CacheFlow />
+
 **Write-behind** (write-back) flips the trade: the write lands in the cache and returns
 immediately; the database is updated asynchronously. Writes feel instant, but if the
 cache node dies before the flush, that write is gone forever. Databases like **Cassandra**
