@@ -322,6 +322,11 @@ export function ChatWidget() {
                   The course works fully without it, but you can add your own API key to chat
                   with the tutor about the material.
                 </p>
+                <p className="mb-2.5 text-[11px] leading-relaxed text-stone-500 dark:text-stone-500">
+                  Your key stays in this tab&rsquo;s memory only &mdash; it&rsquo;s never saved,
+                  never sent to us, and it vanishes when you close the tab. It goes straight
+                  from your browser to your AI provider.
+                </p>
                 <button
                   type="button"
                   onClick={() => setSettingsOpen(true)}
