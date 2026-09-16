@@ -26,7 +26,7 @@ readings, freeze-frame data from when the fault occurred, the ability to ask "sh
 pressure during the last misfire." You need the light to know to look; you need the
 diagnostics to actually fix it.
 
-🎥 **Learn more:** [The Three Pillars of Observability](https://www.youtube.com/watch?v=ReaWg3UuqAk) — Dargslan. Explains monitoring versus observability and why unknown-unknowns demand more than dashboards.
+<VideoCard videoId="ReaWg3UuqAk" title="The Three Pillars of Observability" source="Dargslan" description="Explains monitoring versus observability and why unknown-unknowns demand more than dashboards." />
 
 ## The three pillars (and why traces win arguments)
 
@@ -54,7 +54,7 @@ SSHing into four boxes. Logs would show you four separate "slow request" lines; 
 shows you the *relationship*. In microservices, traces are the closest thing to a
 stack trace you'll ever get.
 
-🎥 **Learn more:** [12. Metrics, Logs & Traces (Observability Explained)](https://www.youtube.com/watch?v=6YCrvZRFfmA) — Arpit Vaish. Walks through metrics, logs, and traces — and shows why traces settle debugging arguments.
+<VideoCard videoId="6YCrvZRFfmA" title="12. Metrics, Logs & Traces (Observability Explained)" source="Arpit Vaish" description="Walks through metrics, logs, and traces — and shows why traces settle debugging arguments." />
 
 ## RED and USE: what to measure
 
@@ -73,7 +73,7 @@ And measure latency as **percentiles, not averages**. An average latency of 50 m
 down the miserable minority. Track p50, p95, p99 (and p99.9 if you're fancy); alert on the
 tail, because the tail is where your angriest users live.
 
-🎥 **Learn more:** [Observability, Monitoring & Telemetry Explained | Logs, Metrics, Traces & APM](https://www.youtube.com/watch?v=IsvbbhQV-DA) — OnePercentEngineers. Covers RED, USE, and the Four Golden Signals — exactly what to measure and why.
+<VideoCard videoId="IsvbbhQV-DA" title="Observability, Monitoring & Telemetry Explained | Logs, Metrics, Traces & APM" source="OnePercentEngineers" description="Covers RED, USE, and the Four Golden Signals — exactly what to measure and why." />
 
 ## Sampling: the math of seeing enough
 
@@ -93,7 +93,7 @@ sampling at "all errors + 1% of successes" stores ~1.1% of traffic — a 90× co
 over keeping everything, while retaining 100% of the interesting cases. Do the arithmetic
 for your own traffic; the answer is always "sample, but sample *smart*."
 
-🎥 **Learn more:** [How to find failures without drowning in tracing data](https://www.youtube.com/watch?v=WvkVkVv14mQ) — The New Stack. Trace-sampling strategies that catch failures without drowning your budget in span data.
+<VideoCard videoId="WvkVkVv14mQ" title="How to find failures without drowning in tracing data" source="The New Stack" description="Trace-sampling strategies that catch failures without drowning your budget in span data." />
 
 ## Cardinality: the bill you didn't expect
 
@@ -147,7 +147,7 @@ alerting on the wrong thing (see below).
   ]}
 />
 
-🎥 **Learn more:** [Prometheus and Metrics](https://www.youtube.com/watch?v=wf3mlWX1L5Q) — Dargslan. Shows how Prometheus labels turn one metric into many series — and where the bill hides.
+<VideoCard videoId="wf3mlWX1L5Q" title="Prometheus and Metrics" source="Dargslan" description="Shows how Prometheus labels turn one metric into many series — and where the bill hides." />
 
 ## SLIs, SLOs, and error budgets: alerting like an adult
 
@@ -168,7 +168,7 @@ on **burn rate** (how fast you're spending the budget) rather than on every blip
 5-minute spike that consumes ~12% of the monthly budget is not a page; a sustained burn that
 eats 20% in an hour is.
 
-🎥 **Learn more:** [10 SRE Concepts Every DevOps/SRE Engineer Must Master — Visual Deep Dive](https://www.youtube.com/watch?v=F9EDB-PYstI) — DevXOps Tech. Visual deep dive of the core SRE concepts behind mature, adult alerting practices.
+<VideoCard videoId="F9EDB-PYstI" title="10 SRE Concepts Every DevOps/SRE Engineer Must Master — Visual Deep Dive" source="DevXOps Tech" description="Visual deep dive of the core SRE concepts behind mature, adult alerting practices." />
 
 ## Takeaways
 

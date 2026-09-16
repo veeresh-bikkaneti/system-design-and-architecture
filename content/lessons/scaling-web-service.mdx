@@ -19,7 +19,7 @@ chat app, a food delivery service — walked the same path, solving one bottlene
 This lesson walks it with you, step by step. Learn this journey once and you'll recognize it
 everywhere.
 
-🎥 **Learn more:** [The Truth About Scaling: Why More Servers Isn't Always Better](https://www.youtube.com/watch?v=865BgE1gbPA) — Tahir Alvi. Traces how one server becomes a bottleneck and why scaling is a deliberate response to real bottlenecks, not a default.
+<VideoCard videoId="865BgE1gbPA" title="The Truth About Scaling: Why More Servers Isn't Always Better" source="Tahir Alvi" description="Traces how one server becomes a bottleneck and why scaling is a deliberate response to real bottlenecks, not a default." />
 
 ## Picture a food truck
 
@@ -39,7 +39,7 @@ truck. The problem is what happens when the food blog writes you up and five hun
 show up at once. That moment has a name: **scaling**. And there are two fundamentally
 different ways to do it.
 
-🎥 **Learn more:** [Horizontal vs Vertical Scaling: How to Handle Million Users | System Design Ep 2](https://www.youtube.com/watch?v=wbPOANluZN4) — Vishal Kumar. Uses a restaurant analogy to make horizontal and vertical scaling concrete, building the mental model this stage needs.
+<VideoCard videoId="wbPOANluZN4" title="Horizontal vs Vertical Scaling: How to Handle Million Users | System Design Ep 2" source="Vishal Kumar" description="Uses a restaurant analogy to make horizontal and vertical scaling concrete, building the mental model this stage needs." />
 
 ## Stage 0: One truck (and its limits)
 
@@ -60,7 +60,7 @@ answer for failure.
 
 So the industry converged on the other direction.
 
-🎥 **Learn more:** [Vertical vs Horizontal Scaling: Bigger Box or More Boxes?](https://www.youtube.com/watch?v=X5wt11TVEKo) — The Hot Path. Shows exactly where one server hits its limits and why vertical scaling eventually stops working — Stage 0's core lesson.
+<VideoCard videoId="X5wt11TVEKo" title="Vertical vs Horizontal Scaling: Bigger Box or More Boxes?" source="The Hot Path" description="Shows exactly where one server hits its limits and why vertical scaling eventually stops working — Stage 0's core lesson." />
 
 ## Stage 1: Clone the truck (horizontal scaling)
 
@@ -108,7 +108,7 @@ With three trucks and an order-taker, you can add a fourth, fifth, twentieth tru
 almost no changes. That's the superpower of horizontal scaling: capacity becomes a number
 you dial up, not a wall you hit.
 
-🎥 **Learn more:** [The Greeter. Load balancing, stateless servers, and horizontal scale. Learning Maps Ep.10](https://www.youtube.com/watch?v=n7mYiBIhNqA) — Organic Arts LLC. Teaches load balancing, stateless servers, and horizontal scale together in one lesson.
+<VideoCard videoId="n7mYiBIhNqA" title="The Greeter. Load balancing, stateless servers, and horizontal scale. Learning Maps Ep.10" source="Organic Arts LLC" description="Teaches load balancing, stateless servers, and horizontal scale together in one lesson." />
 
 ## Stage 2: Stop re-reading the recipe book (read replicas)
 
@@ -145,7 +145,7 @@ their password and the replica still has the old one, they'll have a confusing m
 systems route a user's own reads to the master right after they write ("read your own
 writes") to dodge exactly this.
 
-🎥 **Learn more:** [What is Database Replication](https://www.youtube.com/watch?v=HftLmLLbJMU) — Dargslan. Covers primary/replica split, replication lag, and read-your-own-writes with clear visual explanations.
+<VideoCard videoId="HftLmLLbJMU" title="What is Database Replication" source="Dargslan" description="Covers primary/replica split, replication lag, and read-your-own-writes with clear visual explanations." />
 
 ## Stage 2.5: The chalkboard by the window (caching)
 
@@ -191,7 +191,7 @@ database or your replicas; it *protects* them, absorbing the repetitive question
 expensive machinery underneath can breathe. There's a whole lesson on caching strategies
 later — consider this your appetizer.
 
-🎥 **Learn more:** [Redis Cache Explained in 300 Seconds (Beginner to Pro) #redis #cache #coding #seniordeveloper](https://www.youtube.com/watch?v=JcufU5dtBYQ) — Coding With Raj Dave. Covers cache-aside, TTL, and eviction policies with Redis in a compact format.
+<VideoCard videoId="JcufU5dtBYQ" title="Redis Cache Explained in 300 Seconds (Beginner to Pro) #redis #cache #coding #seniordeveloper" source="Coding With Raj Dave" description="Covers cache-aside, TTL, and eviction policies with Redis in a compact format." />
 
 ## Stage 3: Let the corner stores sell the drinks (CDN)
 
@@ -225,7 +225,7 @@ a famous joke that it's one of the two hard problems in computer science. The us
 versioned filenames — ship `menu-v2.png` instead of overwriting `menu.png` — so old stock
 and new stock never get confused.
 
-🎥 **Learn more:** [What is a CDN? - #Cloudbits Episode 2](https://www.youtube.com/watch?v=9254n-FM97M) — Cloudflare Developers. Cloudflare's own explainer on what CDNs are and how edge caching works.
+<VideoCard videoId="9254n-FM97M" title="What is a CDN? - #Cloudbits Episode 2" source="Cloudflare Developers" description="Cloudflare's own explainer on what CDNs are and how edge caching works." />
 
 ## Stage 4: Split the recipe book (sharding)
 
@@ -258,7 +258,7 @@ Notice something about the whole journey: each stage attacked the *current* bott
 nothing else. You didn't shard on day one. You didn't need a CDN for your first hundred
 users. Scaling is sequential problem-solving, not a shopping list.
 
-🎥 **Learn more:** [System Design Part 5: Indexing & Sharding Explained (Scale to Millions)](https://www.youtube.com/watch?v=cYskVBOxOHQ) — Coding Devs. Covers sharding strategies, shard keys, hot shards, and cross-shard query costs for write scaling.
+<VideoCard videoId="cYskVBOxOHQ" title="System Design Part 5: Indexing & Sharding Explained (Scale to Millions)" source="Coding Devs" description="Covers sharding strategies, shard keys, hot shards, and cross-shard query costs for write scaling." />
 
 ## The napkin math
 
@@ -293,7 +293,7 @@ which stages you can stop worrying about for now.
 
 <NapkinMathPlayground />
 
-🎥 **Learn more:** [SREcon19 Europe/Middle East/Africa - Advanced Napkin Math: Estimating System...](https://www.youtube.com/watch?v=IxkSlnrRFqc) — USENIX. SREcon talk on estimating system performance from first principles, matching the napkin-math discipline.
+<VideoCard videoId="IxkSlnrRFqc" title="SREcon19 Europe/Middle East/Africa - Advanced Napkin Math: Estimating System..." source="USENIX" description="SREcon talk on estimating system performance from first principles, matching the napkin-math discipline." />
 
 ## The full journey, one diagram
 
@@ -384,7 +384,7 @@ the truck actually grew:
   caption="Scroll to walk the food truck's whole journey — each stage solved the bottleneck in front of it."
 />
 
-🎥 **Learn more:** [System Design Explained: How Apps Scale to 1 Billion Users](https://www.youtube.com/watch?v=Z_D3esVduTk) — TheBinaryBreakdown. Rebuilds the whole journey from one server to global architecture: load balancers, caching, replicas, sharding, CDN.
+<VideoCard videoId="Z_D3esVduTk" title="System Design Explained: How Apps Scale to 1 Billion Users" source="TheBinaryBreakdown" description="Rebuilds the whole journey from one server to global architecture: load balancers, caching, replicas, sharding, CDN." />
 
 ## Takeaways
 

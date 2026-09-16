@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { QUIZ_PASS_THRESHOLD, useProgressStore } from '../store/progress';
+import { Button, buttonClasses } from './ui/Button';
+import { Icon } from './ui/Icon';
+import { Pill } from './ui/Pill';
+import { ProgressBar } from './ui/ProgressBar';
 
 export interface QuizQuestion {
   question: string;
@@ -10,30 +14,6 @@ export interface QuizQuestion {
 export interface QuizProps {
   lessonSlug: string;
   questions: QuizQuestion[];
-}
-
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className={className}>
-      <path
-        fillRule="evenodd"
-        d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.7-9.3a1 1 0 0 0-1.4-1.4L9 10.6 7.7 9.3a1 1 0 0 0-1.4 1.4l2 2a1 1 0 0 0 1.4 0l4-4Z"
-        clipRule="evenodd"
-      />
-    </svg>
-  );
-}
-
-function XIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className={className}>
-      <path
-        fillRule="evenodd"
-        d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.3 7.3a1 1 0 0 1 1.4 0L10 7.6l.3-.3a1 1 0 1 1 1.4 1.4L11.4 9l.3.3a1 1 0 1 1-1.4 1.4L10 10.4l-.3.3a1 1 0 1 1-1.4-1.4l.3-.3-.3-.3a1 1 0 0 1 0-1.4Z"
-        clipRule="evenodd"
-      />
-    </svg>
-  );
 }
 
 export function Quiz({ lessonSlug, questions }: QuizProps) {
@@ -67,32 +47,25 @@ export function Quiz({ lessonSlug, questions }: QuizProps) {
   }
 
   return (
-    <div className="not-prose my-10 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-[0_2px_12px_rgb(120_53_15/0.07)] dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
-      <div className="border-b border-stone-200/80 bg-amber-50/70 px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-amber-950/20">
+    <div className="not-prose my-10 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-[0_2px_12px_rgb(120_53_15/0.07)] dark:border-stone-800 dark:bg-stone-900 dark:shadow-none">
+      <div className="border-b border-stone-200/80 bg-amber-50/70 px-5 py-4 sm:px-6 dark:border-stone-800 dark:bg-amber-950/20">
         <div className="flex items-center justify-between gap-4">
-          <h3 className="text-base font-semibold text-stone-900 dark:text-zinc-100">
+          <h3 className="text-base font-semibold text-stone-900 dark:text-stone-100">
             Check your understanding
           </h3>
           <p
-            className="shrink-0 text-xs font-medium text-stone-500 dark:text-zinc-400"
+            className="shrink-0 text-xs font-medium text-stone-500 dark:text-stone-400"
             aria-live="polite"
           >
             {answeredCount} of {total} answered
           </p>
         </div>
-        <div
-          role="progressbar"
-          aria-valuenow={answeredCount}
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-label="Quiz questions answered"
-          className="mt-3 h-1.5 overflow-hidden rounded-full bg-stone-200 dark:bg-zinc-700"
-        >
-          <div
-            className="h-full rounded-full bg-amber-500 transition-[width] duration-300"
-            style={{ width: `${total > 0 ? (answeredCount / total) * 100 : 0}%` }}
-          />
-        </div>
+        <ProgressBar
+          value={answeredCount}
+          max={total}
+          label="Quiz questions answered"
+          className="mt-3"
+        />
       </div>
 
       <div className="space-y-7 px-5 py-6 sm:px-6">
@@ -101,7 +74,7 @@ export function Quiz({ lessonSlug, questions }: QuizProps) {
           const answeredCorrectly = selectedOption === q.correctIndex;
           return (
             <fieldset key={qIndex}>
-              <legend className="mb-3 flex items-start gap-3 text-sm font-semibold leading-snug text-stone-900 dark:text-zinc-100">
+              <legend className="mb-3 flex items-start gap-3 text-sm font-semibold leading-snug text-stone-900 dark:text-stone-100">
                 <span
                   aria-hidden="true"
                   className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-300"
@@ -116,7 +89,7 @@ export function Quiz({ lessonSlug, questions }: QuizProps) {
                   const isCorrectOption = oIndex === q.correctIndex;
 
                   let optionClasses =
-                    'group flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-all duration-150 focus-within:outline-none focus-within:ring-2 focus-within:ring-amber-600 focus-within:ring-offset-2 dark:focus-within:ring-offset-zinc-900';
+                    'group flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-[border-color,background-color,box-shadow,transform,color] duration-150 focus-within:outline-none focus-within:ring-2 focus-within:ring-amber-600 focus-within:ring-offset-2 dark:focus-within:ring-offset-stone-900';
 
                   if (submitted) {
                     if (isSelected && isCorrectOption) {
@@ -130,12 +103,12 @@ export function Quiz({ lessonSlug, questions }: QuizProps) {
                         ' border-dashed border-green-600/60 bg-transparent text-green-800 dark:border-green-500/60 dark:text-green-300';
                     } else {
                       optionClasses +=
-                        ' cursor-default border-stone-200 text-stone-400 dark:border-zinc-800 dark:text-zinc-500';
+                        ' cursor-default border-stone-200 text-stone-400 dark:border-stone-800 dark:text-stone-400';
                     }
                   } else {
                     optionClasses += isSelected
-                      ? ' border-amber-600 bg-amber-50 text-stone-900 shadow-[0_1px_6px_rgb(180_83_9/0.15)] dark:border-amber-500 dark:bg-amber-950/40 dark:text-zinc-100'
-                      : ' border-stone-200 bg-white text-stone-700 hover:-translate-y-px hover:border-amber-400 hover:bg-amber-50/50 hover:shadow-[0_2px_8px_rgb(180_83_9/0.08)] active:translate-y-0 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-amber-700 dark:hover:bg-amber-950/20';
+                      ? ' border-amber-600 bg-amber-50 text-stone-900 shadow-[0_1px_6px_rgb(180_83_9/0.15)] dark:border-amber-500 dark:bg-amber-950/40 dark:text-stone-100'
+                      : ' border-stone-200 bg-white text-stone-700 hover:-translate-y-px hover:border-amber-400 hover:bg-amber-50/50 hover:shadow-[0_2px_8px_rgb(180_83_9/0.08)] active:translate-y-0 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-amber-700 dark:hover:bg-amber-950/20';
                   }
 
                   return (
@@ -150,10 +123,10 @@ export function Quiz({ lessonSlug, questions }: QuizProps) {
                       />
                       <span className="flex-1">{option}</span>
                       {submitted && isSelected && isCorrectOption && (
-                        <CheckIcon className="h-5 w-5 shrink-0 text-green-600 dark:text-green-400" />
+                        <Icon name="checkCircle" className="h-5 w-5 shrink-0 text-green-600 dark:text-green-400" />
                       )}
                       {submitted && isSelected && !isCorrectOption && (
-                        <XIcon className="h-5 w-5 shrink-0 text-red-500 dark:text-red-400" />
+                        <Icon name="xCircle" className="h-5 w-5 shrink-0 text-red-500 dark:text-red-400" />
                       )}
                     </label>
                   );
@@ -164,7 +137,7 @@ export function Quiz({ lessonSlug, questions }: QuizProps) {
                   className={`pl-9 pt-2 text-xs font-medium ${
                     answeredCorrectly
                       ? 'text-green-700 dark:text-green-300'
-                      : 'text-stone-500 dark:text-zinc-400'
+                      : 'text-stone-500 dark:text-stone-400'
                   }`}
                 >
                   {answeredCorrectly
@@ -177,19 +150,17 @@ export function Quiz({ lessonSlug, questions }: QuizProps) {
         })}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-stone-200/80 bg-stone-50/60 px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900/60">
+      <div
+        aria-live="polite"
+        className="flex flex-wrap items-center gap-3 border-t border-stone-200/80 bg-stone-50/60 px-5 py-4 sm:px-6 dark:border-stone-800 dark:bg-stone-900/60"
+      >
         {!submitted ? (
           <>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!allAnswered}
-              className="inline-flex items-center rounded-xl bg-amber-700 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_2px_8px_rgb(180_83_9/0.3)] transition-all hover:-translate-y-px hover:bg-amber-800 hover:shadow-[0_4px_12px_rgb(180_83_9/0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none dark:disabled:bg-zinc-700 dark:disabled:text-zinc-400"
-            >
+            <Button type="button" onClick={handleSubmit} disabled={!allAnswered}>
               Check answers
-            </button>
+            </Button>
             {!allAnswered && (
-              <p className="text-xs text-stone-500 dark:text-zinc-400">
+              <p className="text-xs text-stone-500 dark:text-stone-400">
                 Answer every question to check your work.
               </p>
             )}
@@ -197,29 +168,19 @@ export function Quiz({ lessonSlug, questions }: QuizProps) {
         ) : (
           <>
             <div className="flex items-center gap-2.5">
-              <span className="text-sm font-semibold text-stone-900 dark:text-zinc-100">
+              <span className="text-sm font-semibold text-stone-900 dark:text-stone-100">
                 You scored {correctCount} / {total}
               </span>
-              <span
-                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${
-                  passed
-                    ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300'
-                    : 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300'
-                }`}
-              >
+              <Pill tone={passed ? 'success' : 'accent'}>
                 {passed ? 'Passed' : 'Not yet'}
-              </span>
+              </Pill>
             </div>
-            <p className="w-full text-xs text-stone-500 dark:text-zinc-400">
+            <p className="w-full text-xs text-stone-500 dark:text-stone-400">
               {passed
                 ? 'You passed \u2014 solid work. On to the next lesson.'
                 : 'Not quite there \u2014 the right answers are highlighted above. Give it another go.'}
             </p>
-            <button
-              type="button"
-              onClick={handleRetry}
-              className="ml-auto inline-flex items-center rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition-all hover:-translate-y-px hover:border-amber-400 hover:bg-amber-50 hover:text-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 active:translate-y-0 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-amber-700 dark:hover:bg-amber-950/30 dark:hover:text-amber-200"
-            >
+            <button type="button" onClick={handleRetry} className={buttonClasses('secondary', 'sm', 'ml-auto')}>
               Try again
             </button>
           </>

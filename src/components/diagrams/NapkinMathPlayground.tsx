@@ -78,7 +78,7 @@ function SliderRow({ id, label, valueLabel, min, max, step, sliderValue, onChang
       <div className="mb-1 flex items-baseline justify-between gap-3">
         <label
           htmlFor={id}
-          className="diagram-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 dark:text-slate-400"
+          className="diagram-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400"
         >
           {label}
         </label>
@@ -172,13 +172,13 @@ export function NapkinMathPlayground({
 
   return (
     <motion.div
-      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-slate-800 dark:bg-slate-950"
+      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-stone-800 dark:bg-stone-950"
       {...entrance}
     >
-      <h4 className="diagram-mono mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-slate-400">
+      <h4 className="diagram-mono mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
         Napkin math playground
       </h4>
-      <p className="mb-5 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+      <p className="mb-5 text-sm leading-relaxed text-stone-600 dark:text-stone-300">
         The lesson did this once with 1M requests/day. Now drag the sliders and watch the same
         arithmetic redo itself — the working is shown on purpose, so steal the technique.
       </p>
@@ -230,32 +230,32 @@ export function NapkinMathPlayground({
         />
       </div>
 
-      <ol className="mt-6 space-y-2.5 border-t border-stone-200 pt-5 text-sm dark:border-slate-800">
+      <ol className="mt-6 space-y-2.5 border-t border-stone-200 pt-5 text-sm dark:border-stone-800">
         <li className="flex gap-3">
           <span className="diagram-mono shrink-0 font-bold text-amber-700 dark:text-amber-400">1.</span>
-          <span className="text-slate-600 dark:text-slate-300">
-            <strong className="text-slate-900 dark:text-slate-100">{fmtInt(math.requestsPerDay)}</strong>{' '}
-            requests ÷ 86,400 s ≈ <strong className="text-slate-900 dark:text-slate-100">{fmtRate(math.avgRps)}</strong>{' '}
+          <span className="text-stone-600 dark:text-stone-300">
+            <strong className="text-stone-900 dark:text-stone-100">{fmtInt(math.requestsPerDay)}</strong>{' '}
+            requests ÷ 86,400 s ≈ <strong className="text-stone-900 dark:text-stone-100">{fmtRate(math.avgRps)}</strong>{' '}
             average. A day is long; traffic isn't.
           </span>
         </li>
         <li className="flex gap-3">
           <span className="diagram-mono shrink-0 font-bold text-amber-700 dark:text-amber-400">2.</span>
-          <span className="text-slate-600 dark:text-slate-300">
+          <span className="text-stone-600 dark:text-stone-300">
             Dinner rush: {PEAK_MULTIPLIER}× average ≈{' '}
-            <strong className="text-slate-900 dark:text-slate-100">{fmtRate(math.peakRps)}</strong> peak.
+            <strong className="text-stone-900 dark:text-stone-100">{fmtRate(math.peakRps)}</strong> peak.
             Deliberately pessimistic — launch day is not the time for optimism.
           </span>
         </li>
         <li className="flex gap-3">
           <span className="diagram-mono shrink-0 font-bold text-amber-700 dark:text-amber-400">3.</span>
-          <span className="text-slate-600 dark:text-slate-300">
+          <span className="text-stone-600 dark:text-stone-300">
             {fmtRate(math.peakRps)} ÷ {SERVER_CAPACITY_RPS} req/s per server ≈{' '}
-            <strong className="text-slate-900 dark:text-slate-100">
+            <strong className="text-stone-900 dark:text-stone-100">
               {math.rawServers} server{math.rawServers === 1 ? '' : 's'}
             </strong>{' '}
             by the math →{' '}
-            <strong className="text-slate-900 dark:text-slate-100">
+            <strong className="text-stone-900 dark:text-stone-100">
               {math.servers} server{math.servers === 1 ? '' : 's'}
             </strong>{' '}
             in reality. The extra are redundancy and headroom: half arithmetic, half humility.
@@ -263,9 +263,9 @@ export function NapkinMathPlayground({
         </li>
         <li className="flex gap-3">
           <span className="diagram-mono shrink-0 font-bold text-amber-700 dark:text-amber-400">4.</span>
-          <span className="text-slate-600 dark:text-slate-300">
+          <span className="text-stone-600 dark:text-stone-300">
             Bandwidth at peak:{' '}
-            <strong className="text-slate-900 dark:text-slate-100">
+            <strong className="text-stone-900 dark:text-stone-100">
               {fmtBytes(math.bandwidthBytesPerSec)}/s
             </strong>{' '}
             ({fmtRate(math.peakRps)} × {requestSizeLabel} per request).
@@ -273,13 +273,13 @@ export function NapkinMathPlayground({
         </li>
         <li className="flex gap-3">
           <span className="diagram-mono shrink-0 font-bold text-amber-700 dark:text-amber-400">5.</span>
-          <span className="text-slate-600 dark:text-slate-300">
+          <span className="text-stone-600 dark:text-stone-300">
             Storage:{' '}
-            <strong className="text-slate-900 dark:text-slate-100">
+            <strong className="text-stone-900 dark:text-stone-100">
               {fmtCompact(math.writesPerDay)}
             </strong>{' '}
             writes/day × {requestSizeLabel} × {math.retentionDays} days ≈{' '}
-            <strong className="text-slate-900 dark:text-slate-100">
+            <strong className="text-stone-900 dark:text-stone-100">
               {fmtBytes(math.storageBytes)}
             </strong>
             .

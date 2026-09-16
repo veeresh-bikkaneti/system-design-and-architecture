@@ -20,7 +20,7 @@ wrong and strangers walk in. Get the second one wrong and a logged-in user reads
 else's invoices. Both mistakes show up in breach headlines, and both are avoidable once you
 see the shape of the problem.
 
-🎥 **Learn more:** [Authentication vs Authorization: What’s the Real Difference?](https://www.youtube.com/watch?v=iqhobwZCAyo) — Redfox Security. Shows what weak authentication and broken authorization cost in real attacks.
+<VideoCard videoId="iqhobwZCAyo" title="Authentication vs Authorization: What’s the Real Difference?" source="Redfox Security" description="Shows what weak authentication and broken authorization cost in real attacks." />
 
 ## One concert venue, two jobs
 
@@ -44,7 +44,7 @@ authentication, the wristband zones are authorization. A valid ticket (authN) ne
 backstage access (authZ). When a system checks your login and then lets you read another
 tenant's data, somebody skipped the wristband crew.
 
-🎥 **Learn more:** [Authentication vs Authorization Explained Simply](https://www.youtube.com/watch?v=8mJTmya_O_8) — Drewity. Visual explainer with a live demo contrasting 401 vs 403, each job mapped clearly.
+<VideoCard videoId="8mJTmya_O_8" title="Authentication vs Authorization Explained Simply" source="Drewity" description="Visual explainer with a live demo contrasting 401 vs 403, each job mapped clearly." />
 
 ## Passwords: store them like you expect a breach
 
@@ -82,7 +82,7 @@ store both. On login, re-hash what the user typed with the stored salt and compa
 hashes match, the bouncer nods them through. You never learn the password, and neither does
 anyone who steals your disk.
 
-🎥 **Learn more:** [Password Cracking Explained — See It Happen Live](https://www.youtube.com/watch?v=qM2X9VeNQ-w) — The Exploit HQ. Cracks real hashes live, then shows bcrypt, Argon2, and salting as the defense.
+<VideoCard videoId="qM2X9VeNQ-w" title="Password Cracking Explained — See It Happen Live" source="The Exploit HQ" description="Cracks real hashes live, then shows bcrypt, Argon2, and salting as the defense." />
 
 ## Sessions vs tokens: two ways to remember a face
 
@@ -124,7 +124,7 @@ Kill the refresh token and the access token dies on its own within minutes. It's
 wristband that dissolves at midnight — the venue doesn't need a guest list if every pass
 self-destructs.
 
-🎥 **Learn more:** [Session vs JWT Tokens Explained in 6 Minutes | Authentication Architecture Made Simple](https://www.youtube.com/watch?v=V9WaFnS6K_E) — CodeWithNitin. Side-by-side tour of stateful sessions vs stateless tokens, and when to pick each.
+<VideoCard videoId="V9WaFnS6K_E" title="Session vs JWT Tokens Explained in 6 Minutes | Authentication Architecture Made Simple" source="CodeWithNitin" description="Side-by-side tour of stateful sessions vs stateless tokens, and when to pick each." />
 
 ## JWT: a stamped hand, in three parts
 
@@ -158,7 +158,7 @@ Two things about JWTs bite people again and again:
 This is the spec to know by name: RFC 7519 defines the JWT format, and you'll see its claim
 names (`exp`, `sub`, `aud`) in half the auth libraries you ever touch.
 
-🎥 **Learn more:** [Your JWT Token, Decoded](https://www.youtube.com/watch?v=2UIT8w0YvIg) — Neural Download. Cracks open a real token piece by piece: header, payload, signature, plus the alg:none attack.
+<VideoCard videoId="2UIT8w0YvIg" title="Your JWT Token, Decoded" source="Neural Download" description="Cracks open a real token piece by piece: header, payload, signature, plus the alg:none attack." />
 
 ## OAuth2: letting someone in without handing over the keys
 
@@ -204,7 +204,7 @@ Two practical notes you'll need in real work:
   possession of it during the code exchange. If you're building a public client, PKCE isn't
   optional anymore.
 
-🎥 **Learn more:** [What is OAuth 2](https://www.youtube.com/watch?v=4Pe34E8wD6c) — Dargslan. Walks the authorization code flow, scopes, and PKCE without drowning you in spec.
+<VideoCard videoId="4Pe34E8wD6c" title="What is OAuth 2" source="Dargslan" description="Walks the authorization code flow, scopes, and PKCE without drowning you in spec." />
 
 ## OIDC: OAuth2 learns to answer "who are you?"
 
@@ -216,7 +216,7 @@ email). "Log in with your account" buttons are OIDC under the hood: OAuth2 got t
 permission, OIDC told the app who granted it. One protocol for the wristband, one claim set
 for the ID check — the venue analogy holds all the way down.
 
-🎥 **Learn more:** [OAuth 2.0 and OpenID Connect (in plain English)](https://www.youtube.com/watch?v=996OiexHze0) — OktaDev. Nate Barbettini explains how OIDC adds identity on top of OAuth, in plain English.
+<VideoCard videoId="996OiexHze0" title="OAuth 2.0 and OpenID Connect (in plain English)" source="OktaDev" description="Nate Barbettini explains how OIDC adds identity on top of OAuth, in plain English." />
 
 ## RBAC vs ABAC: who gets which wristband
 
@@ -237,7 +237,7 @@ understands. Reach for ABAC when "VIP or not" stops being expressive enough, and
 that you're trading simplicity for a policy engine you'll need to test like code. Because
 it *is* code.
 
-🎥 **Learn more:** [Role-based access control (RBAC) vs. Attribute-based access control (ABAC)](https://www.youtube.com/watch?v=rvZ35YW4t5k) — IBM Technology. An IBM Distinguished Engineer compares role-based and attribute-based models with real trade-offs.
+<VideoCard videoId="rvZ35YW4t5k" title="Role-based access control (RBAC) vs. Attribute-based access control (ABAC)" source="IBM Technology" description="An IBM Distinguished Engineer compares role-based and attribute-based models with real trade-offs." />
 
 ## Where auth lives when you have fifty services
 
@@ -266,7 +266,7 @@ directly — only the ones your gateway validated and stamped. A service that ac
 `X-User-Is-Admin: true` header from the open internet has fired its bouncer and hired a
 sign that says "admins this way."
 
-🎥 **Learn more:** [How Authentication & Authorization Work in Microservices (JWT + API Gateway) | Lecture - 15](https://www.youtube.com/watch?v=hhhfxOmGlv4) — Base2Coder. Walks the end-to-end flow: an auth service issues JWTs, the gateway validates at the edge.
+<VideoCard videoId="hhhfxOmGlv4" title="How Authentication & Authorization Work in Microservices (JWT + API Gateway) | Lecture - 15" source="Base2Coder" description="Walks the end-to-end flow: an auth service issues JWTs, the gateway validates at the edge." />
 
 ## Takeaways
 

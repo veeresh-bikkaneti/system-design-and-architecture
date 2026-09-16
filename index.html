@@ -19,6 +19,27 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <script>
+      // Apply the persisted theme before first paint so the page never
+      // flashes the wrong color scheme. Mirrors src/store/display.ts —
+      // keep the two in sync.
+      (function () {
+        try {
+          var stored = JSON.parse(localStorage.getItem('sdm-display') || '{}');
+          var theme = stored.state && stored.state.theme;
+          var calm = stored.state && stored.state.calmMotion;
+          var dark =
+            theme === 'dark' ||
+            (theme !== 'light' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+          if (calm) document.documentElement.setAttribute('data-motion', 'calm');
+        } catch (e) {
+          /* storage unavailable — fall back to the OS preference */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

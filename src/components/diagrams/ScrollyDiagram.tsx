@@ -200,7 +200,7 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
   return (
     <motion.div
       ref={sectionRef}
-      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-slate-800 dark:bg-slate-950 sm:p-6"
+      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-stone-800 dark:bg-stone-950 sm:p-6"
       {...entrance}
     >
       <div className="lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-10">
@@ -222,7 +222,7 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
                 markerHeight="7"
                 orient="auto-start-reverse"
               >
-                <path d="M0,0 L10,5 L0,10 z" className="fill-stone-400 dark:fill-slate-500" />
+                <path d="M0,0 L10,5 L0,10 z" className="fill-stone-400 dark:fill-stone-400" />
               </marker>
               <marker
                 id={arrowActiveId}
@@ -258,7 +258,7 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
                     className={
                       active
                         ? 'stroke-amber-500 dark:stroke-amber-400'
-                        : 'stroke-stone-400 dark:stroke-slate-500'
+                        : 'stroke-stone-400 dark:stroke-stone-400'
                     }
                   />
                   {e.label && (
@@ -267,7 +267,7 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
                       y={my - 6}
                       textAnchor="middle"
                       fontSize={10}
-                      className="diagram-mono fill-stone-500 stroke-stone-50 dark:fill-slate-400 dark:stroke-slate-950"
+                      className="diagram-mono fill-stone-500 stroke-stone-50 dark:fill-stone-400 dark:stroke-stone-950"
                       strokeWidth={3}
                       paintOrder="stroke"
                     >
@@ -296,7 +296,7 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
                     className={
                       active
                         ? 'fill-amber-100 stroke-amber-500 dark:fill-amber-950/60 dark:stroke-amber-400'
-                        : 'fill-white stroke-stone-300 dark:fill-slate-900 dark:stroke-slate-600'
+                        : 'fill-white stroke-stone-300 dark:fill-stone-900 dark:stroke-stone-600'
                     }
                   />
                   <text
@@ -309,7 +309,7 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
                     className={
                       active
                         ? 'diagram-mono fill-amber-950 dark:fill-amber-100'
-                        : 'diagram-mono fill-stone-700 dark:fill-slate-200'
+                        : 'diagram-mono fill-stone-700 dark:fill-stone-200'
                     }
                   >
                     {n.label}
@@ -321,7 +321,7 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
                       textAnchor="middle"
                       dominantBaseline="central"
                       fontSize={10}
-                      className="diagram-mono fill-stone-500 dark:fill-slate-400"
+                      className="diagram-mono fill-stone-500 dark:fill-stone-400"
                     >
                       {n.sub}
                     </text>
@@ -332,7 +332,7 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
           </svg>
 
           {caption && (
-            <p className="diagram-mono mt-3 text-center text-[11px] leading-relaxed text-stone-500 dark:text-slate-400">
+            <p className="diagram-mono mt-3 text-center text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
               {caption}
             </p>
           )}
@@ -343,7 +343,7 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
               type="button"
               onClick={() => goTo(index - 1)}
               disabled={index === 0}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="rounded-md border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
             >
               ← Previous
             </button>
@@ -355,10 +355,10 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
                   aria-current={i === index ? 'step' : undefined}
                   aria-label={`Go to step ${i + 1}: ${s.title}`}
                   onClick={() => goTo(i)}
-                  className={`h-2 rounded-full transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${
+                  className={`h-2 rounded-full transition-[width] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${
                     i === index
                       ? 'w-6 bg-amber-500'
-                      : 'w-2 bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 dark:hover:bg-slate-600'
+                      : 'w-2 bg-stone-300 hover:bg-stone-400 dark:bg-stone-700 dark:hover:bg-stone-600'
                   }`}
                 />
               ))}
@@ -367,7 +367,7 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
               type="button"
               onClick={() => goTo(index + 1)}
               disabled={index === stepCount - 1}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="rounded-md border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
             >
               Next →
             </button>
@@ -397,20 +397,20 @@ export function ScrollyDiagram({ nodes, edges, steps, caption }: ScrollyDiagramP
                   className={`block w-full rounded-2xl border p-5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 sm:p-6 ${
                     active
                       ? 'border-amber-400 bg-amber-50 shadow-soft dark:border-amber-700 dark:bg-amber-950/30'
-                      : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-900/70'
+                      : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700 dark:hover:bg-stone-900/70'
                   }`}
                 >
                   <span
                     className={`diagram-mono text-[10px] font-semibold uppercase tracking-[0.18em] ${
-                      active ? 'text-amber-700 dark:text-amber-400' : 'text-stone-400 dark:text-slate-500'
+                      active ? 'text-amber-700 dark:text-amber-400' : 'text-stone-400 dark:text-stone-400'
                     }`}
                   >
                     Step {i + 1} of {stepCount}
                   </span>
-                  <span className="mt-1.5 block text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                  <span className="mt-1.5 block text-base font-semibold tracking-tight text-stone-900 dark:text-stone-100">
                     {s.title}
                   </span>
-                  <span className="mt-1.5 block text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                  <span className="mt-1.5 block text-sm leading-relaxed text-stone-600 dark:text-stone-300">
                     {s.body}
                   </span>
                 </button>

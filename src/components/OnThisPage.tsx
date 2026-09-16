@@ -73,7 +73,7 @@ export function OnThisPage() {
   return (
     <nav aria-label="On this page" className="hidden xl:block">
       <div className="sticky top-20 max-h-[calc(100svh-7rem)] overflow-y-auto">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400 dark:text-stone-500">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400 dark:text-stone-400">
           On this page
         </p>
         <ul className="mt-3 space-y-1 border-l border-stone-200 dark:border-stone-800">

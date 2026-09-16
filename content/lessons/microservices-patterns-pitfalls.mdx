@@ -22,7 +22,7 @@ through on the way to a distributed monolith, and how to stay out of them. You'v
 the trade-offs in the microservices-vs-monolith lesson; here we go deeper into the
 failure modes, with numbers.
 
-🎥 **Learn more:** [Understanding Progressive Collapse: How To Avoid A Cascading Failure](https://www.youtube.com/watch?v=ECUd5FuK5q4) — InfoQ. Sam Newman shows real post-mortems where small failures cascaded, proving why distributed pitfalls deserve serious attention.
+<VideoCard videoId="ECUd5FuK5q4" title="Understanding Progressive Collapse: How To Avoid A Cascading Failure" source="InfoQ" description="Sam Newman shows real post-mortems where small failures cascaded, proving why distributed pitfalls deserve serious attention." />
 
 ## The neighborhood (and where to draw the fences)
 
@@ -44,7 +44,7 @@ supporting subdomains get solid citizens; generic subdomains (auth, email sendin
 plumbing of billing) get bought, not built. Splitting a generic subdomain into five
 hand-rolled services is how you spend a quarter reimplementing Stripe.
 
-🎥 **Learn more:** [Granularity and Communication  in Microservices Architectures - Neal Ford](https://www.youtube.com/watch?v=CzAmPAuEGpI) — Developer Summit. Neal Ford teaches the architecture quantum technique for finding right-sized service boundaries and measuring coupling.
+<VideoCard videoId="CzAmPAuEGpI" title="Granularity and Communication  in Microservices Architectures - Neal Ford" source="Developer Summit" description="Neal Ford teaches the architecture quantum technique for finding right-sized service boundaries and measuring coupling." />
 
 ## Loophole one: the distributed monolith
 
@@ -85,7 +85,7 @@ network rent.
 How do teams end up here? Usually through the next three loopholes. Each one is a
 specific kind of coupling wearing a microservices costume.
 
-🎥 **Learn more:** [Jonathan Tower | How to Avoid Doing Microservices Completely Wrong](https://www.youtube.com/watch?v=a2WbPgrxALI) — Update Conference. Tower names the distributed monolith and walks through mistakes that keep services from deploying independently.
+<VideoCard videoId="a2WbPgrxALI" title="Jonathan Tower | How to Avoid Doing Microservices Completely Wrong" source="Update Conference" description="Tower names the distributed monolith and walks through mistakes that keep services from deploying independently." />
 
 ## Loophole two: chatty services
 
@@ -177,7 +177,7 @@ do** (the order-confirmation email doesn't need to block the response — publis
 event), and **fine-grained CRUD APIs between services** (if checkout needs half of
 inventory's data model on every call, the boundary is in the wrong place).
 
-🎥 **Learn more:** [The Chatty Service Anti-Pattern | Why Too Many Microservice Calls Slow You Down](https://www.youtube.com/watch?v=s4DFikOxFd0) — Jay Reboul. Explains how excessive synchronous service-to-service calls add latency and fragility, plus batching and aggregation fixes.
+<VideoCard videoId="s4DFikOxFd0" title="The Chatty Service Anti-Pattern | Why Too Many Microservice Calls Slow You Down" source="Jay Reboul" description="Explains how excessive synchronous service-to-service calls add latency and fragility, plus batching and aggregation fixes." />
 
 ## Loophole three: the shared database
 
@@ -216,7 +216,7 @@ precisely because that trade-off is real. But sharing the database to dodge the
 trade-off just relocates the coupling to the one place you can't version, deprecate,
 or deploy independently.
 
-🎥 **Learn more:** [Should Each Microservice Have Its Own Database or Table?](https://www.youtube.com/watch?v=eZocOdvxFh8) — Ram N Java. Walks through why shared tables break service independence and how database-per-service restores ownership and scaling.
+<VideoCard videoId="eZocOdvxFh8" title="Should Each Microservice Have Its Own Database or Table?" source="Ram N Java" description="Walks through why shared tables break service independence and how database-per-service restores ownership and scaling." />
 
 ## Loophole four: temporal coupling
 
@@ -246,7 +246,7 @@ Temporal coupling is also why "just add a service mesh" doesn't save you. The me
 makes the calls observable and retryable, but it can't make five synchronous
 dependencies less synchronous.
 
-🎥 **Learn more:** [Loose Coupling Isn’t Free — The Cost of Event-Driven Systems](https://www.youtube.com/watch?v=Rk1gL9w8L14) — Systems Thinking for Architects. Unpacks temporal coupling: event ordering and hidden timing dependencies that quietly re-couple services.
+<VideoCard videoId="Rk1gL9w8L14" title="Loose Coupling Isn’t Free — The Cost of Event-Driven Systems" source="Systems Thinking for Architects" description="Unpacks temporal coupling: event ordering and hidden timing dependencies that quietly re-couple services." />
 
 ## When not to use microservices
 
@@ -294,7 +294,7 @@ modes. Fix the code problem with module boundaries first. If, later, two teams a
 stepping on each other's deploys every week, you'll know exactly which fence to turn
 into a network boundary. Brenda will be disappointed. That's fine.
 
-🎥 **Learn more:** [Monoliths vs Microservices: Are We Overcomplicating Everything?](https://www.youtube.com/watch?v=5rt6-rndQQA) — SEEKJobs. SEEK engineers weigh when monoliths beat microservices, covering team size, complexity, and ownership trade-offs.
+<VideoCard videoId="5rt6-rndQQA" title="Monoliths vs Microservices: Are We Overcomplicating Everything?" source="SEEKJobs" description="SEEK engineers weigh when monoliths beat microservices, covering team size, complexity, and ownership trade-offs." />
 
 ## Takeaways
 

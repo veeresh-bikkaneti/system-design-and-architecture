@@ -1,6 +1,8 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
+import { Icon } from './ui/Icon';
+import { useDisplayStore } from '../store/display';
 
 const ChatWidget = lazy(() => import('./ChatWidget').then((m) => ({ default: m.ChatWidget })));
 
@@ -21,35 +23,21 @@ function BrandMark({ className = 'h-9 w-9' }: { className?: string }) {
   );
 }
 
-function MenuIcon({ className = 'h-5 w-5' }: { className?: string }) {
+/** Header theme toggle: light -> dark -> system -> light … */
+function ThemeToggle() {
+  const theme = useDisplayStore((state) => state.theme);
+  const cycleTheme = useDisplayStore((state) => state.cycleTheme);
+  const iconName = theme === 'light' ? 'sun' : theme === 'dark' ? 'moon' : 'monitor';
   return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
-      aria-hidden="true"
-      strokeLinecap="round"
+    <button
+      type="button"
+      onClick={cycleTheme}
+      aria-label={`Color theme: ${theme}. Activate to change.`}
+      title={`Color theme: ${theme}`}
+      className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-stone-600 transition-colors hover:bg-stone-200/60 hover:text-stone-950 active:bg-stone-200 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-50 dark:active:bg-stone-700"
     >
-      <path d="M4 7h16M4 12h16M4 17h16" />
-    </svg>
-  );
-}
-
-function CloseIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
-      aria-hidden="true"
-      strokeLinecap="round"
-    >
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
+      <Icon name={iconName} className="h-5 w-5" />
+    </button>
   );
 }
 
@@ -66,6 +54,14 @@ export function Layout() {
 
   return (
     <div className="flex min-h-svh flex-col">
+      {/* Skip link for keyboard / screen-reader users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-xl focus:bg-accent-700 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to main content
+      </a>
+
       {/* Top bar */}
       <header className="sticky top-0 z-40 border-b border-stone-200/70 bg-stone-50/90 backdrop-blur-md dark:border-stone-800 dark:bg-stone-950/90">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
@@ -76,7 +72,7 @@ export function Layout() {
             aria-expanded={drawerOpen}
             className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-stone-600 transition-colors hover:bg-stone-200/60 hover:text-stone-950 active:bg-stone-200 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-50 dark:active:bg-stone-700 lg:hidden"
           >
-            <MenuIcon />
+            <Icon name="menu" className="h-5 w-5" />
           </button>
 
           <Link
@@ -91,6 +87,7 @@ export function Layout() {
           </Link>
 
           <nav aria-label="Primary" className="ml-auto flex items-center gap-1">
+            <ThemeToggle />
             <Link
               to="/"
               className="hidden rounded-xl px-3 py-2 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-200/60 hover:text-stone-950 active:bg-stone-200 sm:inline-flex dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-50 dark:active:bg-stone-700"
@@ -116,7 +113,7 @@ export function Layout() {
         </aside>
 
         {/* Page content */}
-        <main className="min-w-0 flex-1 px-4 py-8 sm:px-8 sm:py-10 lg:px-12">
+        <main id="main-content" className="min-w-0 flex-1 px-4 py-8 sm:px-8 sm:py-10 lg:px-12">
           <Outlet />
         </main>
       </div>
@@ -150,7 +147,7 @@ export function Layout() {
               aria-label="Close course navigation"
               className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-stone-600 transition-colors hover:bg-stone-200/60 hover:text-stone-950 active:bg-stone-200 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-50 dark:active:bg-stone-700"
             >
-              <CloseIcon />
+              <Icon name="x" className="h-5 w-5" />
             </button>
           </div>
           <div

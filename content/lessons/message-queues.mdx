@@ -26,7 +26,7 @@ and clip them to the rail — they don't stand there watching the cooks. The kit
 the rail instead of waiters freezing mid-dining-room. The rail is the queue, and the whole
 restaurant would collapse without it.
 
-🎥 **Learn more:** [System Design Basics #17 — Message Queues: Decoupling Systems With Async Processing](https://www.youtube.com/watch?v=mVDdjsIQ8K4) — LLMwork. Shows how a queue turns an 8-second upload into async work, with buffering, retries, and decoupling benefits
+<VideoCard videoId="mVDdjsIQ8K4" title="System Design Basics #17 — Message Queues: Decoupling Systems With Async Processing" source="LLMwork" description="Shows how a queue turns an 8-second upload into async work, with buffering, retries, and decoupling benefits" />
 
 ## The basic shape
 
@@ -51,7 +51,7 @@ decoupling buys you three things: **temporal decoupling** (B can be down when A 
   duration={5}
 />
 
-🎥 **Learn more:** [Message Queues Finally Clicked: Producers, Partitions & Dead-Letter Queues Explained](https://www.youtube.com/watch?v=WYzLS3aNwgo) — The Logic Blueprint. Visual walkthrough of producers, brokers, consumers, and topics that builds the queue's core anatomy
+<VideoCard videoId="WYzLS3aNwgo" title="Message Queues Finally Clicked: Producers, Partitions & Dead-Letter Queues Explained" source="The Logic Blueprint" description="Visual walkthrough of producers, brokers, consumers, and topics that builds the queue's core anatomy" />
 
 ## Delivery guarantees: pick your poison
 
@@ -71,7 +71,7 @@ This is the section that separates "we use a queue" from "we understand our queu
 The practical rule: assume at-least-once, make your handlers idempotent (dedupe keys,
 upserts instead of inserts), and sleep well.
 
-🎥 **Learn more:** [Kafka's Exactly-Once Delivery: The Truth Behind the Marketing](https://www.youtube.com/watch?v=reSV1HHK5xw) — Compiling Ideas. Walks through at-most-once, at-least-once, and exactly-once trade-offs with idempotent writes and outbox patterns
+<VideoCard videoId="reSV1HHK5xw" title="Kafka's Exactly-Once Delivery: The Truth Behind the Marketing" source="Compiling Ideas" description="Walks through at-most-once, at-least-once, and exactly-once trade-offs with idempotent writes and outbox patterns" />
 
 ## Ordering and partitioning
 
@@ -97,7 +97,7 @@ is capped by your partition count. Pick too few partitions and you can't scale c
 pick too many and rebalancing gets chatty. This is one of those decisions that's cheap to
 make early and painful to change later.
 
-🎥 **Learn more:** [Lesson 12 | Kafka Message Keys & Ordering Explained — How to Guarantee Event Order](https://www.youtube.com/watch?v=j9xAVG7I3Ew) — TechWithY. Explains same-key-same-partition routing, per-partition ordering, and the hot-partition tradeoff
+<VideoCard videoId="j9xAVG7I3Ew" title="Lesson 12 | Kafka Message Keys & Ordering Explained — How to Guarantee Event Order" source="TechWithY" description="Explains same-key-same-partition routing, per-partition ordering, and the hot-partition tradeoff" />
 
 ## Backpressure: when the rail overflows
 
@@ -113,7 +113,7 @@ full" is a design decision, not an accident:
   practice from this lesson, make it DLQs. The poison message that crashes your consumer on
   every retry is not a hypothetical — it's a Tuesday.
 
-🎥 **Learn more:** [Your Stream Is Falling Behind: Backpressure, Lag, and Batching](https://www.youtube.com/watch?v=lW68_KeMNnA) — Swetank Srivastava. Separates consumer lag from backpressure and shows how slowdowns travel upstream until spare capacity recovers
+<VideoCard videoId="lW68_KeMNnA" title="Your Stream Is Falling Behind: Backpressure, Lag, and Batching" source="Swetank Srivastava" description="Separates consumer lag from backpressure and shows how slowdowns travel upstream until spare capacity recovers" />
 
 ## Kafka vs. RabbitMQ vs. SQS
 
@@ -130,7 +130,7 @@ fancy routing (topic exchanges, per-message TTLs) → **RabbitMQ**. Need a queue
 five minutes with no servers → **SQS**. Many architectures use two of the three and feel
 zero shame about it.
 
-🎥 **Learn more:** [Kafka vs RabbitMQ vs SQS: Which One Should You Choose?](https://www.youtube.com/watch?v=Yq91UbHcfug) — RandomTalks. Compares the three systems side by side across replay, ordering, retries, and real workloads
+<VideoCard videoId="Yq91UbHcfug" title="Kafka vs RabbitMQ vs SQS: Which One Should You Choose?" source="RandomTalks" description="Compares the three systems side by side across replay, ordering, retries, and real workloads" />
 
 ## Takeaways
 

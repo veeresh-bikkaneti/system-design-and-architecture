@@ -69,24 +69,24 @@ export function VsToggle({ title, a, b, defaultSide = 'a' }: VsToggleProps) {
 
   return (
     <motion.div
-      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-slate-800 dark:bg-slate-950"
+      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-stone-800 dark:bg-stone-950"
       {...entrance}
     >
       {title && (
-        <h4 className="diagram-mono mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-slate-400">
+        <h4 className="diagram-mono mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
           {title}
         </h4>
       )}
 
       {/* Segmented toggle */}
       <div
-        className="relative mx-auto grid max-w-md grid-cols-2 rounded-lg bg-stone-200/70 p-1 dark:bg-slate-800"
+        className="relative mx-auto grid max-w-md grid-cols-2 rounded-lg bg-stone-200/70 p-1 dark:bg-stone-800"
         role="tablist"
         aria-label={title ?? 'Scenario comparison'}
       >
         <span
           aria-hidden="true"
-          className="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-md bg-white shadow-sm transition-transform duration-200 ease-out dark:bg-slate-900"
+          className="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-md bg-white shadow-sm transition-transform duration-200 ease-out dark:bg-stone-900"
           style={{ transform: side === 'a' ? 'translateX(0)' : 'translateX(100%)' }}
         />
         {(['a', 'b'] as const).map((s) => {
@@ -101,8 +101,8 @@ export function VsToggle({ title, a, b, defaultSide = 'a' }: VsToggleProps) {
               onClick={() => setSide(s)}
               className={`relative z-10 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                 selected
-                  ? 'text-slate-900 dark:text-slate-100'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  ? 'text-stone-900 dark:text-stone-100'
+                  : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
               }`}
             >
               {label}
@@ -114,7 +114,7 @@ export function VsToggle({ title, a, b, defaultSide = 'a' }: VsToggleProps) {
       {/* Scenario panel */}
       <div
         key={side}
-        className={`vs-panel-enter mt-4 rounded-lg border ${accent.border} bg-white p-4 dark:bg-slate-900/60`}
+        className={`vs-panel-enter mt-4 rounded-lg border ${accent.border} bg-white p-4 dark:bg-stone-900/60`}
       >
         <div className="flex items-center gap-2">
           <span className={`h-2.5 w-2.5 rounded-full ${accent.dot}`} aria-hidden="true" />
@@ -124,22 +124,22 @@ export function VsToggle({ title, a, b, defaultSide = 'a' }: VsToggleProps) {
             {scenario.label}
           </span>
         </div>
-        <h5 className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+        <h5 className="mt-2 text-sm font-semibold text-stone-900 dark:text-stone-100">
           {scenario.title}
         </h5>
         <ul className="mt-2 space-y-1.5">
           {scenario.points.map((point, i) => (
             <li
               key={i}
-              className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300"
+              className="flex items-start gap-2 text-sm text-stone-600 dark:text-stone-300"
             >
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400 dark:bg-slate-500" aria-hidden="true" />
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-stone-400 dark:bg-stone-500" aria-hidden="true" />
               {point}
             </li>
           ))}
         </ul>
         {scenario.note && (
-          <p className="mt-3 border-t border-slate-200 pt-2 text-xs italic text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <p className="mt-3 border-t border-stone-200 pt-2 text-xs italic text-stone-500 dark:border-stone-700 dark:text-stone-400">
             {scenario.note}
           </p>
         )}

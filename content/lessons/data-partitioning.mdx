@@ -21,7 +21,7 @@ feed, your order history, and your photo library all survive having billions of 
 question is never *whether* to shard at scale; it's *how*, and which pain you're willing to
 accept.
 
-🎥 **Learn more:** [Database Optimization in System Design | Replication, CAP Theorem, Partitioning & Sharding Explained](https://www.youtube.com/watch?v=jTe6Q78uzQA) — Web Detailed by Mohi. Explains why databases become bottlenecks and how partitioning and sharding unlock performance at scale.
+<VideoCard videoId="jTe6Q78uzQA" title="Database Optimization in System Design | Replication, CAP Theorem, Partitioning & Sharding Explained" source="Web Detailed by Mohi" description="Explains why databases become bottlenecks and how partitioning and sharding unlock performance at scale." />
 
 ## Picture a library system
 
@@ -30,7 +30,7 @@ shelves groaning, lines out the door. The city opens branch libraries and splits
 collection across them. Every book lives at exactly one branch. Now, how do patrons find their
 books? That question is the entire lesson.
 
-🎥 **Learn more:** [Sharding, Partitioning & Indexing in Database| System Design | Episode 09](https://www.youtube.com/watch?v=Ws2vMYZgN84) — The Tech Intern. Builds intuition with everyday pictures like a phone book at two counters, then walks range vs hash sharding.
+<VideoCard videoId="Ws2vMYZgN84" title="Sharding, Partitioning & Indexing in Database| System Design | Episode 09" source="The Tech Intern" description="Builds intuition with everyday pictures like a phone book at two counters, then walks range vs hash sharding." />
 
 ## Partitioning strategies
 
@@ -86,7 +86,7 @@ flowchart TD
 
 <HashRingPlayground />
 
-🎥 **Learn more:** [Why One Database Is Never Enough — Partitioning Deep Dive (DDIA Ch. 6)](https://www.youtube.com/watch?v=ds-v2gIvTpo) — Savant Space. Compares key-range vs hash partitioning, hot spots, and consistent hashing for rebalancing, straight from DDIA.
+<VideoCard videoId="ds-v2gIvTpo" title="Why One Database Is Never Enough — Partitioning Deep Dive (DDIA Ch. 6)" source="Savant Space" description="Compares key-range vs hash partitioning, hot spots, and consistent hashing for rebalancing, straight from DDIA." />
 
 ## The hard part: cross-shard operations
 
@@ -122,7 +122,7 @@ sequenceDiagram
     Note over App: Merge partial results
 ```
 
-🎥 **Learn more:** [System Design | Sharding | Database Sharding & Partitioning: A Senior Engineer's Guide to Scaling](https://www.youtube.com/watch?v=OP2qdmAEmYE) — CS AI Think Tinker Learn. Covers 2PC cost, cross-shard writes, and rebalancing in a deep sharding walkthrough.
+<VideoCard videoId="OP2qdmAEmYE" title="System Design | Sharding | Database Sharding & Partitioning: A Senior Engineer's Guide to Scaling" source="CS AI Think Tinker Learn" description="Covers 2PC cost, cross-shard writes, and rebalancing in a deep sharding walkthrough." />
 
 ## Picking a partition key
 
@@ -139,7 +139,7 @@ Get this wrong and no amount of servers fixes it: the classic failure is shardin
 `country_code` and discovering that one country's traffic equals everyone else's combined.
 Congratulations, you've built a single point of overload with extra steps.
 
-🎥 **Learn more:** [What Is a Partition Key? Routing, Pruning, Hot Partitions, and How to Choose One](https://www.youtube.com/watch?v=fQc2AkDiPXE) — Kandi Brian. Walks through hash, range, and composite keys, hot partitions, and how cardinality shapes a good choice.
+<VideoCard videoId="fQc2AkDiPXE" title="What Is a Partition Key? Routing, Pruning, Hot Partitions, and How to Choose One" source="Kandi Brian" description="Walks through hash, range, and composite keys, hot partitions, and how cardinality shapes a good choice." />
 
 ## Takeaways
 

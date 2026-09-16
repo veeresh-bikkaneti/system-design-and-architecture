@@ -19,7 +19,7 @@ dangerous. The real skill isn't picking a side; it's matching the *shape of your
 the *shape of the store*. This lesson gives you the four shapes that cover nearly every
 system you'll ever build, and a plain-English guide to choosing among them.
 
-🎥 **Learn more:** [NoSQL Databases Explained: The 4 Types You Must Know](https://www.youtube.com/watch?v=4YR24Bs1aY0) — TechingEasy. Quick tour of all four NoSQL types and when they beat relational — the motivation in one video.
+<VideoCard videoId="4YR24Bs1aY0" title="NoSQL Databases Explained: The 4 Types You Must Know" source="TechingEasy" description="Quick tour of all four NoSQL types and when they beat relational — the motivation in one video." />
 
 ## Picture a storage room
 
@@ -46,7 +46,7 @@ Mapping, stated plainly:
 NoSQL isn't one thing. It's four different kinds of bins, each designed for a different
 kind of stuff. Let's walk the shelves.
 
-🎥 **Learn more:** [4 Types of NoSQL Databases Explained | System Design Interview #9](https://www.youtube.com/watch?v=vosF_JpTV2I) — Learn with Manoj. System-design walkthrough of the four NoSQL shelves with concrete examples for each.
+<VideoCard videoId="vosF_JpTV2I" title="4 Types of NoSQL Databases Explained | System Design Interview #9" source="Learn with Manoj" description="System-design walkthrough of the four NoSQL shelves with concrete examples for each." />
 
 ## Shelf 1: Key-value stores — the label is everything
 
@@ -68,7 +68,7 @@ fastest operation a database can do, and it's trivially easy to spread bins acro
 of machines. What they can't do is *search inside* the blobs — "find every cart containing
 blue shoes" means opening every bin yourself.
 
-🎥 **Learn more:** [Building a Scalable Key-Value (Redis , DynamoDB) Store from Scratch](https://www.youtube.com/watch?v=l7yVGitPGl4) — Arpit Vaish. Builds a scalable key-value store from scratch — labels, lookups, and speed, demystified.
+<VideoCard videoId="l7yVGitPGl4" title="Building a Scalable Key-Value (Redis , DynamoDB) Store from Scratch" source="Arpit Vaish" description="Builds a scalable key-value store from scratch — labels, lookups, and speed, demystified." />
 
 ## Shelf 2: Document stores — bins with labeled folders inside
 
@@ -115,7 +115,7 @@ together (embed) or keep them in separate folders with a cross-reference (refere
 Neither answer is "correct" — it's the first real database design judgment call of your
 career, and now you know what the trade-off is.
 
-🎥 **Learn more:** [MongoDB Explained in 10 Minutes | SQL vs NoSQL | Jumpstart](https://www.youtube.com/watch?v=GV9VBwH_h1U) — MongoDB. Official MongoDB ten-minute intro to documents, flexible schemas, and SQL contrasts.
+<VideoCard videoId="GV9VBwH_h1U" title="MongoDB Explained in 10 Minutes | SQL vs NoSQL | Jumpstart" source="MongoDB" description="Official MongoDB ten-minute intro to documents, flexible schemas, and SQL contrasts." />
 
 ## Shelf 3: Wide-column stores — the giant ledger
 
@@ -138,7 +138,7 @@ You design the row key and column layout around the questions you'll ask, becaus
 is a finely tuned instrument for exactly those questions — and a blunt one for anything
 else.
 
-🎥 **Learn more:** [Apache Cassandra Database – Full Course for Beginners](https://www.youtube.com/watch?v=J-cSy5MeMOA) — freeCodeCamp.org. freeCodeCamp's full Cassandra course — data modeling for the giant distributed ledger.
+<VideoCard videoId="J-cSy5MeMOA" title="Apache Cassandra Database – Full Course for Beginners" source="freeCodeCamp.org" description="freeCodeCamp's full Cassandra course — data modeling for the giant distributed ledger." />
 
 ## Shelf 4: Graph stores — the corkboard with string
 
@@ -156,7 +156,7 @@ connections as first-class citizens, so hopping from node to node stays fast no 
 deep you go. Fraud detection ("which accounts share a phone number?"), recommendations,
 network analysis — that's corkboard territory.
 
-🎥 **Learn more:** [Graph Databases in 60 seconds](https://www.youtube.com/watch?v=wO5AI1oDGjQ) — Neo4j. Neo4j's official sixty-second explainer on connecting data with graph relationships.
+<VideoCard videoId="wO5AI1oDGjQ" title="Graph Databases in 60 seconds" source="Neo4j" description="Neo4j's official sixty-second explainer on connecting data with graph relationships." />
 
 ## The four shelves, one diagram
 
@@ -175,7 +175,7 @@ flowchart TD
 Keep this picture in your head — the rest of the lesson is just learning when to walk to
 which shelf.
 
-🎥 **Learn more:** [NoSQL Database Tutorial – Full Course for Beginners](https://www.youtube.com/watch?v=xh4gy1lbL2k) — freeCodeCamp.org. Full beginner course tying all four models together so the differences stick.
+<VideoCard videoId="xh4gy1lbL2k" title="NoSQL Database Tutorial – Full Course for Beginners" source="freeCodeCamp.org" description="Full beginner course tying all four models together so the differences stick." />
 
 ## The honest comparison: relational vs. NoSQL
 
@@ -202,7 +202,7 @@ stores lean AP (keep serving, reconcile later); wide-column stores like Bigtable
 in practice. The database you pick inherits a philosophy. Know which one you're signing
 up for.
 
-🎥 **Learn more:** [System Design Basics #8 — SQL vs. NoSQL: Choosing Without the Religion](https://www.youtube.com/watch?v=5ikm8V2KnHM) — LLMwork. Even-handed SQL versus NoSQL guide that picks tools without the tribalism.
+<VideoCard videoId="5ikm8V2KnHM" title="System Design Basics #8 — SQL vs. NoSQL: Choosing Without the Religion" source="LLMwork" description="Even-handed SQL versus NoSQL guide that picks tools without the tribalism." />
 
 ## The CAP callback: what the bins chose
 
@@ -225,7 +225,7 @@ short wait than a wrong answer." Neither is braver; they're optimized for differ
 of heartbreak. When you evaluate a NoSQL store, ask which heartbreak its designers chose —
 then check whether that's *your* heartbreak too.
 
-🎥 **Learn more:** [The Truth About NoSQL: When to Use It (And When to Run)](https://www.youtube.com/watch?v=J85fQ5gXEUM) — deferstech. Walks CAP and PACELC across NoSQL families including Dynamo-style and wide-column stores.
+<VideoCard videoId="J85fQ5gXEUM" title="The Truth About NoSQL: When to Use It (And When to Run)" source="deferstech" description="Walks CAP and PACELC across NoSQL families including Dynamo-style and wide-column stores." />
 
 ## When each wins: the decision guide
 
@@ -251,7 +251,7 @@ kind of stuff." It adds operational cost (more things to run, monitor, and back 
 don't reach for it on day one. But when each shelf is genuinely earning its keep, it's the
 grown-up architecture.
 
-🎥 **Learn more:** [NoSQL vs SQL – Which Type of Database Should You Use?](https://www.youtube.com/watch?v=FzlpwoeSrE0) — freeCodeCamp.org. Practical guide to choosing SQL or NoSQL based on what your app actually needs.
+<VideoCard videoId="FzlpwoeSrE0" title="NoSQL vs SQL – Which Type of Database Should You Use?" source="freeCodeCamp.org" description="Practical guide to choosing SQL or NoSQL based on what your app actually needs." />
 
 ## Takeaways
 

@@ -208,7 +208,7 @@ export function ChatWidget() {
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? 'Close AI tutor chat' : 'Open AI tutor chat'}
         aria-expanded={open}
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-amber-600 text-white shadow-[0_8px_24px_rgb(180_83_9/0.45)] transition-all hover:-translate-y-0.5 hover:bg-amber-700 hover:shadow-[0_12px_28px_rgb(180_83_9/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 active:translate-y-0"
+        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-amber-600 text-white shadow-[0_8px_24px_rgb(180_83_9/0.45)] transition-[transform,background-color,box-shadow] hover:-translate-y-0.5 hover:bg-amber-700 hover:shadow-[0_12px_28px_rgb(180_83_9/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 active:translate-y-0"
       >
         {open ? (
           <CloseIcon className="h-6 w-6" />
@@ -218,16 +218,16 @@ export function ChatWidget() {
       </button>
 
       {open && (
-        <div className="fixed bottom-20 right-5 z-50 flex h-[520px] max-h-[75vh] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-[0_20px_60px_rgb(120_53_15/0.25)] dark:border-zinc-700 dark:bg-zinc-900">
-          <div className="flex items-center gap-3 border-b border-stone-200/80 bg-amber-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="fixed bottom-20 right-5 z-50 flex h-[520px] max-h-[75vh] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-[0_20px_60px_rgb(120_53_15/0.25)] dark:border-stone-700 dark:bg-stone-900">
+          <div className="flex items-center gap-3 border-b border-stone-200/80 bg-amber-50/60 px-4 py-3 dark:border-stone-800 dark:bg-stone-900">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-600 text-white">
               <SparkIcon className="h-4.5 w-4.5" />
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-bold text-stone-900 dark:text-zinc-100">
+              <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
                 Course Tutor
               </h2>
-              <p className="truncate text-xs text-stone-500 dark:text-zinc-400">
+              <p className="truncate text-xs text-stone-500 dark:text-stone-400">
                 {apiKey
                   ? `Powered by your key (${PROVIDER_PRESETS[provider].label})`
                   : 'Needs your API key to chat'}
@@ -238,7 +238,7 @@ export function ChatWidget() {
                 type="button"
                 onClick={() => setSettingsOpen(true)}
                 aria-label="AI tutor settings"
-                className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
               >
                 <GearIcon className="h-5 w-5" />
               </button>
@@ -246,7 +246,7 @@ export function ChatWidget() {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close chat"
-                className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
               >
                 <CloseIcon className="h-4.5 w-4.5" />
               </button>
@@ -256,7 +256,7 @@ export function ChatWidget() {
           <div ref={scrollRef} className="flex-1 space-y-3.5 overflow-y-auto px-4 py-4">
             {entries.length === 0 && (
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
-                <p className="text-xs leading-relaxed text-stone-600 dark:text-zinc-400">
+                <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
                   Ask about anything in the course — the tutor knows which lesson
                   you&apos;re on. Or try the example below.
                 </p>
@@ -273,7 +273,7 @@ export function ChatWidget() {
                       ? 'rounded-br-md bg-amber-700 text-white shadow-[0_2px_8px_rgb(180_83_9/0.25)]'
                       : entry.isError
                         ? 'rounded-bl-md border border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300'
-                        : 'rounded-bl-md border border-stone-200/70 bg-stone-100 text-stone-800 shadow-[0_1px_3px_rgb(0_0_0/0.04)] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100'
+                        : 'rounded-bl-md border border-stone-200/70 bg-stone-100 text-stone-800 shadow-[0_1px_3px_rgb(0_0_0/0.04)] dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100'
                   }`}
                 >
                   {entry.role === 'user' ? (
@@ -281,7 +281,7 @@ export function ChatWidget() {
                   ) : entry.content ? (
                     <ChatMarkdown content={entry.content} />
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-sm text-stone-400 dark:text-zinc-500">
+                    <span className="inline-flex items-center gap-1.5 text-sm text-stone-400 dark:text-stone-400">
                       <span className="flex gap-1" aria-hidden="true">
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
                         <span
@@ -300,32 +300,32 @@ export function ChatWidget() {
               </div>
             ))}
             {isStreaming && (
-              <p className="px-1 text-xs text-stone-400 dark:text-zinc-500" aria-live="polite">
+              <p className="px-1 text-xs text-stone-400 dark:text-stone-400" aria-live="polite">
                 The tutor is writing\u2026
               </p>
             )}
           </div>
 
-          <div className="border-t border-stone-200/80 p-3.5 dark:border-zinc-800">
+          <div className="border-t border-stone-200/80 p-3.5 dark:border-stone-800">
             <button
               type="button"
               onClick={handleDemo}
-              className="mb-2.5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs font-semibold text-amber-800 transition-all hover:border-amber-300 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300 dark:hover:bg-amber-950/60"
+              className="mb-2.5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs font-semibold text-amber-800 transition-[border-color,background-color] hover:border-amber-300 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300 dark:hover:bg-amber-950/60"
             >
               <SparkIcon className="h-3.5 w-3.5" />
               See an example conversation
             </button>
 
             {!apiKey ? (
-              <div className="rounded-xl bg-stone-100 p-3.5 text-center dark:bg-zinc-800/70">
-                <p className="mb-2.5 text-xs leading-relaxed text-stone-600 dark:text-zinc-400">
+              <div className="rounded-xl bg-stone-100 p-3.5 text-center dark:bg-stone-800/70">
+                <p className="mb-2.5 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
                   The course works fully without it, but you can add your own API key to chat
                   with the tutor about the material.
                 </p>
                 <button
                   type="button"
                   onClick={() => setSettingsOpen(true)}
-                  className="rounded-xl bg-amber-700 px-4 py-2 text-xs font-semibold text-white shadow-[0_2px_8px_rgb(180_83_9/0.3)] transition-all hover:-translate-y-px hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 active:translate-y-0"
+                  className="rounded-xl bg-amber-700 px-4 py-2 text-xs font-semibold text-white shadow-[0_2px_8px_rgb(180_83_9/0.3)] transition-[transform,background-color,box-shadow] hover:-translate-y-px hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 active:translate-y-0"
                 >
                   Add API key
                 </button>
@@ -339,14 +339,14 @@ export function ChatWidget() {
                   placeholder="Ask the tutor\u2026"
                   rows={1}
                   disabled={isStreaming}
-                  className="min-w-0 flex-1 resize-none rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 outline-none transition-colors placeholder:text-stone-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/40 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-amber-600"
+                  className="min-w-0 flex-1 resize-none rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 outline-none transition-colors placeholder:text-stone-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/40 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-amber-600"
                 />
                 <button
                   type="button"
                   onClick={() => void handleSend()}
                   disabled={isStreaming || !input.trim()}
                   aria-label="Send message"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-700 text-white shadow-[0_2px_8px_rgb(180_83_9/0.3)] transition-all hover:-translate-y-px hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none dark:disabled:bg-zinc-700 dark:disabled:text-zinc-400"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-700 text-white shadow-[0_2px_8px_rgb(180_83_9/0.3)] transition-[transform,background-color,box-shadow] hover:-translate-y-px hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none dark:disabled:bg-stone-700 dark:disabled:text-stone-400"
                 >
                   <SendIcon className="h-4 w-4" />
                 </button>

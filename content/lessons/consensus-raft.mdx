@@ -26,7 +26,7 @@ sends regular "I'm still here" heartbeats, and if the heartbeats stop, someone c
 new election. Raft is this committee with the bylaws written very, very carefully — because
 the failure mode isn't an awkward meeting, it's two leaders and a corrupted database.
 
-🎥 **Learn more:** [Consensus in Distributed Systems | Paxos & Raft](https://www.youtube.com/watch?v=iFG6dKykNX0) — udaykiran․tech. Explains why distributed systems need consensus, the failures it handles, and the properties it must guarantee.
+<VideoCard videoId="iFG6dKykNX0" title="Consensus in Distributed Systems | Paxos & Raft" source="udaykiran․tech" description="Explains why distributed systems need consensus, the failures it handles, and the properties it must guarantee." />
 
 ## The three roles and the heartbeat
 
@@ -93,7 +93,7 @@ go first" in a doorway.
   ]}
 />
 
-🎥 **Learn more:** [Raft Consensus Explained: How Machines Agree Without a Boss](https://www.youtube.com/watch?v=53IMeWh-p0U) — SysSketch. Covers leader, follower, and candidate roles, terms, and how randomized heartbeats keep the cluster stable.
+<VideoCard videoId="53IMeWh-p0U" title="Raft Consensus Explained: How Machines Agree Without a Boss" source="SysSketch" description="Covers leader, follower, and candidate roles, terms, and how randomized heartbeats keep the cluster stable." />
 
 ## Log replication: the actual work
 
@@ -127,7 +127,7 @@ leader's log contains all committed entries (a candidate's log must be at least 
 up-to-date as a majority's, or it can't win). This is the safety property the whole
 algorithm exists to provide.
 
-🎥 **Learn more:** [Distributed Systems 6.2: Raft](https://www.youtube.com/watch?v=uXEYuDwm7e4) — Martin Kleppmann. Kleppmann's lecture walks through leader-driven AppendEntries log replication, consistency checks, and commit rules.
+<VideoCard videoId="uXEYuDwm7e4" title="Distributed Systems 6.2: Raft" source="Martin Kleppmann" description="Kleppmann's lecture walks through leader-driven AppendEntries log replication, consistency checks, and commit rules." />
 
 ## The numbers that matter
 
@@ -150,7 +150,7 @@ Back-of-envelope math for a typical 5-node etcd cluster:
   ~10k writes/sec on decent hardware — plenty for metadata and config, laughable for a
   product database. Consensus is for *control planes*, not data planes.
 
-🎥 **Learn more:** [Distributed Systems 6.1: Consensus](https://www.youtube.com/watch?v=rN6ma561tak) — Martin Kleppmann. Lays out quorum arithmetic, majority overlap, and how many failures a cluster can tolerate.
+<VideoCard videoId="rN6ma561tak" title="Distributed Systems 6.1: Consensus" source="Martin Kleppmann" description="Lays out quorum arithmetic, majority overlap, and how many failures a cluster can tolerate." />
 
 ## Failure scenarios (the exam questions)
 
@@ -170,7 +170,7 @@ send heartbeats. Everyone is on term 9; the higher term wins, and the old leader
 immediately steps down to follower. Terms are the algorithm's monotonic clock — they make
 "who's boss" unambiguous even across partitions and crashes.
 
-🎥 **Learn more:** [Split-Brain, Quorum, and Fencing | Leader Election](https://www.youtube.com/watch?v=BLDqLDYnhbM) — Ops and Odds. Walks through split-brain, dead leaders, zombie leaders, and fencing tokens that stop double writers.
+<VideoCard videoId="BLDqLDYnhbM" title="Split-Brain, Quorum, and Fencing | Leader Election" source="Ops and Odds" description="Walks through split-brain, dead leaders, zombie leaders, and fencing tokens that stop double writers." />
 
 ## When not to use it
 
@@ -181,7 +181,7 @@ hand-roll it. If you need *throughput* (product data at 100k writes/sec) — you
 partitioned datastores with weaker consistency, not consensus. And never, ever implement
 Raft yourself for production unless implementing Raft *is* your product.
 
-🎥 **Learn more:** ["Consistency without consensus in production systems" by Peter Bourgon](https://www.youtube.com/watch?v=em9zLzM8O7c) — Strange Loop Conference. Bourgon's Strange Loop talk shows consensus-free consistency with CRDTs and when to skip consensus entirely.
+<VideoCard videoId="em9zLzM8O7c" title="&quot;Consistency without consensus in production systems&quot; by Peter Bourgon" source="Strange Loop Conference" description="Bourgon's Strange Loop talk shows consensus-free consistency with CRDTs and when to skip consensus entirely." />
 
 ## Takeaways
 

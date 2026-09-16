@@ -92,9 +92,9 @@ export function PacketFlow({
 
   return (
     <motion.div className="not-prose my-8" {...entrance}>
-      <div className="packetflow diagram-panel overflow-x-auto rounded-xl border border-stone-200 bg-stone-50 p-4 shadow-soft dark:border-slate-800 dark:bg-slate-950">
+      <div className="packetflow diagram-panel overflow-x-auto rounded-xl border border-stone-200 bg-stone-50 p-4 shadow-soft dark:border-stone-800 dark:bg-stone-950">
         <style>{dots.map((d) => d.keyframes).join('\n')}</style>
-        <p className="diagram-mono mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400 dark:text-slate-500">
+        <p className="diagram-mono mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400 dark:text-stone-400">
           Request flow
         </p>
         <svg
@@ -111,7 +111,7 @@ export function PacketFlow({
               y1={midY}
               x2={stageX(i + 1)}
               y2={midY}
-              className="stroke-stone-300 dark:stroke-slate-600"
+              className="stroke-stone-300 dark:stroke-stone-600"
               strokeWidth={2}
             />
           ))}
@@ -122,7 +122,7 @@ export function PacketFlow({
               y1={midY}
               x2={serverX}
               y2={serverCy(i)}
-              className="stroke-stone-300 dark:stroke-slate-600"
+              className="stroke-stone-300 dark:stroke-stone-600"
               strokeWidth={1.5}
               strokeDasharray="5 4"
             />
@@ -232,7 +232,7 @@ export function PacketFlow({
             </g>
           ))}
         </svg>
-        <p className="diagram-mono mt-2 text-center text-[11px] text-stone-400 dark:text-slate-500">
+        <p className="diagram-mono mt-2 text-center text-[11px] text-stone-400 dark:text-stone-400">
           Hover to pause the animation
         </p>
       </div>

@@ -24,7 +24,7 @@ one hopes) anyone arriving faster than the club can absorb. Without the bouncer,
 marshal shuts you down. Without rate limiting, your database is the fire marshal, and it
 expresses itself through timeouts.
 
-🎥 **Learn more:** [What is Rate Limiting](https://www.youtube.com/watch?v=5D-dZvgEXi0) — Dargslan. Covers why rate limits exist — protecting APIs from abuse, overload, and spiraling cost.
+<VideoCard videoId="5D-dZvgEXi0" title="What is Rate Limiting" source="Dargslan" description="Covers why rate limits exist — protecting APIs from abuse, overload, and spiraling cost." />
 
 ## The algorithms
 
@@ -105,7 +105,7 @@ flowchart TD
   ]}
 />
 
-🎥 **Learn more:** [SD 26 | Rate Limiting Algorithms: Token Bucket & Leaky Bucket | System Design Course | Uplatz](https://www.youtube.com/watch?v=il3vVUszSwA) — Uplatz. Step-by-step on token bucket and leaky bucket — the two classic limiting algorithms.
+<VideoCard videoId="il3vVUszSwA" title="SD 26 | Rate Limiting Algorithms: Token Bucket & Leaky Bucket | System Design Course | Uplatz" source="Uplatz" description="Step-by-step on token bucket and leaky bucket — the two classic limiting algorithms." />
 
 ## Distributed rate limiting
 
@@ -124,7 +124,7 @@ high scale, teams use **local buckets with periodic sync**, or probabilistic str
 accepting slightly fuzzy limits to avoid a central counter on the hot path. Precision is a
 spectrum; "roughly 100 requests per minute" is usually fine.
 
-🎥 **Learn more:** [Designing a Distributed Rate Limiter (Under 20 Mins) | System Design Interview](https://www.youtube.com/watch?v=w-cx9tQCvhI) — ByteScaler. Designs a distributed rate limiter end to end — the interview-ready walkthrough.
+<VideoCard videoId="w-cx9tQCvhI" title="Designing a Distributed Rate Limiter (Under 20 Mins) | System Design Interview" source="ByteScaler" description="Designs a distributed rate limiter end to end — the interview-ready walkthrough." />
 
 ## Being a good citizen about it
 
@@ -140,7 +140,7 @@ And on the client side: respect 429s with **exponential backoff and jitter** (re
 thundering herd's needy cousin). A client that ignores backoff signals is how you get
 rate-limited harder.
 
-🎥 **Learn more:** [Rate Limiting Explained: The System Design Control That Stops Request Floods](https://www.youtube.com/watch?v=s9JUA0d4pQ0) — The Logic Blueprint. Explains bursts, steady-state limits, and graceful 429s — limiting with fairness.
+<VideoCard videoId="s9JUA0d4pQ0" title="Rate Limiting Explained: The System Design Control That Stops Request Floods" source="The Logic Blueprint" description="Explains bursts, steady-state limits, and graceful 429s — limiting with fairness." />
 
 ## Where to enforce
 
@@ -158,7 +158,7 @@ limits fall to botnets with a million IPs; authenticated-user or API-key limits 
 better. And always leave headroom for your own health checks — nothing is sadder than your
 monitoring getting 429'd during the outage it's trying to report.
 
-🎥 **Learn more:** [30ms of Clock Drift Doubled the Rate Limit — Design a Rate Limiter](https://www.youtube.com/watch?v=zAwpfYsyh7w) — TheCodeForge. Shows rate-limiter placement trade-offs — edge versus app — with a real clock-drift bug.
+<VideoCard videoId="zAwpfYsyh7w" title="30ms of Clock Drift Doubled the Rate Limit — Design a Rate Limiter" source="TheCodeForge" description="Shows rate-limiter placement trade-offs — edge versus app — with a real clock-drift bug." />
 
 ## Takeaways
 

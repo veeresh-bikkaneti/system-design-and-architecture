@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "content:check": "python3 scripts/check_mdx_h1.py",
     "lint": "oxlint",
     "preview": "vite preview"
   },

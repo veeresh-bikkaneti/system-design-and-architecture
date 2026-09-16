@@ -132,13 +132,13 @@ export function HashRingPlayground({ defaultNodes = 4, keyCount = 48 }: HashRing
 
   return (
     <motion.div
-      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-slate-800 dark:bg-slate-950"
+      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-stone-800 dark:bg-stone-950"
       {...entrance}
     >
-      <h4 className="diagram-mono mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-slate-400">
+      <h4 className="diagram-mono mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
         Consistent hashing, live
       </h4>
-      <p className="mb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+      <p className="mb-4 text-sm leading-relaxed text-stone-600 dark:text-stone-300">
         Every dot is a key. Each key walks clockwise around the ring until it bumps into a server —
         that server owns it. Now add or remove a server and watch: only the keys touching the change
         move. Everything else stays exactly where it was.
@@ -155,7 +155,7 @@ export function HashRingPlayground({ defaultNodes = 4, keyCount = 48 }: HashRing
           cy={CENTER}
           r={NODE_RING_R}
           fill="none"
-          className="stroke-stone-300 dark:stroke-slate-700"
+          className="stroke-stone-300 dark:stroke-stone-700"
           strokeWidth={2}
           strokeDasharray="6 6"
         />
@@ -164,7 +164,7 @@ export function HashRingPlayground({ defaultNodes = 4, keyCount = 48 }: HashRing
           cy={CENTER}
           r={KEY_RING_R}
           fill="none"
-          className="stroke-stone-200 dark:stroke-slate-800"
+          className="stroke-stone-200 dark:stroke-stone-800"
           strokeWidth={1}
         />
         {keys.map((k) => (
@@ -188,7 +188,7 @@ export function HashRingPlayground({ defaultNodes = 4, keyCount = 48 }: HashRing
                 cy={p.y}
                 r={15}
                 fill={n.color}
-                className="stroke-white dark:stroke-slate-950"
+                className="stroke-white dark:stroke-stone-950"
                 strokeWidth={2.5}
               />
               <text
@@ -209,7 +209,7 @@ export function HashRingPlayground({ defaultNodes = 4, keyCount = 48 }: HashRing
                 textAnchor="middle"
                 dominantBaseline="central"
                 fontSize={10}
-                className="diagram-mono fill-stone-500 dark:fill-slate-400"
+                className="diagram-mono fill-stone-500 dark:fill-stone-400"
               >
                 {counts[nodes.indexOf(n)]} keys
               </text>
@@ -223,13 +223,13 @@ export function HashRingPlayground({ defaultNodes = 4, keyCount = 48 }: HashRing
           type="button"
           onClick={() => changeCount(-1)}
           disabled={nodeCount <= MIN_NODES}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          className="rounded-md border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
         >
           − Remove server
         </button>
         <span
           aria-live="polite"
-          className="diagram-mono text-xs font-semibold text-stone-600 dark:text-slate-300"
+          className="diagram-mono text-xs font-semibold text-stone-600 dark:text-stone-300"
         >
           {nodeCount} servers · {keyCount} keys
         </span>
@@ -237,7 +237,7 @@ export function HashRingPlayground({ defaultNodes = 4, keyCount = 48 }: HashRing
           type="button"
           onClick={() => changeCount(1)}
           disabled={nodeCount >= MAX_NODES}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          className="rounded-md border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
         >
           + Add server
         </button>

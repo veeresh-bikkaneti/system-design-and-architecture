@@ -8,6 +8,7 @@ import { RoadmapPage } from './pages/RoadmapPage';
 import { LessonPage } from './pages/LessonPage';
 import { BadgesPage, BadgeDetailPage } from './pages/BadgesPage';
 import { Quiz } from './components/Quiz';
+import { VideoCard } from './components/VideoCard';
 import { MermaidDiagram } from './components/MermaidDiagram';
 import { PacketFlow } from './components/diagrams/PacketFlow';
 import { HashRingPlayground } from './components/diagrams/HashRingPlayground';
@@ -57,7 +58,25 @@ function H2(props: ComponentPropsWithoutRef<'h2'>) {
   return <h2 {...props} id={id} className={`${props.className ?? ''} scroll-mt-24`} />;
 }
 
-const mdxComponents = { Quiz, PacketFlow, HashRingPlayground, NapkinMathPlayground, ScrollyDiagram, StepThrough, VsToggle, pre: Pre, h2: H2 };
+const mdxComponents = {
+  Quiz,
+  PacketFlow,
+  HashRingPlayground,
+  NapkinMathPlayground,
+  ScrollyDiagram,
+  StepThrough,
+  VsToggle,
+  VideoCard,
+  pre: Pre,
+  h2: H2,
+  // Every MDX table gets a horizontal-scroll wrapper so wide tables scroll
+  // instead of clipping on narrow viewports (styled by .table-scroll).
+  table: (props: ComponentPropsWithoutRef<'table'>) => (
+    <div className="table-scroll not-prose">
+      <table {...props} />
+    </div>
+  ),
+};
 
 // Keep the viewport at the top when the route changes (e.g. Home -> lesson).
 function ScrollToTop() {

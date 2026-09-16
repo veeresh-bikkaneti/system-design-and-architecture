@@ -20,7 +20,7 @@ two families of tools for those two questions, and picking the wrong one is how 
 a fraud report that's twelve hours late, or a "real-time" dashboard that's really a cron job
 with ambition.
 
-🎥 **Learn more:** [Beyond Batch Processing: Streaming to Accelerate Value for Data | Amazon Web Services](https://www.youtube.com/watch?v=XmmdXzTvn4s) — Amazon Web Services. AWS explains the real value of processing data continuously instead of waiting on batches, with stateless/stateful processing and windowing basics.
+<VideoCard videoId="XmmdXzTvn4s" title="Beyond Batch Processing: Streaming to Accelerate Value for Data | Amazon Web Services" source="Amazon Web Services" description="AWS explains the real value of processing data continuously instead of waiting on batches, with stateless/stateful processing and windowing basics." />
 
 ## The core distinction: the newspaper stack vs the live ticker
 
@@ -40,7 +40,7 @@ That is the whole distinction:
 Batch processing reads the stack. Stream processing watches the ticker. Everything else in
 this lesson — the tools, the architectures, the trade-offs — falls out of that one difference.
 
-🎥 **Learn more:** [Batch vs Realtime Stream Processing - A Deep Dive](https://www.youtube.com/watch?v=pOqQ-0cRWKU) — The Geek Narrator. Deep-dive interview contrasting batch and realtime processing on latency, throughput, cost, idempotency, and schema evolution.
+<VideoCard videoId="pOqQ-0cRWKU" title="Batch vs Realtime Stream Processing - A Deep Dive" source="The Geek Narrator" description="Deep-dive interview contrasting batch and realtime processing on latency, throughput, cost, idempotency, and schema evolution." />
 
 ## Batch: reading the morning stack
 
@@ -71,7 +71,7 @@ training machine-learning models over months of history, and — critically — 
 If you discover the revenue logic had a bug, you fix the job and re-run it over the whole
 stack. The stack is still there. That's a superpower the ticker doesn't have for free.
 
-🎥 **Learn more:** [Data Engineering Deep Dive: Batch Processing & Immutable Artifacts](https://www.youtube.com/watch?v=TWYdLeJlc7I) — deferstech. Walks through MapReduce internals, HDFS, Spark dataflow engines, and why immutable batch outputs make rollback safe.
+<VideoCard videoId="TWYdLeJlc7I" title="Data Engineering Deep Dive: Batch Processing & Immutable Artifacts" source="deferstech" description="Walks through MapReduce internals, HDFS, Spark dataflow engines, and why immutable batch outputs make rollback safe." />
 
 ## Streams: watching the ticker
 
@@ -128,7 +128,7 @@ restarts from the last checkpoint and replays the log from there. Conceptually: 
 off during the broadcast, you rewind to where you remember and keep watching. That
 log-replay trick will matter a lot in a moment.
 
-🎥 **Learn more:** [Stream Processing System Design: From Fundamentals to Real-Time Architecture](https://www.youtube.com/watch?v=rDT42hwD1ck) — programmerCave. Builds stream processing from first principles: Kafka log brokers, CDC, event vs processing time, joins, and fault tolerance.
+<VideoCard videoId="rDT42hwD1ck" title="Stream Processing System Design: From Fundamentals to Real-Time Architecture" source="programmerCave" description="Builds stream processing from first principles: Kafka log brokers, CDC, event vs processing time, joins, and fault tolerance." />
 
 ## Lambda: the stack *and* the ticker, stapled together
 
@@ -164,7 +164,7 @@ an answer looks wrong, you get to play detective: *which layer lied?* Lambda buy
 freshness and completeness, and the price is operating two systems that do the same job
 differently.
 
-🎥 **Learn more:** [Lambda vs Kappa Architecture | Batch vs Stream Processing Explained](https://www.youtube.com/watch?v=Bnrk9Jz5ko0) — Arpit Vaish. Explains why Lambda architecture exists: batch layer for correctness plus speed layer for freshness, then its dual-codebase costs.
+<VideoCard videoId="Bnrk9Jz5ko0" title="Lambda vs Kappa Architecture | Batch vs Stream Processing Explained" source="Arpit Vaish" description="Explains why Lambda architecture exists: batch layer for correctness plus speed layer for freshness, then its dual-codebase costs." />
 
 ## Kappa: burn the stack, keep the ticker
 
@@ -220,7 +220,7 @@ reprocessing horizon.
   }}
 />
 
-🎥 **Learn more:** [Big Data Kappa Architecture Explained](https://www.youtube.com/watch?v=TW1e3AhdPTY) — Thomas Henson. Shows how Kappa drops the batch layer entirely so Spark, Flink, and search all consume one streaming layer.
+<VideoCard videoId="TW1e3AhdPTY" title="Big Data Kappa Architecture Explained" source="Thomas Henson" description="Shows how Kappa drops the batch layer entirely so Spark, Flink, and search all consume one streaming layer." />
 
 ## One problem, two solutions: counting ad clicks
 
@@ -243,7 +243,7 @@ operations, batch for money. That's the decision guide in action, and it's how m
 serious ad platforms actually work. Freshness where it changes behavior, exactness
 where it changes balances.
 
-🎥 **Learn more:** [Ad Metrics Collection System Design | Kafka, Flink, ClickHouse, Redis | Ad Click Aggregation](https://www.youtube.com/watch?v=tFv2ydbD0Ys) — PartTimeEngineer. Designs ad click counting end-to-end: Flink stream aggregation with windowing, dedup, plus failure recovery and reconciliation.
+<VideoCard videoId="tFv2ydbD0Ys" title="Ad Metrics Collection System Design | Kafka, Flink, ClickHouse, Redis | Ad Click Aggregation" source="PartTimeEngineer" description="Designs ad click counting end-to-end: Flink stream aggregation with windowing, dedup, plus failure recovery and reconciliation." />
 
 ## Delivery semantics: the fine print on the ticker
 
@@ -267,7 +267,7 @@ compute hat. The practical rule carries over unchanged: assume at-least-once, ma
 logic idempotent, and save "exactly-once" for the narrow paths where duplicates are
 genuinely expensive.
 
-🎥 **Learn more:** [External systems & data streaming | The Duchess & The Doctor #3 ft. Anna McDonald & Matthias J. Sax](https://www.youtube.com/watch?v=SNVoVNNQ3wQ) — Confluent Developer. Kafka experts dig into exactly-once versus retries, stateful snapshots, and correctness trade-offs in event-driven systems.
+<VideoCard videoId="SNVoVNNQ3wQ" title="External systems & data streaming | The Duchess & The Doctor #3 ft. Anna McDonald & Matthias J. Sax" source="Confluent Developer" description="Kafka experts dig into exactly-once versus retries, stateful snapshots, and correctness trade-offs in event-driven systems." />
 
 ## Failure modes: what breaks at 2 a.m.
 
@@ -292,7 +292,7 @@ Advanced means knowing how it fails. The two families fail differently:
   yet. Retention is a promise: keep less log than your reprocessing horizon and kappa
   quietly becomes "lambda without the batch layer to fall back on."
 
-🎥 **Learn more:** [Lambda vs. Kappa: The Battle for Real-Time Pipelines](https://www.youtube.com/watch?v=nm0DjhNk3Hc) — CodeForData. Compares Lambda and Kappa, covering dual-codebase drift and log-replay reprocessing costs.
+<VideoCard videoId="nm0DjhNk3Hc" title="Lambda vs. Kappa: The Battle for Real-Time Pipelines" source="CodeForData" description="Compares Lambda and Kappa, covering dual-codebase drift and log-replay reprocessing costs." />
 
 ## How to choose: a decision guide
 
@@ -328,7 +328,7 @@ The cheat sheet, if you want it on one slide:
 | Hard parts | Skew, stragglers, scheduling | Event time, state growth, late data |
 | Reach for | Spark, MapReduce | Kafka + Flink |
 
-🎥 **Learn more:** [Batch vs Streaming Explained for Data Engineering](https://www.youtube.com/watch?v=7M_ato44Lvw) — TechLambda. Practical decision guide: when batch pipelines win, when streaming is worth the cost, and why hybrid architectures are common.
+<VideoCard videoId="7M_ato44Lvw" title="Batch vs Streaming Explained for Data Engineering" source="TechLambda" description="Practical decision guide: when batch pipelines win, when streaming is worth the cost, and why hybrid architectures are common." />
 
 ## Takeaways
 
