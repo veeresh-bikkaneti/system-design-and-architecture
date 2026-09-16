@@ -64,7 +64,7 @@ prepend `hash(key) mod K` to the key so sequential writes spray across K shards,
 cost of making range scans touch K shards. There is no free lunch; there is only lunch
 whose price you've itemized.
 
-🎥 **Learn more:** [System Design Basics #13 — Sharding and Partitioning: When One Machine Isn't Enough](https://www.youtube.com/watch?v=TEWauzwcFco) — LLMwork. Walks through range-based sharding, the shard-by-date hotspot, and spreading fixes.
+🎥 **Learn more:** [What Is a Partition Key? Routing, Pruning, Hot Partitions, and How to Choose One](https://www.youtube.com/watch?v=fQc2AkDiPXE) — Kandi Brian. Walks through range-based sharding, the shard-by-date hotspot, and spreading fixes.
 
 ## Strategy 3: Directory-based sharding
 
@@ -136,7 +136,7 @@ nodes). **Dynamo**, **Cassandra**, and **Riak** all do this.
   ]}
 />
 
-🎥 **Learn more:** [System Design Basics #14 — Consistent Hashing: Adding a Server Without Moving Everything](https://www.youtube.com/watch?v=qgsYShQhVZo) — LLMwork. Builds the hash ring from the modulo-hashing failure, showing why adding a server moves only ~1/N keys; covers virtual nodes.
+🎥 **Learn more:** [Consistent Hashing | The Backend Engineering Show](https://www.youtube.com/watch?v=p6wwj0ozifw) — Hussein Nasser. Builds the hash ring from the modulo-hashing failure, showing why adding a server moves only ~1/N keys; covers virtual nodes.
 
 ## The numbers: resharding cost and shard sizing
 
