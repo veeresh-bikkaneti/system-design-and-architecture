@@ -7,7 +7,6 @@ import { useProgressStore } from '../store/progress';
 import { Icon } from '../components/ui/Icon';
 import { Button } from '../components/ui/Button';
 import { HeadingsProvider, OnThisPage } from '../components/OnThisPage';
-import { useHeadings } from '../components/headings';
 
 /** Thin reading-progress bar pinned to the top of the viewport. */
 function ReadingProgressBar() {
@@ -110,35 +109,6 @@ const tierTint: Record<Tier, string> = {
   advanced:
     'from-accent-300/40 via-accent-200/15 dark:from-accent-800/30 dark:via-accent-950/10',
 };
-
-/**
- * "In this lesson" chips, derived from the lesson's own `##` headings.
- * Plain anchors — instant jumps, nothing hidden behind animation.
- */
-function InThisLessonChips() {
-  const headings = useHeadings();
-  const shown = headings.slice(0, 8);
-  if (shown.length === 0) return null;
-  return (
-    <div className="mt-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400 dark:text-stone-500">
-        In this lesson
-      </p>
-      <ul className="mt-2.5 flex flex-wrap gap-2">
-        {shown.map((heading) => (
-          <li key={heading.id}>
-            <a
-              href={`#${heading.id}`}
-              className="inline-block rounded-full border border-stone-200/90 bg-white/70 px-3 py-1.5 text-[13px] font-medium text-stone-600 shadow-soft transition-[transform,border-color,color,box-shadow] hover:-translate-y-px hover:border-accent-300 hover:text-accent-800 dark:border-stone-700/80 dark:bg-stone-900/70 dark:text-stone-300 dark:hover:border-accent-800 dark:hover:text-accent-300"
-            >
-              {heading.title}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 /** Shown instead of silently bouncing home when a lesson can't be opened. */
 function LessonGate({
@@ -257,8 +227,6 @@ export function LessonPage() {
               <p className="mt-4 max-w-[60ch] text-lg leading-relaxed text-stone-600 dark:text-stone-400">
                 {lesson.meta.summary}
               </p>
-
-              <InThisLessonChips />
 
               <div className="mt-6">
                 <CompleteButton slug={lesson.meta.slug} completed={completed} />

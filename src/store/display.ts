@@ -42,7 +42,9 @@ export interface DisplayState {
   theme: ThemePreference;
   calmMotion: boolean;
   setTheme: (theme: ThemePreference) => void;
-  /** Header-button behavior: light -> dark -> system -> light … */
+  /** Legacy 3-state cycle (light -> dark -> system); the header button no
+   * longer uses it — it toggles explicitly light/dark instead — but it is
+   * kept so any programmatic callers keep working. */
   cycleTheme: () => void;
   setCalmMotion: (calmMotion: boolean) => void;
   resolvedTheme: () => ResolvedTheme;

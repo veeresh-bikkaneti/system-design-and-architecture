@@ -22,6 +22,11 @@ export interface ProviderPreset {
   endpointHint: string;
   /** Noun used in the privacy note, e.g. "Anthropic's API". */
   apiNoun: string;
+  /**
+   * Where a non-technical learner can create an API key. Omitted for
+   * `custom`, where the key comes from the user's own endpoint provider.
+   */
+  keyUrl?: string;
 }
 
 export const PROVIDER_PRESETS: Record<AIProvider, ProviderPreset> = {
@@ -34,6 +39,7 @@ export const PROVIDER_PRESETS: Record<AIProvider, ProviderPreset> = {
     defaultModel: 'claude-opus-5',
     endpointHint: 'The Anthropic Messages API endpoint. Change it only if you route through a proxy.',
     apiNoun: "Anthropic's API",
+    keyUrl: 'https://console.anthropic.com/',
   },
   openai: {
     id: 'openai',
@@ -44,6 +50,7 @@ export const PROVIDER_PRESETS: Record<AIProvider, ProviderPreset> = {
     defaultModel: 'gpt-4o',
     endpointHint: 'Any OpenAI-compatible chat-completions endpoint works here.',
     apiNoun: "OpenAI's API",
+    keyUrl: 'https://platform.openai.com/api-keys',
   },
   custom: {
     id: 'custom',

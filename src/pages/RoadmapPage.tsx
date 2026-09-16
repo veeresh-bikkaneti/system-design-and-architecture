@@ -177,7 +177,7 @@ export function RoadmapPage() {
           The journey from first principles to interview-ready.
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-stone-600 dark:text-stone-400">
-          Thirty lessons in three tiers. Each tier unlocks the next — here is exactly what
+          Thirty-six lessons in three tiers. Each tier unlocks the next — here is exactly what
           you will cover, and what you will be able to do when each chapter closes. Scroll,
           and watch the path draw itself.
         </p>
@@ -284,7 +284,7 @@ export function RoadmapPage() {
                         aria-hidden="true"
                         className={`absolute left-4 top-8 z-10 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 md:left-1/2 ${
                           completed
-                            ? 'border-accent-600 bg-accent-600 text-white dark:border-accent-400 dark:bg-accent-400 dark:text-stone-950'
+                            ? 'border-accent-600 bg-accent-600 text-white dark:border-accent-300 dark:bg-accent-300 dark:text-stone-950'
                             : isNext
                               ? 'border-accent-600 bg-white text-accent-700 dark:border-accent-400 dark:bg-stone-950 dark:text-accent-300'
                               : 'border-stone-300 bg-white text-stone-400 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-600'

@@ -147,6 +147,12 @@ export function HomePage() {
   const firstLesson = lessons[0];
   const continueLesson = nextLesson ?? firstLesson;
   const hasStarted = completedLessons.length > 0;
+  // Per-lesson engagement: a quiz attempt means the learner actually worked
+  // through the lesson — that's "in progress". Without one, the lesson was
+  // never meaningfully opened, even when other lessons are done. This keeps
+  // "Resume" / "Pick up where you left off" honest instead of global.
+  const continueInProgress =
+    continueLesson != null && quizResults[continueLesson.meta.slug] !== undefined;
 
   const badgeStatuses = getBadgesWithStatus({ completedLessons, quizResults });
   const unlockedBadgeCount = badgeStatuses.filter((badge) => badge.unlocked).length;
@@ -181,7 +187,11 @@ export function HomePage() {
                   <Icon name="arrowRight" className="h-5 w-5" />
                 </Link>
                 <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">
-                  {hasStarted ? 'Pick up where you left off: ' : 'First up: '}
+                  {continueInProgress
+                    ? 'Pick up where you left off: '
+                    : hasStarted
+                      ? 'Up next: '
+                      : 'First up: '}
                   <span className="font-semibold text-stone-700 dark:text-stone-200">
                     {continueLesson.meta.title}
                   </span>{' '}
@@ -349,7 +359,7 @@ export function HomePage() {
                           )}
                           {isContinue && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-accent-600 px-2 py-0.5 font-semibold text-white dark:bg-accent-400 dark:text-stone-950">
-                              {hasStarted ? 'Resume' : 'Up next'}
+                              {continueInProgress ? 'Resume →' : 'Start →'}
                             </span>
                           )}
                         </p>
@@ -362,6 +372,16 @@ export function HomePage() {
           );
         })}
       </section>
+
+      {/* Footer — the page used to end abruptly after the last lesson card */}
+      <footer className="border-t border-stone-200/70 py-10 text-center dark:border-stone-800">
+        <p className="font-display text-sm font-semibold tracking-tight text-stone-700 dark:text-stone-300">
+          System Design Mastery
+        </p>
+        <p className="mt-1 text-xs text-stone-400 dark:text-stone-500">
+          Built for learners, one lesson at a time.
+        </p>
+      </footer>
     </div>
   );
 }

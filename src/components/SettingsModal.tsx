@@ -272,6 +272,30 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 {showKey ? 'Hide' : 'Show'}
               </button>
             </div>
+            <div className="mt-1.5 space-y-1 text-[11px] leading-snug text-stone-500 dark:text-stone-400">
+              <p>
+                An API key is like a password that lets the tutor use your AI
+                provider account.
+              </p>
+              <p>
+                {preset.keyUrl ? (
+                  <a
+                    href={preset.keyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-amber-700 underline decoration-amber-300 underline-offset-2 hover:text-amber-800 dark:text-amber-400 dark:decoration-amber-800 dark:hover:text-amber-300"
+                  >
+                    Where to get a key
+                    <Icon name="external" className="h-3 w-3" />
+                  </a>
+                ) : (
+                  'Get a key from your endpoint provider.'
+                )}
+              </p>
+              <p>
+                Tutor usage bills to your own provider account, not to us.
+              </p>
+            </div>
           </div>
 
           <div>

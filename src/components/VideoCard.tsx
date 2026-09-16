@@ -32,7 +32,7 @@ export function VideoCard({ videoId, title, source, description, variant = 'defa
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`Watch on YouTube: ${title}`}
-        className="not-prose group my-3 flex items-center gap-3.5 rounded-2xl border border-stone-200/80 bg-white p-3 shadow-soft transition-[transform,box-shadow,border-color] hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
+        className="not-prose group my-3 flex items-center gap-3.5 rounded-2xl border border-stone-200/80 bg-white p-3 shadow-soft transition-[transform,box-shadow,border-color] no-underline! hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
       >
         <span className="relative block h-14 w-24 shrink-0 overflow-hidden rounded-xl bg-stone-100 dark:bg-stone-800">
           {imgOk && (
@@ -49,12 +49,16 @@ export function VideoCard({ videoId, title, source, description, variant = 'defa
           </span>
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold tracking-tight text-stone-900 group-hover:text-accent-800 dark:text-stone-100 dark:group-hover:text-accent-300">
+          <span className="block truncate text-sm font-semibold tracking-tight text-stone-900 underline decoration-accent-300 decoration-2 underline-offset-4 group-hover:text-accent-800 dark:text-stone-100 dark:group-hover:text-accent-300">
             {title}
           </span>
-          <span className="mt-0.5 block truncate text-xs text-stone-500 dark:text-stone-400">
-            {source}
-            {description ? ` — ${description}` : ''}
+          <span className="mt-0.5 block truncate text-xs">
+            <span className="font-medium text-accent-700 underline decoration-accent-300 underline-offset-2 dark:text-accent-400">
+              {source}
+            </span>
+            {description && (
+              <span className="text-stone-500 dark:text-stone-400">{` — ${description}`}</span>
+            )}
           </span>
         </span>
         <Icon
@@ -71,7 +75,7 @@ export function VideoCard({ videoId, title, source, description, variant = 'defa
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`Watch on YouTube: ${title}`}
-      className="not-prose group my-5 block overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-soft transition-[transform,box-shadow,border-color] hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
+      className="not-prose group my-5 block overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-soft transition-[transform,box-shadow,border-color] no-underline! hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
     >
       <span className="relative block aspect-video w-full overflow-hidden bg-stone-100 dark:bg-stone-800">
         {imgOk && (
@@ -91,7 +95,7 @@ export function VideoCard({ videoId, title, source, description, variant = 'defa
       </span>
       <span className="block p-4 sm:p-5">
         <span className="flex items-start justify-between gap-3">
-          <span className="font-semibold tracking-tight text-stone-950 group-hover:text-accent-800 dark:text-stone-50 dark:group-hover:text-accent-300">
+          <span className="font-semibold tracking-tight text-stone-950 underline decoration-accent-300 decoration-2 underline-offset-4 group-hover:text-accent-800 dark:text-stone-50 dark:group-hover:text-accent-300">
             {title}
           </span>
           <Icon
@@ -99,7 +103,7 @@ export function VideoCard({ videoId, title, source, description, variant = 'defa
             className="mt-1 h-4 w-4 shrink-0 text-stone-300 transition-colors group-hover:text-accent-600 dark:text-stone-600 dark:group-hover:text-accent-400"
           />
         </span>
-        <span className="mt-1 block text-xs font-semibold uppercase tracking-wider text-accent-700 dark:text-accent-400">
+        <span className="mt-1 block text-xs font-semibold uppercase tracking-wider text-accent-700 underline decoration-accent-300 underline-offset-2 dark:text-accent-400">
           {source} · YouTube
         </span>
         {description && (

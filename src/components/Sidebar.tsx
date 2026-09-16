@@ -153,7 +153,7 @@ export function Sidebar() {
                         className="flex cursor-not-allowed items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-stone-400 dark:text-stone-600"
                       >
                         <LockIcon className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{lesson.meta.title}</span>
+                        <span className="line-clamp-2">{lesson.meta.title}</span>
                       </span>
                     </li>
                   );
@@ -169,13 +169,13 @@ export function Sidebar() {
                         aria-hidden="true"
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
                           completed
-                            ? 'border-accent-600 bg-accent-600 text-white dark:border-accent-400 dark:bg-accent-400 dark:text-stone-950'
+                            ? 'border-accent-600 bg-accent-600 text-white dark:border-accent-300 dark:bg-accent-300 dark:text-stone-950'
                             : 'border-stone-300 text-transparent dark:border-stone-700'
                         }`}
                       >
                         <CheckIcon className="h-3 w-3" />
                       </span>
-                      <span className="truncate">{lesson.meta.title}</span>
+                      <span className="line-clamp-2">{lesson.meta.title}</span>
                       {completed && <span className="sr-only">(completed)</span>}
                     </NavLink>
                   </li>

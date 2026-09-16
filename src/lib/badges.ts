@@ -70,7 +70,7 @@ function quizAceBadge(slug: string, title: string): BadgeDefinition {
     id: `quiz-ace-${slug}`,
     kind: 'quiz-ace',
     name: `Quiz Ace: ${title}`,
-    description: `Answered every question correctly on the "${title}" quiz — a perfect score.`,
+    description: `Perfect score on the "${title}" quiz.`,
     criteria: `Score 100% on the "${title}" quiz.`,
     iconFile: 'quiz-ace.svg',
   };

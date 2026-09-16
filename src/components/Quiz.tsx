@@ -46,6 +46,15 @@ export function Quiz({ lessonSlug, questions }: QuizProps) {
     setSubmitted(false);
   }
 
+  function handleRetake() {
+    // A retake overwrites the recorded quiz result (and can revoke a
+    // quiz-ace badge), so a passed quiz requires explicit confirmation.
+    const ok = window.confirm(
+      `Retaking this quiz will replace your recorded score of ${correctCount} out of ${total}. Continue?`,
+    );
+    if (ok) handleRetry();
+  }
+
   return (
     <div className="not-prose my-10 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-[0_2px_12px_rgb(120_53_15/0.07)] dark:border-stone-800 dark:bg-stone-900 dark:shadow-none">
       <div className="border-b border-stone-200/80 bg-amber-50/70 px-5 py-4 sm:px-6 dark:border-stone-800 dark:bg-amber-950/20">
@@ -180,9 +189,25 @@ export function Quiz({ lessonSlug, questions }: QuizProps) {
                 ? 'You passed \u2014 solid work. On to the next lesson.'
                 : 'Not quite there \u2014 the right answers are highlighted above. Give it another go.'}
             </p>
-            <button type="button" onClick={handleRetry} className={buttonClasses('secondary', 'sm', 'ml-auto')}>
-              Try again
-            </button>
+            {passed ? (
+              // Passed quizzes keep a quiet, guarded retake: resubmitting
+              // overwrites the recorded score, so this asks first.
+              <button
+                type="button"
+                onClick={handleRetake}
+                className="ml-auto text-xs font-medium text-stone-500 underline decoration-stone-300 underline-offset-2 transition-colors hover:text-stone-800 dark:text-stone-400 dark:decoration-stone-600 dark:hover:text-stone-200"
+              >
+                Retake quiz
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleRetry}
+                className={buttonClasses('secondary', 'sm', 'ml-auto')}
+              >
+                Try again
+              </button>
+            )}
           </>
         )}
       </div>

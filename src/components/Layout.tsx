@@ -2,7 +2,8 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Icon } from './ui/Icon';
-import { useDisplayStore } from '../store/display';
+import { BadgeToastHost } from './ui/BadgeToast';
+import { useDisplayStore, resolveTheme } from '../store/display';
 
 const ChatWidget = lazy(() => import('./ChatWidget').then((m) => ({ default: m.ChatWidget })));
 
@@ -23,20 +24,42 @@ function BrandMark({ className = 'h-9 w-9' }: { className?: string }) {
   );
 }
 
-/** Header theme toggle: light -> dark -> system -> light … */
+/**
+ * Header theme toggle: an explicit binary light/dark switch. The stored
+ * preference may still be 'system' (kept so existing users' choice keeps
+ * working), but the button itself never lands on an ambiguous state — from
+ * 'system' the first click goes to the explicit opposite of whatever the OS
+ * currently resolves to. The icon and label always describe the action the
+ * click will take, never the current state.
+ */
 function ThemeToggle() {
   const theme = useDisplayStore((state) => state.theme);
-  const cycleTheme = useDisplayStore((state) => state.cycleTheme);
-  const iconName = theme === 'light' ? 'sun' : theme === 'dark' ? 'moon' : 'monitor';
+  const setTheme = useDisplayStore((state) => state.setTheme);
+  // Re-render if the OS scheme changes while following it, so the icon and
+  // label always match the theme actually on screen.
+  const [, forceRender] = useState(0);
+  useEffect(() => {
+    if (theme !== 'system' || typeof window === 'undefined' || !window.matchMedia) return;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => forceRender((n) => n + 1);
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', onChange);
+      return () => media.removeEventListener('change', onChange);
+    }
+    media.addListener(onChange);
+    return () => media.removeListener(onChange);
+  }, [theme]);
+  const isDark = resolveTheme(theme) === 'dark';
+  const action = isDark ? 'Switch to light mode' : 'Switch to dark mode';
   return (
     <button
       type="button"
-      onClick={cycleTheme}
-      aria-label={`Color theme: ${theme}. Activate to change.`}
-      title={`Color theme: ${theme}`}
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      aria-label={action}
+      title={action}
       className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-stone-600 transition-colors hover:bg-stone-200/60 hover:text-stone-950 active:bg-stone-200 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-50 dark:active:bg-stone-700"
     >
-      <Icon name={iconName} className="h-5 w-5" />
+      <Icon name={isDark ? 'sun' : 'moon'} className="h-5 w-5" />
     </button>
   );
 }
@@ -163,6 +186,8 @@ export function Layout() {
       <Suspense fallback={null}>
         <ChatWidget />
       </Suspense>
+
+      <BadgeToastHost />
     </div>
   );
 }

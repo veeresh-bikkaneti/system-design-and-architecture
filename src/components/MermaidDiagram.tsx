@@ -17,6 +17,25 @@ const svgCache = new Map<string, string>();
 let renderSeq = 0;
 
 /**
+ * Corruption guard. Mermaid has been observed to return SVGs where the edges
+ * render but the node shapes don't — leaving labeled dashed lines that
+ * terminate at nothing (plus clipped label fragments). A flowchart/graph
+ * without a single `node` group, or a sequence diagram without an `actor`
+ * group, is never a usable diagram, so reject it instead of caching and
+ * displaying it.
+ */
+function svgLooksUsable(svg: string, code: string): boolean {
+  if (!svg.includes('<svg')) return false;
+  if (/^\s*(flowchart|graph)\b/m.test(code)) {
+    return /class="[^"]*\bnode\b/.test(svg);
+  }
+  if (/^\s*sequenceDiagram\b/m.test(code)) {
+    return /class="[^"]*\bactor\b/.test(svg);
+  }
+  return true;
+}
+
+/**
  * Semantic role class contract for lesson diagrams. Lesson authors tag
  * nodes with e.g. `OrderSvc["Order Service"]:::service` and get consistent
  * role coloring in both themes:
@@ -135,23 +154,50 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
 
     // Fresh render ids: mermaid misbehaves when an id is reused, so every
     // actual render call gets a unique id even for the same component.
-    const renderId = `${domId}-r${(renderSeq += 1)}`;
-    mermaid
-      .render(renderId, withSemanticClasses(code))
-      .then((result) => {
-        if (cancelled) return;
+    // Render once; if the SVG fails the corruption guard, retry a single
+    // time (after fonts settle — mermaid measures text with getBBox, which
+    // is unreliable before the diagram font loads). A still-broken result
+    // shows the honest error panel rather than a misleading diagram.
+    let attempts = 0;
+    const tryRender = (): void => {
+      const renderId = `${domId}-r${(renderSeq += 1)}`;
+      const run = async (): Promise<string> => {
+        try {
+          await document.fonts.ready;
+        } catch {
+          /* font timing is best-effort */
+        }
+        const result = await mermaid.render(renderId, withSemanticClasses(code));
         const out = typeof result.svg === 'string' ? result.svg : '';
-        if (out.includes('<svg')) {
+        if (!svgLooksUsable(out, code)) {
+          throw new Error('corrupt-diagram');
+        }
+        return out;
+      };
+      run().then(
+        (out) => {
+          if (cancelled) return;
           svgCache.set(code, out);
           setSvg(out);
-        } else {
-          setError('The diagram rendered an empty image.');
-        }
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : 'Failed to render diagram.');
-      });
+        },
+        (err) => {
+          if (cancelled) return;
+          attempts += 1;
+          if (attempts < 2) {
+            tryRender();
+            return;
+          }
+          setError(
+            err instanceof Error && err.message === 'corrupt-diagram'
+              ? 'The diagram failed to render correctly.'
+              : err instanceof Error
+                ? err.message
+                : 'Failed to render diagram.',
+          );
+        },
+      );
+    };
+    tryRender();
 
     return () => {
       cancelled = true;
