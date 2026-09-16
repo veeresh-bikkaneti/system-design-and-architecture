@@ -27,7 +27,7 @@ you get the resize math that breaks naive key sharding, the mechanics of consist
 with virtual nodes, the true cost of resharding, and how to pick a shard key when the
 constraints fight each other.
 
-🎥 **Learn more:** [SD 11 | Database Sharding | System Design Course | Uplatz](https://www.youtube.com/watch?v=kKUsCSsBR3Y) — Uplatz. Uplatz walks through why one database hits a wall, what sharding is, and when to reach for it.
+<VideoCard videoId="kKUsCSsBR3Y" title="SD 11 | Database Sharding | System Design Course | Uplatz" source="Uplatz" description="Uplatz walks through why one database hits a wall, what sharding is, and when to reach for it." />
 
 ## Strategy 1: Key-based (hash) sharding
 
@@ -48,7 +48,7 @@ one shard of new capacity. This is the problem consistent hashing was invented t
 (see below). Key-based sharding also scatters *related* data: a user's orders land on
 different shards than the user, so joins become application-level scatter-gather.
 
-🎥 **Learn more:** [Partitioning & Sharding - Redis for Developers](https://www.youtube.com/watch?v=v68e9C6dnyI) — The Software Mentor. Redis Cluster's 16384 hash slots show how hashing keys spreads rows evenly, plus hash tags to co-locate related keys.
+<VideoCard videoId="v68e9C6dnyI" title="Partitioning & Sharding - Redis for Developers" source="The Software Mentor" description="Redis Cluster's 16384 hash slots show how hashing keys spreads rows evenly, plus hash tags to co-locate related keys." />
 
 ## Strategy 2: Range-based sharding
 
@@ -64,7 +64,7 @@ prepend `hash(key) mod K` to the key so sequential writes spray across K shards,
 cost of making range scans touch K shards. There is no free lunch; there is only lunch
 whose price you've itemized.
 
-🎥 **Learn more:** [What Is a Partition Key? Routing, Pruning, Hot Partitions, and How to Choose One](https://www.youtube.com/watch?v=fQc2AkDiPXE) — Kandi Brian. Walks through range-based sharding, the shard-by-date hotspot, and spreading fixes.
+<VideoCard videoId="fQc2AkDiPXE" title="What Is a Partition Key? Routing, Pruning, Hot Partitions, and How to Choose One" source="Kandi Brian" description="Walks through range-based sharding, the shard-by-date hotspot, and spreading fixes." />
 
 ## Strategy 3: Directory-based sharding
 
@@ -76,7 +76,7 @@ partitioning lesson says, the catalog must itself be replicated — replica set,
 never a lone process). Useful when your sharding needs are irregular enough that no formula
 works, e.g., multi-tenant SaaS where one whale customer deserves their own shard.
 
-🎥 **Learn more:** [Data Sharding UNLEASHED: Top 4 Algorithms to Master Database Scalability & Performance #systemdesign](https://www.youtube.com/watch?v=POb4gbP9Y4o) — SystemDR - Scalable System Design. Explains lookup-table routing that maps keys to shards directly — flexible placement, but the directory becomes a bottleneck.
+<VideoCard videoId="POb4gbP9Y4o" title="Data Sharding UNLEASHED: Top 4 Algorithms to Master Database Scalability & Performance #systemdesign" source="SystemDR - Scalable System Design" description="Explains lookup-table routing that maps keys to shards directly — flexible placement, but the directory becomes a bottleneck." />
 
 ## Consistent hashing: adding shards without the apocalypse
 
@@ -136,7 +136,7 @@ nodes). **Dynamo**, **Cassandra**, and **Riak** all do this.
   ]}
 />
 
-🎥 **Learn more:** [Consistent Hashing | The Backend Engineering Show](https://www.youtube.com/watch?v=p6wwj0ozifw) — Hussein Nasser. Builds the hash ring from the modulo-hashing failure, showing why adding a server moves only ~1/N keys; covers virtual nodes.
+<VideoCard videoId="p6wwj0ozifw" title="Consistent Hashing | The Backend Engineering Show" source="Hussein Nasser" description="Builds the hash ring from the modulo-hashing failure, showing why adding a server moves only ~1/N keys; covers virtual nodes." />
 
 ## The numbers: resharding cost and shard sizing
 
@@ -156,7 +156,7 @@ Some back-of-envelope arithmetic before you shard:
   partitioning lesson's tools (caching, key-splitting) or a different design. Know your
   hottest key's traffic *before* choosing N.
 
-🎥 **Learn more:** [Database Sharding Explained: Partitioning, Hot Keys, and Safe Resharding](https://www.youtube.com/watch?v=jvdGEilH1x8) — DevLevel13. Walks through resharding without an outage via dual-write and shadow reads, plus how hot keys drive migration cost.
+<VideoCard videoId="jvdGEilH1x8" title="Database Sharding Explained: Partitioning, Hot Keys, and Safe Resharding" source="DevLevel13" description="Walks through resharding without an outage via dual-write and shadow reads, plus how hot keys drive migration cost." />
 
 ## Choosing the shard key (the decision you'll live with)
 
@@ -173,7 +173,7 @@ Changing the shard key later is a full data migration. The most expensive schema
 there is. Spend the design meeting. Future you, paged at 3 AM because shard 7 of 8 is at
 100% CPU, will be grateful.
 
-🎥 **Learn more:** [Choosing a Shard Key](https://www.youtube.com/watch?v=qRfX0gPEP-s) — InterSystems Developers. Covers shard key criteria — cardinality, even distribution, query alignment — and when the default key is good enough.
+<VideoCard videoId="qRfX0gPEP-s" title="Choosing a Shard Key" source="InterSystems Developers" description="Covers shard key criteria — cardinality, even distribution, query alignment — and when the default key is good enough." />
 
 ## Takeaways
 

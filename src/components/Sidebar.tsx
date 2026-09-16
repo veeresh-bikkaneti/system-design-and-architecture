@@ -3,86 +3,42 @@ import { lessons, tierLabels, tierOrder, type Tier } from '../lib/lessons';
 import { getBadgesWithStatus } from '../lib/badges';
 import { isTierUnlocked } from '../lib/progress-gate';
 import { useProgressStore } from '../store/progress';
+import { Icon } from './ui/Icon';
+import { ProgressBar } from './ui/ProgressBar';
 
-/* Small inline SVG icon set (no emoji iconography) — shared with pages. */
-function iconProps(className?: string) {
-  return {
-    className,
-    fill: 'none',
-    viewBox: '0 0 24 24',
-    strokeWidth: 2,
-    stroke: 'currentColor',
-    'aria-hidden': true,
-  } as const;
-}
-
+/* Icon set — thin wrappers over the single ui/Icon set, kept so existing
+   imports from '../components/Sidebar' keep working. New code should import
+   { Icon } from './ui/Icon' directly. */
 export function CheckIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg {...iconProps(className)} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 13l4 4L19 7" />
-    </svg>
-  );
+  return <Icon name="check" className={className} />;
 }
 
 export function LockIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg {...iconProps(className)} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="11" width="16" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 018 0v4" />
-    </svg>
-  );
+  return <Icon name="lock" className={className} />;
 }
 
 export function ClockIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg {...iconProps(className)} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 3" />
-    </svg>
-  );
+  return <Icon name="clock" className={className} />;
 }
 
 export function ArrowRightIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg {...iconProps(className)} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
-  );
+  return <Icon name="arrowRight" className={className} />;
 }
 
 export function ArrowLeftIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg {...iconProps(className)} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 12H5M11 6l-6 6 6 6" />
-    </svg>
-  );
+  return <Icon name="arrowLeft" className={className} />;
 }
 
 export function MedalIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg {...iconProps(className)} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="15" r="6" />
-      <path d="M15.5 9.5L20 3h-4l-2.5 5M8.5 9.5L4 3h4l2.5 5" />
-    </svg>
-  );
+  return <Icon name="medal" className={className} />;
 }
 
 export function HomeIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg {...iconProps(className)} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 11l9-8 9 8" />
-      <path d="M5 10v10h5v-6h4v6h5V10" />
-    </svg>
-  );
+  return <Icon name="home" className={className} />;
 }
 
 export function MapIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg {...iconProps(className)} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z" />
-      <path d="M9 4v14M15 6v14" />
-    </svg>
-  );
+  return <Icon name="map" className={className} />;
 }
 
 const lessonLinkBase =
@@ -95,17 +51,7 @@ function lessonLinkState(isActive: boolean) {
 }
 
 function TierProgressBar({ percent }: { percent: number }) {
-  return (
-    <div
-      className="h-1.5 w-full overflow-hidden rounded-full bg-stone-200/80 dark:bg-stone-800"
-      role="presentation"
-    >
-      <div
-        className="h-full rounded-full bg-accent-500 transition-all duration-500 dark:bg-accent-400"
-        style={{ width: `${percent}%` }}
-      />
-    </div>
-  );
+  return <ProgressBar value={percent} max={100} label="Tier progress" />;
 }
 
 export function Sidebar() {
@@ -133,19 +79,12 @@ export function Sidebar() {
           </p>
         </div>
         <div className="mt-3">
-          <div
-            role="progressbar"
-            aria-valuenow={completedCount}
-            aria-valuemin={0}
-            aria-valuemax={total}
-            aria-label="Overall course progress"
-            className="h-2 w-full overflow-hidden rounded-full bg-stone-200/80 dark:bg-stone-800"
-          >
-            <div
-              className="h-full rounded-full bg-accent-500 transition-all duration-500 dark:bg-accent-400"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
+          <ProgressBar
+            value={completedCount}
+            max={total}
+            label="Overall course progress"
+            size="md"
+          />
           <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
             {completedCount} of {total} lessons complete
           </p>
@@ -193,7 +132,7 @@ export function Sidebar() {
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                   {tierLabels[tier]}
                 </h3>
-                <span className="text-xs font-medium tabular-nums text-stone-400 dark:text-stone-500">
+                <span className="text-xs font-medium tabular-nums text-stone-400 dark:text-stone-400">
                   {tierCompleted}/{tierLessons.length}
                 </span>
               </div>

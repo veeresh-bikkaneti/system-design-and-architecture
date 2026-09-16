@@ -1,12 +1,12 @@
 /* Animated diagram styles. Imported directly by the diagram components
    (PacketFlow, StepThrough, VsToggle) and MermaidDiagram — mirroring the
-   badges.css pattern. src/index.css is intentionally untouched. */
+   badges.css pattern. */
 
 /* ------------------------------------------------------------------ */
 /* Shared diagram language: JetBrains Mono labels and panel surfaces.  */
-/* Dark mode in this repo is OS-driven (Tailwind v4 `dark:` maps to    */
-/* prefers-color-scheme), so dark variants below use the same media    */
-/* query rather than a .dark class.                                    */
+/* Dark mode is driven by the `.dark` class on <html> (theme store),   */
+/* so dark variants below are scoped under `.dark` with native CSS     */
+/* nesting. Stone is the only neutral ramp.                           */
 /* ------------------------------------------------------------------ */
 
 .diagram-mono {
@@ -15,11 +15,11 @@
 
 /* Subtle blueprint grid, dark mode only — applied to every diagram
    panel via the .diagram-panel class set by the components. */
-@media (prefers-color-scheme: dark) {
+.dark {
   .diagram-panel {
     background-image:
-      linear-gradient(rgb(148 163 184 / 0.055) 1px, transparent 1px),
-      linear-gradient(90deg, rgb(148 163 184 / 0.055) 1px, transparent 1px);
+      linear-gradient(rgb(168 162 158 / 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(168 162 158 / 0.055) 1px, transparent 1px);
     background-size: 22px 22px;
   }
 }
@@ -28,7 +28,7 @@
 /* MermaidDiagram: semantic role classes. Lesson authors tag nodes with */
 /* e.g. `OrderSvc["Order Service"]:::service`. The classDef lines       */
 /* (injected by MermaidDiagram.tsx) carry the light-mode colors; the   */
-/* rules below carry the dark-mode variants. Mermaid applies classDef   */
+/* the `.dark` rules below carry the dark-mode variants. Mermaid applies  */
 /* colors as inline styles, so these need !important to win.           */
 /*                                                                     */
 /* Contract:                                                           */
@@ -39,7 +39,7 @@
 /*   security = rose    — auth, security                               */
 /* ------------------------------------------------------------------ */
 
-@media (prefers-color-scheme: dark) {
+.dark {
   .mermaid-diagram .node.client rect,
   .mermaid-diagram .node.client polygon,
   .mermaid-diagram .node.client circle,
@@ -109,64 +109,64 @@
 /* config in MermaidDiagram.tsx.                                       */
 /* ------------------------------------------------------------------ */
 
-@media (prefers-color-scheme: dark) {
-  /* Default nodes: slate panel look */
+.dark {
+  /* Default nodes: stone panel look */
   .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) rect,
   .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) polygon,
   .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) circle,
   .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) ellipse,
   .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) path {
-    fill: #1e293b !important;
-    stroke: #64748b !important;
+    fill: #292524 !important;
+    stroke: #78716c !important;
   }
   .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) .label,
   .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) .nodeLabel {
-    color: #e2e8f0 !important;
+    color: #e7e5e4 !important;
   }
 
-  /* Edges: clean slate arrows */
+  /* Edges: clean stone arrows */
   .mermaid-diagram .flowchart-link {
-    stroke: #94a3b8 !important;
+    stroke: #a8a29e !important;
   }
   .mermaid-diagram .marker path,
   .mermaid-diagram marker path {
-    fill: #94a3b8 !important;
-    stroke: #94a3b8 !important;
+    fill: #a8a29e !important;
+    stroke: #a8a29e !important;
   }
   .mermaid-diagram .edgeLabel {
-    color: #cbd5e1 !important;
+    color: #d6d3d1 !important;
     background-color: transparent !important;
   }
   .mermaid-diagram .edgeLabel rect {
-    fill: #0f172a !important;
+    fill: #1c1917 !important;
     opacity: 0.85;
   }
 
   /* Subgraphs / clusters */
   .mermaid-diagram .cluster rect {
-    fill: #0f172a !important;
-    stroke: #334155 !important;
+    fill: #1c1917 !important;
+    stroke: #44403c !important;
   }
   .mermaid-diagram .cluster .label,
   .mermaid-diagram .cluster .nodeLabel {
-    color: #94a3b8 !important;
+    color: #a8a29e !important;
   }
 
   /* Sequence diagrams */
   .mermaid-diagram .actor {
-    fill: #1e293b !important;
-    stroke: #64748b !important;
+    fill: #292524 !important;
+    stroke: #78716c !important;
   }
   .mermaid-diagram .actor text,
   .mermaid-diagram text.actor {
-    fill: #e2e8f0 !important;
+    fill: #e7e5e4 !important;
   }
   .mermaid-diagram .messageLine0,
   .mermaid-diagram .messageLine1 {
-    stroke: #94a3b8 !important;
+    stroke: #a8a29e !important;
   }
   .mermaid-diagram .messageText {
-    fill: #cbd5e1 !important;
+    fill: #d6d3d1 !important;
   }
   .mermaid-diagram .labelBox {
     fill: #451a03 !important;
@@ -191,10 +191,10 @@
     stroke: #f59e0b !important;
   }
   .mermaid-diagram .loopLine {
-    stroke: #64748b !important;
+    stroke: #78716c !important;
   }
   .mermaid-diagram .loopText {
-    fill: #cbd5e1 !important;
+    fill: #d6d3d1 !important;
   }
 }
 
@@ -265,7 +265,7 @@
   fill: #d97706;
   filter: drop-shadow(0 0 4px rgba(217, 119, 6, 0.65));
 }
-@media (prefers-color-scheme: dark) {
+.dark {
   .mermaid-diagram .flow-token {
     fill: #fbbf24;
     filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.7));

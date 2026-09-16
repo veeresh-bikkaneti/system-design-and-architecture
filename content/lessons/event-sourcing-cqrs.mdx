@@ -30,7 +30,7 @@ trail, keep reading.
 (And yes, the auditor will be back before this lesson is over. She has excellent timing
 and no sense of humor about missing history.)
 
-🎥 **Learn more:** [Event Sourcing Explained Using Football](https://www.youtube.com/watch?v=xPmQxYIi5fA) — Metaphorically Speaking. Uses a football analogy to show why storing facts (a ledger) beats storing only the current score.
+<VideoCard videoId="xPmQxYIi5fA" title="Event Sourcing Explained Using Football" source="Metaphorically Speaking" description="Uses a football analogy to show why storing facts (a ledger) beats storing only the current score." />
 
 ## The ledger and the whiteboard
 
@@ -75,7 +75,7 @@ transaction counter; "what's my balance" goes to the inquiry desk, which reads f
 own copy. That split — one model for writing, another for reading — is CQRS, and we'll
 get there.
 
-🎥 **Learn more:** [Event Sourcing • Greg Young • GOTO 2014](https://www.youtube.com/watch?v=8JKjvY4etTY) — GOTO Conferences. Greg Young contrasts an erasable ledger with an immutable event log versus CRUD's overwrite model.
+<VideoCard videoId="8JKjvY4etTY" title="Event Sourcing • Greg Young • GOTO 2014" source="GOTO Conferences" description="Greg Young contrasts an erasable ledger with an immutable event log versus CRUD's overwrite model." />
 
 ## Event sourcing, precisely
 
@@ -130,7 +130,7 @@ matter:
    one. In a whiteboard world, that report is impossible: the history was erased as it
    happened.
 
-🎥 **Learn more:** [Event Sourcing Explained - Why Immutability Changes Everything](https://www.youtube.com/watch?v=VdcYjQV19GM) — José Cruz (IT Architect). Walks through immutability, append-only event stores, and deterministic replay rebuilding state.
+<VideoCard videoId="VdcYjQV19GM" title="Event Sourcing Explained - Why Immutability Changes Everything" source="José Cruz (IT Architect)" description="Walks through immutability, append-only event stores, and deterministic replay rebuilding state." />
 
 ## Projections: the monthly statement
 
@@ -158,7 +158,7 @@ This is where the pattern starts charging rent, so count the costs honestly:
   must not credit the account twice — the event's unique id makes the duplicate
   recognizable, and the projector skips work it already did.
 
-🎥 **Learn more:** [CQRS & Event Sourcing Code Walk-Through](https://www.youtube.com/watch?v=5aznkIEvkKc) — CodeOpinion. Code walk-through showing events published to consumers that update projection read models for queries.
+<VideoCard videoId="5aznkIEvkKc" title="CQRS & Event Sourcing Code Walk-Through" source="CodeOpinion" description="Code walk-through showing events published to consumers that update projection read models for queries." />
 
 ## Snapshots: the teller's subtotal
 
@@ -194,7 +194,7 @@ Two details that bite people:
 - Snapshot schema evolves too. When the aggregate's shape changes, old snapshots must
   be discarded or migrated. Version your snapshots the way you version everything else.
 
-🎥 **Learn more:** [Event Sourcing: Rehydrating Aggregates with Snapshots](https://www.youtube.com/watch?v=eAIkomEid1Y) — CodeOpinion. Shows how snapshots checkpoint aggregate state so rebuilds skip replaying the full event stream.
+<VideoCard videoId="eAIkomEid1Y" title="Event Sourcing: Rehydrating Aggregates with Snapshots" source="CodeOpinion" description="Shows how snapshots checkpoint aggregate state so rebuilds skip replaying the full event stream." />
 
 ## CQRS: the separate windows
 
@@ -248,7 +248,7 @@ page is a second window staffed for customers who never come. The pattern is a r
 to a real asymmetry; without the asymmetry, it's just complexity with a name. This is
 the judgment the quiz will test, because it's the judgment interviews test.
 
-🎥 **Learn more:** [CQRS in Python: Clean Reads, Clean Writes](https://www.youtube.com/watch?v=Spp-uzXzzdE) — ArjanCodes. Refactors an API into separate write and read stores with a projector, and names when CQRS is worth it.
+<VideoCard videoId="Spp-uzXzzdE" title="CQRS in Python: Clean Reads, Clean Writes" source="ArjanCodes" description="Refactors an API into separate write and read stores with a projector, and names when CQRS is worth it." />
 
 ## Failure modes: what breaks at the limit
 
@@ -307,7 +307,7 @@ preserved, but the personal data inside them becomes unreadable noise. The audit
 her timeline; the user keeps her privacy. Everybody's slightly unhappy, which is how you
 know it's a real engineering trade-off.
 
-🎥 **Learn more:** [Event Sourcing   You are doing it wrong by David Schmitz](https://www.youtube.com/watch?v=GzrZworHpIk) — Devoxx. Conference talk on real-world event sourcing failures: Kafka-as-event-sourcing, compliance, and maintainability costs.
+<VideoCard videoId="GzrZworHpIk" title="Event Sourcing   You are doing it wrong by David Schmitz" source="Devoxx" description="Conference talk on real-world event sourcing failures: Kafka-as-event-sourcing, compliance, and maintainability costs." />
 
 ## Real systems that keep ledgers
 
@@ -327,7 +327,7 @@ system will ever produce. Adopt the ledger when the history itself is the produc
 money, inventory, compliance, or any domain where "how did we get here" is a question
 with legal weight. The auditor will tell you when you've arrived. She always does.
 
-🎥 **Learn more:** [Event Sourcing in Production - Real-Time CQRS/DDD .NET Apps with EventStore](https://www.youtube.com/watch?v=t2AI9hODJ2E) — Barcelona .NET Core. Covers Reactive Trader Cloud on EventStore, including production problems teams faced and how they solved them.
+<VideoCard videoId="t2AI9hODJ2E" title="Event Sourcing in Production - Real-Time CQRS/DDD .NET Apps with EventStore" source="Barcelona .NET Core" description="Covers Reactive Trader Cloud on EventStore, including production problems teams faced and how they solved them." />
 
 ## Takeaways
 

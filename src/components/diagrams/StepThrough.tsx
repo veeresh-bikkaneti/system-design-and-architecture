@@ -102,11 +102,11 @@ export function StepThrough({
 
   return (
     <motion.div
-      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-slate-800 dark:bg-slate-950"
+      className="not-prose diagram-panel my-8 rounded-xl border border-stone-200 bg-stone-50 p-5 shadow-soft dark:border-stone-800 dark:bg-stone-950"
       {...entrance}
     >
       {title && (
-        <h4 className="diagram-mono mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-slate-400">
+        <h4 className="diagram-mono mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
           {title}
         </h4>
       )}
@@ -129,7 +129,7 @@ export function StepThrough({
                 y1={from.y}
                 x2={to.x}
                 y2={to.y}
-                className="stroke-stone-300 dark:stroke-slate-600"
+                className="stroke-stone-300 dark:stroke-stone-600"
                 strokeWidth={2}
               />
             );
@@ -150,7 +150,7 @@ export function StepThrough({
                   className={
                     active
                       ? 'fill-amber-100 stroke-amber-500 dark:fill-amber-950/60 dark:stroke-amber-400'
-                      : 'fill-white stroke-stone-300 dark:fill-slate-900 dark:stroke-slate-600'
+                      : 'fill-white stroke-stone-300 dark:fill-stone-900 dark:stroke-stone-600'
                   }
                 />
                 <text
@@ -163,7 +163,7 @@ export function StepThrough({
                   className={
                     active
                       ? 'diagram-mono fill-amber-950 dark:fill-amber-100'
-                      : 'diagram-mono fill-stone-600 dark:fill-slate-300'
+                      : 'diagram-mono fill-stone-600 dark:fill-stone-300'
                   }
                 >
                   {n.label}
@@ -179,10 +179,10 @@ export function StepThrough({
         <p className="diagram-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-400">
           Step {index + 1} of {steps.length}
         </p>
-        <h5 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+        <h5 className="mt-1 text-sm font-semibold text-stone-900 dark:text-stone-100">
           {step?.title}
         </h5>
-        <p className="mt-1 min-h-12 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+        <p className="mt-1 min-h-12 text-sm leading-relaxed text-stone-600 dark:text-stone-300">
           {step?.caption}
         </p>
       </div>
@@ -193,7 +193,7 @@ export function StepThrough({
           type="button"
           onClick={() => goTo(index - 1)}
           disabled={index === 0}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          className="rounded-md border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
         >
           ← Previous
         </button>
@@ -206,10 +206,10 @@ export function StepThrough({
               aria-selected={i === index}
               aria-label={`Go to step ${i + 1}: ${s.title}`}
               onClick={() => goTo(i)}
-              className={`h-2 rounded-full transition-all ${
+              className={`h-2 rounded-full transition-[width] ${
                 i === index
                   ? 'w-6 bg-amber-500'
-                  : 'w-2 bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 dark:hover:bg-slate-600'
+                  : 'w-2 bg-stone-300 hover:bg-stone-400 dark:bg-stone-700 dark:hover:bg-stone-600'
               }`}
             />
           ))}
@@ -218,7 +218,7 @@ export function StepThrough({
           type="button"
           onClick={() => goTo(index + 1)}
           disabled={index === steps.length - 1}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          className="rounded-md border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
         >
           Next →
         </button>

@@ -21,7 +21,7 @@ requests a day without going broke, and how would you know the answers are any g
 This lesson is the engineering underneath the magic trick: the pipelines, the caches,
 and the measurement that turn a clever model call into a product you can actually run.
 
-🎥 **Learn more:** [Building the Right AI Architecture](https://www.youtube.com/watch?v=5NDuQGHM-ws) — Practical AI. Rackspace's chief AI officer explains why AI success needs architecture beyond the model: compute, data, inference, orchestration, governance.
+<VideoCard videoId="5NDuQGHM-ws" title="Building the Right AI Architecture" source="Practical AI" description="Rackspace's chief AI officer explains why AI success needs architecture beyond the model: compute, data, inference, orchestration, governance." />
 
 ## The restaurant you're about to run
 
@@ -42,7 +42,7 @@ across the whole lesson, with the mapping stated plainly:
 
 Keep this kitchen in your head. Every section is one part of running it well.
 
-🎥 **Learn more:** [LLM Ops Architecture: Implementing Output Validation and Structured AI Responses](https://www.youtube.com/watch?v=smzw0JCWxlE) — Analytics Vidhya. Analytics Vidhya walkthrough of a complete LLM app: FastAPI endpoints, RAG request pipeline, guardrails, fallbacks, structured responses.
+<VideoCard videoId="smzw0JCWxlE" title="LLM Ops Architecture: Implementing Output Validation and Structured AI Responses" source="Analytics Vidhya" description="Analytics Vidhya walkthrough of a complete LLM app: FastAPI endpoints, RAG request pipeline, guardrails, fallbacks, structured responses." />
 
 ## Anatomy of one request
 
@@ -70,7 +70,7 @@ you have a very expensive random answer generator.
 
 The rest of this lesson is a tour of the hard parts, left to right.
 
-🎥 **Learn more:** [The Anatomy of AI Agents - Part 1: How LLMs Actually Work](https://www.youtube.com/watch?v=KHzA4ijpjKY) — BlueRider.Software. 41-minute tech talk tracing a single inference: tokenization, next-token prediction, temperature, autoregressive generation, structured output.
+<VideoCard videoId="KHzA4ijpjKY" title="The Anatomy of AI Agents - Part 1: How LLMs Actually Work" source="BlueRider.Software" description="41-minute tech talk tracing a single inference: tokenization, next-token prediction, temperature, autoregressive generation, structured output." />
 
 ## RAG: give the chef a library card
 
@@ -184,7 +184,7 @@ One more thing worth knowing: they're not rivals. Plenty of production systems d
 — fine-tune for the house style, retrieve for the facts. The chef learns the restaurant's
 standards by heart and still looks up the recipes.
 
-🎥 **Learn more:** [Local Retrieval Augmented Generation (RAG) from Scratch (step by step tutorial)](https://www.youtube.com/watch?v=qN_2fnOPY-M) — Daniel Bourke. Daniel Bourke explains why LLMs need retrieval, then builds a working RAG pipeline from scratch: chunking, embeddings, search, generation.
+<VideoCard videoId="qN_2fnOPY-M" title="Local Retrieval Augmented Generation (RAG) from Scratch (step by step tutorial)" source="Daniel Bourke" description="Daniel Bourke explains why LLMs need retrieval, then builds a working RAG pipeline from scratch: chunking, embeddings, search, generation." />
 
 ## Agents: the chef starts running errands
 
@@ -280,7 +280,7 @@ Now the failure modes, because agents fail in ways chatbots don't:
   bad early step pollutes every later one, at full price. This is why the observe step
   matters more than the plan step: good agents are good at noticing they're wrong.
 
-🎥 **Learn more:** [AI Agents in Practice • Henrik Kniberg • GOTO 2025](https://www.youtube.com/watch?v=R7Dv2h3tYCU) — GOTO Conferences. GOTO talk defines AI agents, covers tools and agent architecture with practical design tips.
+<VideoCard videoId="R7Dv2h3tYCU" title="AI Agents in Practice • Henrik Kniberg • GOTO 2025" source="GOTO Conferences" description="GOTO talk defines AI agents, covers tools and agent architecture with practical design tips." />
 
 ## Vector databases: the card catalog
 
@@ -318,7 +318,7 @@ Three practical notes from people who've run these in production:
 3. **The index is not the product.** Nobody ever said "our vector DB has great
    recall" about a system with bad chunking. The cards matter more than the catalog.
 
-🎥 **Learn more:** [\[AI Stack 15\] Vector Databases vs. Traditional Search: What You Need to Know](https://www.youtube.com/watch?v=e3VMKZeauoM) — The AI Stack. Explains how meaning becomes geometry: embeddings, cosine similarity, ANN indexes like HNSW, and tools like FAISS, pgvector, Pinecone.
+<VideoCard videoId="e3VMKZeauoM" title="[AI Stack 15] Vector Databases vs. Traditional Search: What You Need to Know" source="The AI Stack" description="Explains how meaning becomes geometry: embeddings, cosine similarity, ANN indexes like HNSW, and tools like FAISS, pgvector, Pinecone." />
 
 ## Inference at scale: the systems-engineering side
 
@@ -398,7 +398,7 @@ flowchart LR
     K -->|prefix shared| C[Prompt cache hit<br/>skip recompute]:::data
 ```
 
-🎥 **Learn more:** [Optimize LLM inference with vLLM](https://www.youtube.com/watch?v=lxjWiVuK5cA) — Red Hat. Red Hat engineer and vLLM contributor explains PagedAttention, continuous batching, and prefix caching for efficient LLM serving.
+<VideoCard videoId="lxjWiVuK5cA" title="Optimize LLM inference with vLLM" source="Red Hat" description="Red Hat engineer and vLLM contributor explains PagedAttention, continuous batching, and prefix caching for efficient LLM serving." />
 
 ## Evals & observability: the mystery diners
 
@@ -440,7 +440,7 @@ The mental model to keep: evals are how you know the product is good, tracing is
 you find out why it wasn't, and guardrails are how you limit the blast radius while
 you fix it. Dashboards watch the restaurant. Mystery diners taste the food.
 
-🎥 **Learn more:** [Build an Eval Loop for More Reliable Agents (Evals 101)](https://www.youtube.com/watch?v=4gI52y0hyi8) — Mastra. Mastra team workshop on eval loops: scorers, LLM judges, regression tests, dataset experiments, and monitoring production traces.
+<VideoCard videoId="4gI52y0hyi8" title="Build an Eval Loop for More Reliable Agents (Evals 101)" source="Mastra" description="Mastra team workshop on eval loops: scorers, LLM judges, regression tests, dataset experiments, and monitoring production traces." />
 
 ## Takeaways
 

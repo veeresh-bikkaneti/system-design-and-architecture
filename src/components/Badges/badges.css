@@ -1,5 +1,7 @@
-/* Badge gallery styles. Co-located here on purpose — src/index.css is untouched.
-   Warm amber visual language to match the course shell. */
+/* Badge gallery styles.
+   Warm amber visual language to match the course shell.
+   Dark mode is driven by the `.dark` class on <html> (see the theme store),
+   and stone is the only neutral ramp here — no zinc/gray raw values. */
 
 .badge-card {
   position: relative;
@@ -9,8 +11,8 @@
   gap: 0.625rem;
   padding: 1.5rem 1rem 1.25rem;
   border-radius: 1.25rem;
-  border: 1px solid rgb(231 229 228);
-  background: rgb(255 255 255);
+  border: 1px solid var(--color-stone-200);
+  background: #fff;
   color: inherit;
   text-decoration: none;
   overflow: hidden;
@@ -25,21 +27,19 @@
 
 .badge-card:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgb(255 255 255), 0 0 0 4px rgb(217 119 6);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-accent-600);
 }
 
-@media (prefers-color-scheme: dark) {
-  .badge-card {
-    border-color: rgb(63 63 70);
-    background: rgb(24 24 27);
-    box-shadow: none;
-  }
-  .badge-card:hover {
-    box-shadow: 0 10px 28px rgb(0 0 0 / 0.45);
-  }
-  .badge-card:focus-visible {
-    box-shadow: 0 0 0 2px rgb(24 24 27), 0 0 0 4px rgb(245 158 11);
-  }
+.dark .badge-card {
+  border-color: var(--color-stone-700);
+  background: var(--color-stone-900);
+  box-shadow: none;
+}
+.dark .badge-card:hover {
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.45);
+}
+.dark .badge-card:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-stone-900), 0 0 0 4px var(--color-accent-500);
 }
 
 .badge-card__art {
@@ -64,7 +64,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgb(120 113 108);
+  color: var(--color-stone-500);
 }
 
 .badge-card__lock svg {
@@ -73,25 +73,21 @@
   filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.35));
 }
 
-@media (prefers-color-scheme: dark) {
-  .badge-card__lock {
-    color: rgb(161 161 170);
-  }
+.dark .badge-card__lock {
+  color: var(--color-stone-400);
 }
 
 .badge-card__name {
   font-size: 0.875rem;
   font-weight: 650;
   text-align: center;
-  color: rgb(28 25 23);
+  color: var(--color-stone-950);
   line-height: 1.3;
   letter-spacing: -0.01em;
 }
 
-@media (prefers-color-scheme: dark) {
-  .badge-card__name {
-    color: rgb(244 244 245);
-  }
+.dark .badge-card__name {
+  color: var(--color-stone-100);
 }
 
 .badge-card__status {
@@ -103,14 +99,12 @@
 .badge-card__hint {
   font-size: 0.72rem;
   text-align: center;
-  color: rgb(120 113 108);
+  color: var(--color-stone-500);
   line-height: 1.4;
 }
 
-@media (prefers-color-scheme: dark) {
-  .badge-card__hint {
-    color: rgb(161 161 170);
-  }
+.dark .badge-card__hint {
+  color: var(--color-stone-400);
 }
 
 .badge-card__pill {
@@ -131,17 +125,15 @@
 }
 
 .badge-card__pill--unlocked {
-  color: rgb(120 53 15);
-  background: rgb(254 243 199);
-  border: 1px solid rgb(252 211 77);
+  color: var(--color-accent-900);
+  background: var(--color-accent-100);
+  border: 1px solid var(--color-accent-300);
 }
 
-@media (prefers-color-scheme: dark) {
-  .badge-card__pill--unlocked {
-    color: rgb(252 211 77);
-    background: rgb(120 53 15 / 0.45);
-    border-color: rgb(180 83 9 / 0.6);
-  }
+.dark .badge-card__pill--unlocked {
+  color: var(--color-accent-300);
+  background: rgb(120 53 15 / 0.45);
+  border-color: rgb(180 83 9 / 0.6);
 }
 
 /* ---- Locked state ---- */
@@ -151,23 +143,23 @@
 }
 
 .badge-card--locked {
-  background: rgb(250 250 249);
+  background: var(--color-stone-50);
 }
 
-@media (prefers-color-scheme: dark) {
-  .badge-card--locked {
-    background: rgb(24 24 27 / 0.6);
-  }
+.dark .badge-card--locked {
+  background: rgb(28 25 23 / 0.6);
 }
 
-/* ---- Unlocked state: pop-in, warm glow, shimmer sweep ---- */
+/* ---- Unlocked state: warm glow + shimmer sweep on hover.
+   The pop-in animation is gated to `.badge-card--fresh` (badges the
+   learner hasn't seen in the gallery yet) so it doesn't replay for
+   every unlocked badge on every visit. ---- */
 .badge-card--unlocked {
-  border-color: rgb(252 211 77);
-  animation: badge-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  border-color: var(--color-accent-300);
 }
 
 .badge-card--unlocked:hover {
-  border-color: rgb(217 119 6);
+  border-color: var(--color-accent-600);
   box-shadow:
     0 0 0 1px rgb(217 119 6 / 0.35),
     0 12px 32px rgb(217 119 6 / 0.22);
@@ -189,6 +181,10 @@
 
 .badge-card--unlocked:hover::after {
   animation: badge-shimmer 0.9s ease;
+}
+
+.badge-card--fresh {
+  animation: badge-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 @keyframes badge-pop {
@@ -245,7 +241,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgb(255 255 255);
+  color: #fff;
 }
 
 .badge-hero__lock svg {
@@ -283,7 +279,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .badge-card,
-  .badge-card--unlocked,
+  .badge-card--fresh,
   .badge-hero img,
   .confetti__piece {
     animation: none;
@@ -295,4 +291,12 @@
   .badge-card--unlocked::after {
     display: none;
   }
+}
+
+/* "Calm animations" user setting: no pop, no shimmer, no confetti. */
+[data-motion='calm'] .badge-card--fresh,
+[data-motion='calm'] .badge-hero img,
+[data-motion='calm'] .confetti__piece,
+[data-motion='calm'] .badge-card--unlocked:hover::after {
+  animation: none;
 }

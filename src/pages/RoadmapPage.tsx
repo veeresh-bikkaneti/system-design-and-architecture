@@ -1,62 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { lessons, tierLabels, tierOrder, type Tier } from '../lib/lessons';
 import { isLessonUnlocked, isTierUnlocked } from '../lib/progress-gate';
 import { useProgressStore } from '../store/progress';
-import {
-  ArrowRightIcon,
-  CheckIcon,
-  ClockIcon,
-  LockIcon,
-  MedalIcon,
-} from '../components/Sidebar';
-
-/* ------------------------------------------------------------------ */
-/* Scroll-reveal wrapper: fades + slides content in on first view.     */
-/* ------------------------------------------------------------------ */
-function Reveal({
-  children,
-  delay = 0,
-  className = '',
-}: {
-  children: ReactNode;
-  delay?: number;
-  className?: string;
-}) {
-  const [visible, setVisible] = useState(false);
-
-  // Callback ref (React 19: may return a cleanup) — avoids set-state-in-effect.
-  const ref = useCallback((el: HTMLDivElement | null) => {
-    if (!el) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setVisible(true);
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      style={{ transitionDelay: `${delay}ms` }}
-      className={`${className} transition-all duration-700 ease-out motion-reduce:transition-none ${
-        visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-      }`}
-    >
-      {children}
-    </div>
-  );
-}
+import { Reveal } from '../components/ui/Reveal';
+import { Icon } from '../components/ui/Icon';
+import { ProgressBar } from '../components/ui/ProgressBar';
 
 /* ------------------------------------------------------------------ */
 /* Tier storytelling: what each chapter covers and what it gives you.   */
@@ -133,7 +82,7 @@ function TierMilestone({
               : 'border-accent-200 bg-white text-accent-800 dark:border-accent-900 dark:bg-stone-900 dark:text-accent-300'
           }`}
         >
-          {done ? <CheckIcon className="h-7 w-7" /> : `0${index + 1}`}
+          {done ? <Icon name="check" className="h-7 w-7" /> : `0${index + 1}`}
         </div>
       </Reveal>
 
@@ -157,13 +106,13 @@ function TierMilestone({
                 aria-hidden="true"
                 className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-100 text-accent-800 dark:bg-accent-950/70 dark:text-accent-300"
               >
-                <CheckIcon className="h-3 w-3" />
+                <Icon name="check" className="h-3 w-3" />
               </span>
               <p className="text-sm leading-snug text-stone-700 dark:text-stone-300">{outcome}</p>
             </div>
           ))}
         </div>
-        <p className="mt-4 text-xs font-medium uppercase tracking-wider text-stone-400 dark:text-stone-500">
+        <p className="mt-4 text-xs font-medium uppercase tracking-wider text-stone-400 dark:text-stone-400">
           {completedCount} of {totalLessons} lessons complete
         </p>
       </Reveal>
@@ -232,19 +181,12 @@ export function RoadmapPage() {
           and watch the path draw itself.
         </p>
         <div className="mx-auto mt-8 max-w-xl">
-          <div
-            role="progressbar"
-            aria-valuenow={completedLessons.length}
-            aria-valuemin={0}
-            aria-valuemax={lessons.length}
-            aria-label="Overall course progress"
-            className="h-2 w-full overflow-hidden rounded-full bg-stone-200/80 dark:bg-stone-800"
-          >
-            <div
-              className="h-full rounded-full bg-accent-500 transition-all duration-700 dark:bg-accent-400"
-              style={{ width: `${(completedLessons.length / lessons.length) * 100}%` }}
-            />
-          </div>
+          <ProgressBar
+            value={completedLessons.length}
+            max={lessons.length}
+            label="Overall course progress"
+            size="md"
+          />
           <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
             <span className="font-semibold text-stone-700 dark:text-stone-300">
               {completedLessons.length} of {lessons.length}
@@ -294,7 +236,7 @@ export function RoadmapPage() {
 
                   const card = (
                     <div
-                      className={`relative h-full rounded-2xl border p-5 shadow-soft transition-all ${
+                      className={`relative h-full rounded-2xl border p-5 shadow-soft transition-[transform,box-shadow,border-color] duration-200 ${
                         completed
                           ? 'border-accent-200 bg-accent-50/60 dark:border-accent-900/50 dark:bg-accent-950/20'
                           : 'border-stone-200/80 bg-white dark:border-stone-800 dark:bg-stone-900'
@@ -305,32 +247,29 @@ export function RoadmapPage() {
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-400">
                           Lesson {lesson.meta.order}
                         </p>
                         {isNext && (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-600 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white dark:bg-accent-400 dark:text-stone-950">
-                            <span className="relative flex h-2 w-2">
-                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75 motion-reduce:animate-none dark:bg-stone-950" />
-                              <span className="relative inline-flex h-2 w-2 rounded-full bg-white dark:bg-stone-950" />
-                            </span>
+                            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-white dark:bg-stone-950" />
                             Up next
                           </span>
                         )}
                       </div>
                       <h3 className="mt-1.5 flex items-center gap-2 font-semibold tracking-tight text-stone-950 dark:text-stone-50">
-                        {!unlocked && <LockIcon className="h-4 w-4 shrink-0 text-stone-400" />}
+                        {!unlocked && <Icon name="lock" className="h-4 w-4 shrink-0 text-stone-400" />}
                         {lesson.meta.title}
                       </h3>
                       <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-stone-500 dark:text-stone-400">
                         {lesson.meta.summary}
                       </p>
-                      <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-stone-400 dark:text-stone-500">
-                        <ClockIcon className="h-3.5 w-3.5" />
+                      <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-stone-400 dark:text-stone-400">
+                        <Icon name="clock" className="h-3.5 w-3.5" />
                         {lesson.meta.estimatedMinutes} min
                         {completed && (
                           <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-accent-100 px-2 py-0.5 font-semibold text-accent-800 dark:bg-accent-950/70 dark:text-accent-300">
-                            <CheckIcon className="h-3 w-3" /> Done
+                            <Icon name="check" className="h-3 w-3" /> Done
                           </span>
                         )}
                       </p>
@@ -351,9 +290,9 @@ export function RoadmapPage() {
                         }`}
                       >
                         {completed ? (
-                          <CheckIcon className="h-4 w-4" />
+                          <Icon name="check" className="h-4 w-4" />
                         ) : !unlocked ? (
-                          <LockIcon className="h-4 w-4" />
+                          <Icon name="lock" className="h-4 w-4" />
                         ) : (
                           <span className="font-display text-xs font-bold">
                             {lesson.meta.order}
@@ -391,7 +330,7 @@ export function RoadmapPage() {
         <div className="relative pb-4 pt-4">
           <Reveal className="relative z-10 flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-accent-600 bg-stone-950 text-accent-300 shadow-lift dark:border-accent-400 dark:bg-accent-400 dark:text-stone-950">
-              <MedalIcon className="h-7 w-7" />
+              <Icon name="medal" className="h-7 w-7" />
             </div>
           </Reveal>
           <Reveal delay={120}>
@@ -426,14 +365,14 @@ export function RoadmapPage() {
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent-700 px-6 py-3 text-sm font-semibold text-white shadow-soft transition-colors hover:bg-accent-800 active:bg-accent-900 dark:bg-accent-400 dark:text-stone-950 dark:hover:bg-accent-300 dark:active:bg-accent-200"
                   >
                     {completedLessons.length > 0 ? 'Continue your journey' : 'Start the journey'}
-                    <ArrowRightIcon />
+                    <Icon name="arrowRight" />
                   </Link>
                 )}
                 <Link
                   to="/badges"
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 shadow-soft transition-colors hover:border-accent-300 hover:text-accent-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-accent-800 dark:hover:text-accent-300"
                 >
-                  <MedalIcon />
+                  <Icon name="medal" />
                   View badges
                 </Link>
               </div>

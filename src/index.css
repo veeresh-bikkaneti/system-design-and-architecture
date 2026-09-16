@@ -1,5 +1,11 @@
 @import 'tailwindcss';
 
+/* Class-driven dark mode: `dark:` variants respond to `.dark` on <html>,
+   which is set by the theme store (light / dark / system). This makes a
+   manual theme toggle possible — Tailwind v4's default OS-media-query
+   behavior cannot be overridden at runtime. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Typography */
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -22,15 +28,43 @@
   /* Soft layered shadows */
   --shadow-soft: 0 1px 2px rgb(28 25 23 / 0.05), 0 6px 20px -6px rgb(28 25 23 / 0.1);
   --shadow-lift: 0 2px 6px rgb(28 25 23 / 0.06), 0 16px 40px -12px rgb(28 25 23 / 0.18);
+  --shadow-glow-accent: 0 0 0 1px rgb(217 119 6 / 0.35), 0 12px 32px rgb(217 119 6 / 0.22);
 
   /* Comfortable radius scale */
   --radius-xl: 1rem;
   --radius-2xl: 1.25rem;
+
+  /* ------------------------------------------------------------------
+     Neutral ramp: STONE IS THE ONLY NEUTRAL. Do not introduce zinc,
+     slate, gray, or neutral utilities for surfaces/text — the semantic
+     tokens below are the single source of truth and they all resolve
+     to the stone ramp (light) / stone-950-based ramp (dark).
+     ------------------------------------------------------------------ */
+  --color-surface: var(--color-stone-50);
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: var(--color-stone-100);
+  --color-border: var(--color-stone-200);
+  --color-ink: var(--color-stone-950);
+  --color-ink-soft: var(--color-stone-700);
+  --color-ink-muted: var(--color-stone-500);
+}
+
+/* Dark-mode values for the semantic surface tokens. Because these are
+   plain CSS variables, every `bg-surface` / `text-ink` / `border-border`
+   utility follows the `.dark` class automatically — one mechanism. */
+.dark {
+  --color-surface: var(--color-stone-950);
+  --color-surface-raised: var(--color-stone-900);
+  --color-surface-sunken: var(--color-stone-900);
+  --color-border: var(--color-stone-800);
+  --color-ink: var(--color-stone-50);
+  --color-ink-soft: var(--color-stone-300);
+  --color-ink-muted: var(--color-stone-400);
 }
 
 :root {
-  /* Dark mode is driven by the OS/browser color-scheme preference
-     (Tailwind v4 `dark:` = prefers-color-scheme). Kept intentional. */
+  /* Overridden at runtime by the theme store (light / dark / system);
+     index.html also sets it pre-hydration to avoid a flash. */
   color-scheme: light dark;
 }
 
@@ -65,10 +99,8 @@ body {
     border-radius: 4px;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :focus-visible {
-      outline-color: var(--color-accent-400);
-    }
+  .dark :focus-visible {
+    outline-color: var(--color-accent-400);
   }
 }
 
@@ -145,7 +177,18 @@ body {
 }
 
 .lesson-prose table {
-  @apply my-6 w-full border-collapse overflow-hidden rounded-xl text-[0.95rem] shadow-soft;
+  @apply w-full border-collapse text-[0.95rem];
+}
+
+/* Horizontal-scroll wrapper rendered around every MDX table (see the
+   `table` override in App.tsx) so wide tables scroll instead of
+   clipping on narrow viewports. */
+.table-scroll {
+  @apply my-6 overflow-x-auto rounded-xl border border-stone-200/70 shadow-soft dark:border-stone-800;
+}
+
+.table-scroll table {
+  @apply my-0;
 }
 
 .lesson-prose thead {
@@ -185,19 +228,8 @@ body {
   animation-play-state: paused;
 }
 
-/* StepThrough: pulsing glow on the currently highlighted diagram nodes */
-@keyframes stepthrough-glow {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 2px rgb(217 119 6 / 0.35));
-  }
-  50% {
-    filter: drop-shadow(0 0 7px rgb(217 119 6 / 0.7));
-  }
-}
-.stepthrough-highlight {
-  animation: stepthrough-glow 1.8s ease-in-out infinite;
-}
+/* StepThrough glow is defined once in diagrams.css (2.4s amber); the older
+   1.8s duplicate that lived here was removed to keep a single definition. */
 
 /* StepThrough + VsToggle: panel content fades/slides in when it changes */
 @keyframes vs-panel-enter {
@@ -225,4 +257,23 @@ body {
   .vs-panel-enter {
     animation: none;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* "Calm animations" user setting (SettingsModal). Setting             */
+/* data-motion="calm" on <html> freezes ambient/infinite loops while    */
+/* keeping one-shot entrances and interactive transitions intact.       */
+/* ------------------------------------------------------------------ */
+
+[data-motion='calm'] .mermaid-diagram .flowchart-link,
+[data-motion='calm'] .mermaid-diagram .messageLine0,
+[data-motion='calm'] .mermaid-diagram .messageLine1,
+[data-motion='calm'] .mermaid-diagram .transition,
+[data-motion='calm'] .packetflow .pf-dot,
+[data-motion='calm'] .stepthrough-highlight {
+  animation: none;
+}
+
+[data-motion='calm'] .mermaid-diagram .flow-tokens {
+  display: none;
 }

@@ -12,10 +12,17 @@ export interface QuizResult {
 export interface ProgressState {
   completedLessons: string[];
   quizResults: Record<string, QuizResult>;
+  /** Badge ids the learner has already seen in the gallery (for the
+   * newly-unlocked pop animation — it plays once per badge). */
+  seenBadges: string[];
+  /** Badge ids whose detail-page confetti already fired. */
+  celebratedBadges: string[];
   markComplete: (slug: string) => void;
   markIncomplete: (slug: string) => void;
   recordQuizResult: (slug: string, correct: number, total: number) => void;
   isCompleted: (slug: string) => boolean;
+  markBadgesSeen: (ids: string[]) => void;
+  markBadgesCelebrated: (ids: string[]) => void;
 }
 
 export const useProgressStore = create<ProgressState>()(
@@ -23,6 +30,8 @@ export const useProgressStore = create<ProgressState>()(
     (set, get) => ({
       completedLessons: [],
       quizResults: {},
+      seenBadges: [],
+      celebratedBadges: [],
 
       markComplete: (slug) =>
         set((state) =>
@@ -47,6 +56,16 @@ export const useProgressStore = create<ProgressState>()(
       },
 
       isCompleted: (slug) => get().completedLessons.includes(slug),
+
+      markBadgesSeen: (ids) =>
+        set((state) => ({
+          seenBadges: [...new Set([...state.seenBadges, ...ids])],
+        })),
+
+      markBadgesCelebrated: (ids) =>
+        set((state) => ({
+          celebratedBadges: [...new Set([...state.celebratedBadges, ...ids])],
+        })),
     }),
     {
       name: 'sdm-progress',

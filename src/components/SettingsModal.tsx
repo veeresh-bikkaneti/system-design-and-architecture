@@ -7,25 +7,12 @@ import {
   useAISettingsStore,
   type AIProvider,
 } from '../store/aiSettings';
+import { useDisplayStore, type ThemePreference } from '../store/display';
+import { Button } from './ui/Button';
+import { Icon } from './ui/Icon';
 
 export interface SettingsModalProps {
   onClose: () => void;
-}
-
-function CloseIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.2}
-      strokeLinecap="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <path d="M5 5l10 10M15 5L5 15" />
-    </svg>
-  );
 }
 
 function KeyIcon({ className }: { className?: string }) {
@@ -42,6 +29,12 @@ function KeyIcon({ className }: { className?: string }) {
 
 const PROVIDER_ORDER: AIProvider[] = ['anthropic', 'openai', 'custom'];
 
+const THEME_OPTIONS: { value: ThemePreference; label: string; icon: 'sun' | 'moon' | 'monitor' }[] = [
+  { value: 'light', label: 'Light', icon: 'sun' },
+  { value: 'dark', label: 'Dark', icon: 'moon' },
+  { value: 'system', label: 'System', icon: 'monitor' },
+];
+
 export function SettingsModal({ onClose }: SettingsModalProps) {
   const apiKey = useAISettingsStore((state) => state.apiKey);
   const provider = useAISettingsStore((state) => state.provider);
@@ -52,6 +45,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const setBaseUrl = useAISettingsStore((state) => state.setBaseUrl);
   const setModel = useAISettingsStore((state) => state.setModel);
   const clear = useAISettingsStore((state) => state.clear);
+
+  const theme = useDisplayStore((state) => state.theme);
+  const setTheme = useDisplayStore((state) => state.setTheme);
+  const calmMotion = useDisplayStore((state) => state.calmMotion);
+  const setCalmMotion = useDisplayStore((state) => state.setCalmMotion);
 
   const [keyDraft, setKeyDraft] = useState(apiKey);
   const [providerDraft, setProviderDraft] = useState<AIProvider>(
@@ -99,7 +97,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   }
 
   const inputClasses =
-    'w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 outline-none transition-colors placeholder:text-stone-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-amber-600';
+    'w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 outline-none transition-colors placeholder:text-stone-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/40 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-amber-600';
 
   return (
     <div
@@ -109,37 +107,103 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="AI tutor settings"
+        aria-label="Settings"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-6 shadow-[0_20px_60px_rgb(120_53_15/0.25)] dark:border-zinc-700 dark:bg-zinc-900"
+        className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-6 shadow-[0_20px_60px_rgb(120_53_15/0.25)] dark:border-stone-700 dark:bg-stone-900"
       >
         <div className="mb-5 flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
             <KeyIcon className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-bold text-stone-900 dark:text-zinc-100">
-              AI Tutor settings
+            <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
+              Settings
             </h2>
-            <p className="text-xs text-stone-500 dark:text-zinc-400">
-              Bring your own key — optional, always.
+            <p className="text-xs text-stone-500 dark:text-stone-400">
+              Display, motion, and the optional AI tutor key.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close settings"
-            className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+            className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:hover:bg-stone-800 dark:hover:text-stone-300"
           >
-            <CloseIcon className="h-4 w-4" />
+            <Icon name="x" />
           </button>
         </div>
 
+        {/* ---- Display: theme + motion budget ---- */}
+        <section aria-label="Display" className="mb-5 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/40">
+          <p className="text-xs font-bold uppercase tracking-[0.08em] text-stone-500 dark:text-stone-400">
+            Appearance
+          </p>
+          <div
+            role="radiogroup"
+            aria-label="Color theme"
+            className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-stone-200/70 p-1 dark:bg-stone-800"
+          >
+            {THEME_OPTIONS.map((option) => {
+              const selected = theme === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setTheme(option.value)}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-[background-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 ${
+                    selected
+                      ? 'bg-white text-stone-900 shadow-soft dark:bg-stone-700 dark:text-stone-50'
+                      : 'text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+                  }`}
+                >
+                  <Icon name={option.icon} className="h-4 w-4" />
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={calmMotion}
+            onClick={() => setCalmMotion(!calmMotion)}
+            className="mt-3 flex w-full items-center justify-between gap-3 rounded-xl px-1 py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
+          >
+            <span>
+              <span className="block text-sm font-semibold text-stone-800 dark:text-stone-200">
+                Calm animations
+              </span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+                Freeze ambient loops — flowing edges, request dots, badge shimmer.
+                Entrances still play.
+              </span>
+            </span>
+            <span
+              aria-hidden="true"
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                calmMotion ? 'bg-accent-600 dark:bg-accent-500' : 'bg-stone-300 dark:bg-stone-700'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  calmMotion ? 'translate-x-[22px]' : 'translate-x-0.5'
+                }`}
+              />
+            </span>
+          </button>
+        </section>
+
+        <p className="mb-3 text-xs font-bold uppercase tracking-[0.08em] text-stone-500 dark:text-stone-400">
+          AI tutor
+        </p>
         <div className="space-y-4">
           <div>
             <label
               htmlFor="ai-provider"
-              className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-zinc-300"
+              className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-stone-300"
             >
               Provider
             </label>
@@ -163,7 +227,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           <div>
             <label
               htmlFor="ai-endpoint"
-              className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-zinc-300"
+              className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-stone-300"
             >
               Endpoint URL
             </label>
@@ -177,7 +241,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               placeholder={preset.defaultBaseUrl || 'https://your-endpoint.example.com/v1'}
               className={inputClasses}
             />
-            <p className="mt-1 text-[11px] leading-snug text-stone-500 dark:text-zinc-500">
+            <p className="mt-1 text-[11px] leading-snug text-stone-500 dark:text-stone-400">
               {preset.endpointHint}
             </p>
           </div>
@@ -185,7 +249,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           <div>
             <label
               htmlFor="ai-api-key"
-              className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-zinc-300"
+              className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-stone-300"
             >
               {preset.keyLabel}
             </label>
@@ -203,7 +267,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               <button
                 type="button"
                 onClick={() => setShowKey((v) => !v)}
-                className="shrink-0 rounded-xl border border-stone-300 px-3.5 text-xs font-semibold text-stone-600 transition-colors hover:border-amber-400 hover:bg-amber-50 hover:text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-amber-700 dark:hover:bg-amber-950/40 dark:hover:text-amber-300"
+                className="shrink-0 rounded-xl border border-stone-300 px-3.5 text-xs font-semibold text-stone-600 transition-colors hover:border-amber-400 hover:bg-amber-50 hover:text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 dark:border-stone-700 dark:text-stone-300 dark:hover:border-amber-700 dark:hover:bg-amber-950/40 dark:hover:text-amber-300"
               >
                 {showKey ? 'Hide' : 'Show'}
               </button>
@@ -213,7 +277,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           <div>
             <label
               htmlFor="ai-model"
-              className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-zinc-300"
+              className="mb-1.5 block text-xs font-semibold text-stone-700 dark:text-stone-300"
             >
               Model
             </label>
@@ -227,7 +291,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             />
           </div>
 
-          <p className="rounded-xl border border-amber-200/60 bg-amber-50/60 p-3 text-xs leading-relaxed text-stone-600 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-zinc-400">
+          <p className="rounded-xl border border-amber-200/60 bg-amber-50/60 p-3 text-xs leading-relaxed text-stone-600 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-stone-400">
             Your key is session-based: it lives only in this page&#8217;s memory
             and disappears when you reload or close the tab. It is never saved
             anywhere. It goes straight from your browser to {preset.apiNoun}
@@ -236,21 +300,17 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           </p>
         </div>
 
-        <div className="mt-6 flex items-center justify-between gap-3 border-t border-stone-200 pt-4 dark:border-zinc-800">
+        <div className="mt-6 flex items-center justify-between gap-3 border-t border-stone-200 pt-4 dark:border-stone-800">
           <button
             type="button"
             onClick={handleClear}
-            className="rounded-xl border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-red-800 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+            className="rounded-xl border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition-[border-color,background-color,color] hover:border-red-300 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 dark:border-stone-700 dark:text-stone-300 dark:hover:border-red-800 dark:hover:bg-red-950/40 dark:hover:text-red-300"
           >
             Clear key
           </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="rounded-xl bg-amber-700 px-6 py-2 text-sm font-semibold text-white shadow-[0_2px_8px_rgb(180_83_9/0.3)] transition-all hover:-translate-y-px hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 active:translate-y-0"
-          >
+          <Button type="button" onClick={handleSave} className="px-6">
             Use key
-          </button>
+          </Button>
         </div>
       </div>
     </div>

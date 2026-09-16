@@ -4,7 +4,9 @@ import { lessons, tierLabels, tierOrder, type Tier } from '../lib/lessons';
 import { getBadgesWithStatus } from '../lib/badges';
 import { isLessonUnlocked, isTierUnlocked } from '../lib/progress-gate';
 import { useProgressStore } from '../store/progress';
-import { ArrowRightIcon, CheckIcon, ClockIcon, LockIcon } from '../components/Sidebar';
+import { Icon } from '../components/ui/Icon';
+import { ProgressBar } from '../components/ui/ProgressBar';
+import { buttonClasses } from '../components/ui/Button';
 import { PacketFlow } from '../components/diagrams/PacketFlow';
 
 function StatCard({ value, label }: { value: string; label: string }) {
@@ -58,7 +60,7 @@ function ProgressRing({ done, upNext }: { done: boolean; upNext: boolean }) {
         />
       </svg>
       {done && (
-        <CheckIcon className="absolute inset-0 m-auto h-3 w-3 text-accent-700 dark:text-accent-300" />
+        <Icon name="check" className="absolute inset-0 m-auto h-3 w-3 text-accent-700 dark:text-accent-300" />
       )}
     </span>
   );
@@ -105,7 +107,6 @@ function TierCard({
   completedCount: number;
   totalLessons: number;
 }) {
-  const percent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
   const complete = completedCount === totalLessons;
 
   return (
@@ -120,19 +121,11 @@ function TierCard({
         {totalLessons} lessons
       </p>
       <div className="mt-4">
-        <div
-          role="progressbar"
-          aria-valuenow={completedCount}
-          aria-valuemin={0}
-          aria-valuemax={totalLessons}
-          aria-label={`${tierLabels[tier]} progress`}
-          className="h-1.5 w-full overflow-hidden rounded-full bg-stone-200/80 dark:bg-stone-800"
-        >
-          <div
-            className="h-full rounded-full bg-accent-500 transition-all duration-500 dark:bg-accent-400"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
+        <ProgressBar
+          value={completedCount}
+          max={totalLessons}
+          label={`${tierLabels[tier]} progress`}
+        />
         <p className="mt-2 text-xs font-medium text-stone-500 dark:text-stone-400">
           {complete ? 'Complete — nice work' : `${completedCount} of ${totalLessons} done`}
         </p>
@@ -182,10 +175,10 @@ export function HomePage() {
               <div className="mt-8">
                 <Link
                   to={`/lesson/${continueLesson.meta.slug}`}
-                  className="inline-flex items-center gap-2 rounded-xl bg-accent-700 px-6 py-3.5 text-base font-semibold text-white shadow-soft transition-all hover:-translate-y-0.5 hover:bg-accent-800 hover:shadow-lift active:translate-y-0 active:bg-accent-900 dark:bg-accent-400 dark:text-stone-950 dark:hover:bg-accent-300 dark:active:bg-accent-200"
+                  className={buttonClasses('primary', 'lg')}
                 >
                   {hasStarted ? 'Continue lesson' : 'Start learning'}
-                  <ArrowRightIcon className="h-5 w-5" />
+                  <Icon name="arrowRight" className="h-5 w-5" />
                 </Link>
                 <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">
                   {hasStarted ? 'Pick up where you left off: ' : 'First up: '}
@@ -231,12 +224,9 @@ export function HomePage() {
               Three tiers, each unlocking the next. Finish every lesson in a tier to move up.
             </p>
           </div>
-          <Link
-            to="/roadmap"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200/80 bg-white px-4 py-2.5 text-sm font-semibold text-stone-700 shadow-soft transition-all hover:-translate-y-0.5 hover:border-accent-300 hover:text-accent-800 hover:shadow-lift dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-accent-800 dark:hover:text-accent-300"
-          >
+          <Link to="/roadmap" className={buttonClasses('secondary')}>
             See the animated journey
-            <ArrowRightIcon className="h-4 w-4" />
+            <Icon name="arrowRight" className="h-4 w-4" />
           </Link>
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -277,7 +267,7 @@ export function HomePage() {
                 <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">
                   {tierLabels[tier]}
                 </h2>
-                <span className="text-xs font-medium tabular-nums text-stone-400 dark:text-stone-500">
+                <span className="text-xs font-medium tabular-nums text-stone-400 dark:text-stone-400">
                   {tierCompleted}/{tierLessons.length}
                 </span>
               </div>
@@ -293,8 +283,8 @@ export function HomePage() {
                           aria-disabled="true"
                           className="block h-full cursor-not-allowed rounded-2xl border border-dashed border-stone-300 bg-stone-100/50 p-5 opacity-70 dark:border-stone-700 dark:bg-stone-900/40"
                         >
-                          <h3 className="flex items-center gap-2 font-semibold text-stone-500 dark:text-stone-500">
-                            <LockIcon className="h-4 w-4 shrink-0" />
+                          <h3 className="flex items-center gap-2 font-semibold text-stone-500 dark:text-stone-400">
+                            <Icon name="lock" className="h-4 w-4 shrink-0" />
                             {lesson.meta.title}
                           </h3>
                           <p className="mt-2 text-sm leading-relaxed text-stone-400 dark:text-stone-600">
@@ -320,7 +310,7 @@ export function HomePage() {
                     <li key={lesson.meta.slug}>
                       <Link
                         to={`/lesson/${lesson.meta.slug}`}
-                        className="group block h-full rounded-2xl border border-stone-200/80 bg-white p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift active:translate-y-0 active:shadow-soft dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
+                        className="group block h-full rounded-2xl border border-stone-200/80 bg-white p-5 shadow-soft transition-[transform,box-shadow,border-color] hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift active:translate-y-0 active:shadow-soft dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
                       >
                         <div className="flex items-start gap-3">
                           <ProgressRing done={completed} upNext={isContinue} />
@@ -329,7 +319,7 @@ export function HomePage() {
                               {lesson.meta.title}
                             </span>
                           </h3>
-                          <ArrowRightIcon className="h-4 w-4 shrink-0 text-stone-300 transition-transform group-hover:translate-x-1 group-hover:text-accent-600 dark:text-stone-600 dark:group-hover:text-accent-400" />
+                          <Icon name="arrowRight" className="h-4 w-4 shrink-0 text-stone-300 transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent-600 dark:text-stone-600 dark:group-hover:text-accent-400" />
                         </div>
                         <p className="mt-2 text-sm leading-relaxed text-stone-500 dark:text-stone-400">
                           {lesson.meta.summary}
@@ -346,9 +336,9 @@ export function HomePage() {
                             ))}
                           </ul>
                         )}
-                        <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs font-medium text-stone-400 dark:text-stone-500">
+                        <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs font-medium text-stone-400 dark:text-stone-400">
                           <span className="inline-flex items-center gap-1.5">
-                            <ClockIcon className="h-3.5 w-3.5" />
+                            <Icon name="clock" className="h-3.5 w-3.5" />
                             {lesson.meta.estimatedMinutes} min
                           </span>
                           <DifficultyDots level={difficulty} />

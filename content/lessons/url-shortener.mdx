@@ -22,7 +22,7 @@ everyone skips and everyone regrets skipping), do the back-of-envelope math, the
 hard decisions — starting with the one that makes or breaks this design: how do you mint the
 short keys?
 
-🎥 **Learn more:** [Design a URL Shortener — System Design Interview (TinyURL & Bitly)](https://www.youtube.com/watch?v=EvHItjLlR1c) — Destination FAANG. Opens with the four follow-ups that break candidates, showing why this question is asked everywhere.
+<VideoCard videoId="EvHItjLlR1c" title="Design a URL Shortener — System Design Interview (TinyURL & Bitly)" source="Destination FAANG" description="Opens with the four follow-ups that break candidates, showing why this question is asked everywhere." />
 
 ## First, clarify the problem
 
@@ -46,7 +46,7 @@ Everything else is a follow-up question for your interviewer, not a core require
 Notice what we did not ask: nothing about frameworks, nothing about cloud providers.
 Interviewers grade you on decisions and trade-offs, not on brand names.
 
-🎥 **Learn more:** [Ep 1 · Design a URL Shortener — A Full Mock System Design Interview](https://www.youtube.com/watch?v=4DoYqJhXHV4) — software-engineer-blog. Mock interview asks four clarifying questions before drawing a single box, modeling the habit to copy.
+<VideoCard videoId="4DoYqJhXHV4" title="Ep 1 · Design a URL Shortener — A Full Mock System Design Interview" source="software-engineer-blog" description="Mock interview asks four clarifying questions before drawing a single box, modeling the habit to copy." />
 
 ## Picture a coat-check counter
 
@@ -63,7 +63,7 @@ whole system.
 
 Keep the attendant in mind. They're about to have a very bad evening.
 
-🎥 **Learn more:** [What Is a Short Link?](https://www.youtube.com/watch?v=UHwv4De3Vws) — Bitly. Bitly's own explainer defines the short-link swap: long URL in, token out, redirect back.
+<VideoCard videoId="UHwv4De3Vws" title="What Is a Short Link?" source="Bitly" description="Bitly's own explainer defines the short-link swap: long URL in, token out, redirect back." />
 
 ## Back-of-envelope math
 
@@ -86,7 +86,7 @@ but no single machine should hold the only copy, so you'll shard it.
 The theme of this math: nothing here is exotic. The scale is a rounding error for a real
 database cluster — which is exactly why this problem is about *decisions*, not heroics.
 
-🎥 **Learn more:** [System Design Interview Course • Back of the Envelop Calculation aka Capacity Estimates](https://www.youtube.com/watch?v=TEt5hAxv1WA) — Anubhav Sethi. Works capacity estimation step by step, ending with a URL-shortener example you can reuse.
+<VideoCard videoId="TEt5hAxv1WA" title="System Design Interview Course • Back of the Envelop Calculation aka Capacity Estimates" source="Anubhav Sethi" description="Works capacity estimation step by step, ending with a URL-shortener example you can reuse." />
 
 ## The key-generation problem
 
@@ -162,7 +162,7 @@ billion coats, waste is the cheapest problem on the list.
   ]}
 />
 
-🎥 **Learn more:** [How Distributed Systems Generate IDs Without a Database (Snowflake IDs)](https://www.youtube.com/watch?v=hN4JRFwRwPY) — Packetory. Explains why auto-increment breaks at scale and how Snowflake IDs generate unique, time-ordered keys.
+<VideoCard videoId="hN4JRFwRwPY" title="How Distributed Systems Generate IDs Without a Database (Snowflake IDs)" source="Packetory" description="Explains why auto-increment breaks at scale and how Snowflake IDs generate unique, time-ordered keys." />
 
 ## Sharding by key
 
@@ -176,7 +176,7 @@ In coat-check terms, the theater got popular and opened ticket counters numbered
 rehash — or better, use consistent hashing (you met the ring back in the partitioning
 lesson) so only a fraction of coats move.
 
-🎥 **Learn more:** [Consistent Hashing | The Backend Engineering Show](https://www.youtube.com/watch?v=p6wwj0ozifw) — Hussein Nasser. Explains modulo hashing limits and consistent hashing for adding shards with minimal remapping.
+<VideoCard videoId="p6wwj0ozifw" title="Consistent Hashing | The Backend Engineering Show" source="Hussein Nasser" description="Explains modulo hashing limits and consistent hashing for adding shards with minimal remapping." />
 
 ## Caching hot links
 
@@ -208,7 +208,7 @@ where the cache earns its keep:
   requestLabel="GET"
 />
 
-🎥 **Learn more:** [Redis use cases for system design: 14 Use Cases](https://www.youtube.com/watch?v=dpB28Vn0jgk) — System Design Lab. Covers Redis caching with cache-aside, TTLs, and hot-key handling for read-heavy workloads.
+<VideoCard videoId="dpB28Vn0jgk" title="Redis use cases for system design: 14 Use Cases" source="System Design Lab" description="Covers Redis caching with cache-aside, TTLs, and hot-key handling for read-heavy workloads." />
 
 ## Rate limiting
 
@@ -237,7 +237,7 @@ flowchart TD
     Q2 -->|Yes| K["Key-generation service<br/>batches of random keys"]:::service
 ```
 
-🎥 **Learn more:** [Rate Limiting Explained: Token Bucket vs Sliding Window | System Design By Microsoft SWE](https://www.youtube.com/watch?v=COQNpbNGFJU) — Mayank Joshi. Compares token bucket, leaky bucket, and sliding window algorithms with clear per-algorithm trade-offs.
+<VideoCard videoId="COQNpbNGFJU" title="Rate Limiting Explained: Token Bucket vs Sliding Window | System Design By Microsoft SWE" source="Mayank Joshi" description="Compares token bucket, leaky bucket, and sliding window algorithms with clear per-algorithm trade-offs." />
 
 ## Failure modes: the attendant's bad evening
 
@@ -266,7 +266,7 @@ breaks:
   keys. Old 7-character links keep working; the ticket printer just starts issuing longer
   tickets. That's a migration, not a redesign.
 
-🎥 **Learn more:** [Design for Failure Explained | Timeouts, Retries, Circuit Breakers & Graceful Degradation](https://www.youtube.com/watch?v=15OvdcWEz3Y) — Escoding. Walks through timeouts, retries, circuit breakers, and cascading failures — what breaks and how to survive it.
+<VideoCard videoId="15OvdcWEz3Y" title="Design for Failure Explained | Timeouts, Retries, Circuit Breakers & Graceful Degradation" source="Escoding" description="Walks through timeouts, retries, circuit breakers, and cascading failures — what breaks and how to survive it." />
 
 ## Interview follow-ups (they will ask)
 
@@ -288,7 +288,7 @@ Once the core design lands, interviewers probe the parked requirements:
   themselves are never reused, because a recycled ticket could resurrect someone's old
   link.
 
-🎥 **Learn more:** [AI System Design Interview | Most Asked FAANG System Design Question](https://www.youtube.com/watch?v=EWOcjCG1B8s) — AmanAI Lab. Full URL-shortener walkthrough that explicitly answers every follow-up an interviewer is likely to ask.
+<VideoCard videoId="EWOcjCG1B8s" title="AI System Design Interview | Most Asked FAANG System Design Question" source="AmanAI Lab" description="Full URL-shortener walkthrough that explicitly answers every follow-up an interviewer is likely to ask." />
 
 ## The full architecture
 
@@ -332,7 +332,7 @@ sequenceDiagram
     Note over B: Browser caches the 301<br/>and skips you next time
 ```
 
-🎥 **Learn more:** [Beginner System Design Interview: Design Bitly w/ a Ex-Meta Staff Engineer](https://www.youtube.com/watch?v=iUU4O1sWtJA) — Hello Interview. Ex-Meta staff engineer builds the complete design step by step, from requirements to high-level architecture.
+<VideoCard videoId="iUU4O1sWtJA" title="Beginner System Design Interview: Design Bitly w/ a Ex-Meta Staff Engineer" source="Hello Interview" description="Ex-Meta staff engineer builds the complete design step by step, from requirements to high-level architecture." />
 
 ## Takeaways
 

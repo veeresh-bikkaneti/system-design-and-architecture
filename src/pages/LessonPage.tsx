@@ -4,12 +4,8 @@ import { getLessonBySlug, lessons, tierLabels } from '../lib/lessons';
 import type { Tier } from '../lib/lessons';
 import { isLessonUnlocked } from '../lib/progress-gate';
 import { useProgressStore } from '../store/progress';
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  CheckIcon,
-  ClockIcon,
-} from '../components/Sidebar';
+import { Icon } from '../components/ui/Icon';
+import { Button } from '../components/ui/Button';
 import { HeadingsProvider, OnThisPage } from '../components/OnThisPage';
 import { useHeadings } from '../components/headings';
 
@@ -54,20 +50,29 @@ function CompleteButton({ slug, completed }: { slug: string; completed: boolean 
   const markComplete = useProgressStore((state) => state.markComplete);
   const markIncomplete = useProgressStore((state) => state.markIncomplete);
 
+  if (completed) {
+    return (
+      <button
+        type="button"
+        onClick={() => markIncomplete(slug)}
+        aria-pressed={completed}
+        className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-accent-100 px-4 py-2.5 text-sm font-semibold text-accent-900 shadow-soft transition-colors hover:bg-accent-200 active:bg-accent-300 dark:bg-accent-950/70 dark:text-accent-200 dark:hover:bg-accent-900/60 dark:active:bg-accent-900"
+      >
+        <Icon name="check" className="h-4 w-4" />
+        Completed
+      </button>
+    );
+  }
+
   return (
-    <button
+    <Button
       type="button"
-      onClick={() => (completed ? markIncomplete(slug) : markComplete(slug))}
+      onClick={() => markComplete(slug)}
       aria-pressed={completed}
-      className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-soft transition-colors ${
-        completed
-          ? 'bg-accent-100 text-accent-900 hover:bg-accent-200 active:bg-accent-300 dark:bg-accent-950/70 dark:text-accent-200 dark:hover:bg-accent-900/60 dark:active:bg-accent-900'
-          : 'bg-accent-700 text-white hover:bg-accent-800 active:bg-accent-900 dark:bg-accent-400 dark:text-stone-950 dark:hover:bg-accent-300 dark:active:bg-accent-200'
-      }`}
+      className="shrink-0"
     >
-      {completed && <CheckIcon className="h-4 w-4" />}
-      {completed ? 'Completed' : 'Mark as complete'}
-    </button>
+      Mark as complete
+    </Button>
   );
 }
 
@@ -124,7 +129,7 @@ function InThisLessonChips() {
           <li key={heading.id}>
             <a
               href={`#${heading.id}`}
-              className="inline-block rounded-full border border-stone-200/90 bg-white/70 px-3 py-1.5 text-[13px] font-medium text-stone-600 shadow-soft transition-all hover:-translate-y-px hover:border-accent-300 hover:text-accent-800 dark:border-stone-700/80 dark:bg-stone-900/70 dark:text-stone-300 dark:hover:border-accent-800 dark:hover:text-accent-300"
+              className="inline-block rounded-full border border-stone-200/90 bg-white/70 px-3 py-1.5 text-[13px] font-medium text-stone-600 shadow-soft transition-[transform,border-color,color,box-shadow] hover:-translate-y-px hover:border-accent-300 hover:text-accent-800 dark:border-stone-700/80 dark:bg-stone-900/70 dark:text-stone-300 dark:hover:border-accent-800 dark:hover:text-accent-300"
             >
               {heading.title}
             </a>
@@ -173,19 +178,19 @@ export function LessonPage() {
 
             {/* Lesson hero */}
             <header
-              className={`mt-4 rounded-3xl border border-stone-200/70 bg-gradient-to-br to-transparent p-6 shadow-soft sm:p-8 dark:border-stone-800 ${tierTint[lesson.meta.tier]}`}
+              className={`mt-4 rounded-3xl border border-stone-200/70 bg-gradient-to-br to-transparent p-5 shadow-soft sm:p-8 dark:border-stone-800 ${tierTint[lesson.meta.tier]}`}
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full bg-accent-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent-800 dark:bg-accent-950/70 dark:text-accent-300">
                   {tierLabels[lesson.meta.tier]}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-200/70 px-3 py-1 text-xs font-semibold text-stone-600 dark:bg-stone-800 dark:text-stone-300">
-                  <ClockIcon className="h-3.5 w-3.5" />
+                  <Icon name="clock" className="h-3.5 w-3.5" />
                   {lesson.meta.estimatedMinutes} min read
                 </span>
               </div>
 
-              <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.08] tracking-tight text-stone-950 text-balance sm:text-5xl dark:text-stone-50">
+              <h1 className="mt-4 font-display text-3xl font-semibold leading-[1.08] tracking-tight text-stone-950 text-balance sm:text-5xl dark:text-stone-50">
                 {lesson.meta.title}
               </h1>
 
@@ -225,10 +230,10 @@ export function LessonPage() {
                 {prevLesson ? (
                   <Link
                     to={`/lesson/${prevLesson.meta.slug}`}
-                    className="group rounded-2xl border border-stone-200/80 bg-white p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift active:translate-y-0 active:shadow-soft dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
+                    className="group rounded-2xl border border-stone-200/80 bg-white p-4 shadow-soft transition-[transform,border-color,box-shadow] hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift active:translate-y-0 active:shadow-soft dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
                   >
                     <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-                      <ArrowLeftIcon className="h-3.5 w-3.5" />
+                      <Icon name="arrowLeft" className="h-3.5 w-3.5" />
                       Previous
                     </span>
                     <span className="mt-1.5 block font-semibold tracking-tight text-stone-900 group-hover:text-accent-800 dark:text-stone-100 dark:group-hover:text-accent-300">
@@ -241,11 +246,11 @@ export function LessonPage() {
                 {nextLesson ? (
                   <Link
                     to={`/lesson/${nextLesson.meta.slug}`}
-                    className="group rounded-2xl border border-stone-200/80 bg-white p-4 text-right shadow-soft transition-all hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift active:translate-y-0 active:shadow-soft dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
+                    className="group rounded-2xl border border-stone-200/80 bg-white p-4 text-right shadow-soft transition-[transform,border-color,box-shadow] hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift active:translate-y-0 active:shadow-soft dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
                   >
                     <span className="flex items-center justify-end gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
                       Next
-                      <ArrowRightIcon className="h-3.5 w-3.5" />
+                      <Icon name="arrowRight" className="h-3.5 w-3.5" />
                     </span>
                     <span className="mt-1.5 block font-semibold tracking-tight text-stone-900 group-hover:text-accent-800 dark:text-stone-100 dark:group-hover:text-accent-300">
                       {nextLesson.meta.title}
