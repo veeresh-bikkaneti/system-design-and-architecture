@@ -86,7 +86,8 @@ function TierMilestone({
         </div>
       </Reveal>
 
-      <Reveal delay={120} className="mx-auto mt-6 max-w-2xl text-center">
+      {/* Solid backdrop so the rail never crosses the milestone text */}
+      <Reveal delay={120} className="relative mx-auto mt-6 max-w-2xl bg-stone-50 px-6 text-center dark:bg-stone-950">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-700 dark:text-accent-400">
           {meta.tagline}
         </p>
@@ -201,7 +202,7 @@ export function RoadmapPage() {
         {/* Rail: stone track + accent fill that draws on scroll */}
         <div
           aria-hidden="true"
-          className="absolute bottom-0 left-4 top-0 w-1 -translate-x-1/2 rounded-full bg-stone-200/70 md:left-1/2 dark:bg-stone-800"
+          className="absolute bottom-0 left-4 top-0 w-0.5 -translate-x-1/2 rounded-full bg-stone-300/50 md:left-1/2 dark:bg-stone-700/60"
         >
           <div
             ref={fillRef}
