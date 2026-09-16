@@ -196,22 +196,22 @@ Raft yourself for production unless implementing Raft *is* your product.
     {
       question: "In Raft, when is a log entry considered committed?",
       options: [
-        "As soon as the leader appends it to its own log",
         "Once a majority of cluster nodes have replicated it",
-        "Once all nodes have acknowledged it",
         "After the election timeout elapses",
+        "As soon as the leader appends it to its own log",
+        "Once all nodes have acknowledged it",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
     {
       question: "Why are Raft election timeouts randomized (150–300 ms) rather than fixed?",
       options: [
-        "To reduce network bandwidth usage",
-        "To prevent split votes from livelocking when multiple candidates start elections simultaneously",
         "To make the algorithm harder for attackers to predict",
         "Randomization is required for the log replication step",
+        "To reduce network bandwidth usage",
+        "To prevent split votes from livelocking when multiple candidates start elections simultaneously",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question: "A 5-node Raft cluster splits 3/2 in a network partition. What happens?",
@@ -227,11 +227,11 @@ Raft yourself for production unless implementing Raft *is* your product.
       question: "Why is running Raft with 4 nodes worse than 3?",
       options: [
         "4 nodes cannot form a quorum at all",
+        "4 nodes double the election timeout",
         "Both tolerate 1 failure, but 4 needs 3 acks per commit instead of 2 — slower with no extra safety",
         "Raft requires a prime number of nodes",
-        "4 nodes double the election timeout",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
   ]}
 />

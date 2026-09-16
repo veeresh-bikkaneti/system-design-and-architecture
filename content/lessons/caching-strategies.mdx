@@ -68,7 +68,7 @@ your application code now owns all the invalidation logic. Most teams using **Me
     points: [
       "The app checks the cache first — and key user:42 is right there",
       "No database query, no round trip, no waiting",
-      "Hot keys stay warm while their TTL keeps refreshing",
+      "Hot keys stay warm because frequent misses re-populate them right after expiry",
     ],
     note: "The happy path — design so this is 90%+ of your reads.",
   }}
@@ -107,15 +107,16 @@ flowchart LR
 **Write-behind** (write-back) flips the trade: the write lands in the cache and returns
 immediately; the database is updated asynchronously. Writes feel instant, but if the
 cache node dies before the flush, that write is gone forever. Databases like **Cassandra**
-pair the async memtable → SSTable flush with a durable **commit log** written synchronously
-before the write is acknowledged — that pairing is precisely what makes their write-behind
-safe, and why they don't lose acknowledged writes on a crash. Application caches rarely have
-that safety net, so they should avoid write-behind unless you can afford to lose recent
+*look* like write-behind at a glance, but they aren't: every write is appended to a durable
+commit log *synchronously*, and the write is only acknowledged once it's safe on disk.
+Cassandra's write path is *not* write-behind — durability is synchronous; the async part is
+only compaction, the background merging of SSTables. Application caches rarely have that
+safety net, so they should avoid write-behind unless you can afford to lose recent
 writes.
 
 🎥 **Learn more:** [System Design Part 3: Caching Layer](https://www.youtube.com/watch?v=yf1VvSXUANI) — Sketch Mind. Dedicated chapters contrast read-through vs write-through, and the freshness each one buys.
 
-## Eviction: when the pantry is full
+## Eviction: when the mise en place overflows
 
 Memory is finite, so caches evict. The classics:
 
@@ -184,42 +185,42 @@ slow," walk the stack top-down: the fix is usually a missing layer, not a faster
     {
       question: "In the cache-aside pattern, what happens on a cache miss?",
       options: [
-        "The cache itself loads the data from the database and returns it",
-        "The application loads the data from the database, stores it in the cache, then serves it",
-        "The request fails and the client must retry",
-        "The application writes a placeholder and serves stale data",
+        "The request is dropped and the client retries with a cache-bypass header",
+        "The cache serves a placeholder while a background job loads the row",
+        "The application loads the row from the database, SETs it into the cache, then serves it",
+        "The cache itself fetches the row from the database and returns it",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question: "What is the main risk of the write-behind strategy?",
       options: [
-        "Reads become slower because the cache must check the database first",
-        "Writes can be lost if the cache fails before flushing to the database",
-        "The database receives every write twice, doubling load",
-        "Cache hit ratios drop because entries are never evicted",
+        "Unflushed writes are lost if the cache fails before the database is updated",
+        "Reads slow down because every read must verify the cache against the database",
+        "The database receives every write twice, once from the cache and once from the app",
+        "Hit ratios collapse because write-behind entries are never allowed to expire",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
     {
       question: "A 'thundering herd' (cache stampede) happens when...",
       options: [
-        "Too many cache nodes join the cluster at once",
-        "A popular key expires and many requests simultaneously hit the database with the same query",
-        "The eviction policy deletes keys faster than they are written",
-        "Two caches in different regions return conflicting values",
+        "Too many cache nodes join the cluster in the same minute",
+        "Eviction deletes keys faster than the application can rewrite them",
+        "Two regional caches disagree and clients see conflicting values",
+        "A popular key expires and hundreds of requests hit the database with the same query at once",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question: "Which of these is a defense against the thundering herd, as described in the lesson?",
       options: [
-        "Increasing the TTL on all keys to the maximum",
-        "Disabling the cache during traffic spikes",
-        "Request coalescing (single-flight): only the first request queries the database while others wait",
-        "Switching from LRU to LFU eviction",
+        "Raising every TTL to the maximum the cache allows",
+        "Coalescing requests: only the first request queries the database while the others wait",
+        "Turning the cache off entirely during traffic spikes",
+        "Switching the eviction policy from LRU to LFU",
       ],
-      correctIndex: 2,
+      correctIndex: 1,
     },
   ]}
 />

@@ -147,7 +147,8 @@ It worked. But nobody walks to a new restaurant between courses if they can help
 JavaScript grew up, and the single-page app arrived: **one table, many courses.** The
 page loads once; after that, courses keep arriving without anyone leaving the room.
 The dining room got smart — the browser now ran real application logic — and the
-server retreated to being a very good kitchen: an API.
+server retreated to being a very good kitchen: an **API** — a fixed menu of requests the
+dining room can place, answered as data.
 
 But the smart dining room had a new problem: a whole application's worth of UI state,
 living in JavaScript, with no architecture to hold it. Enter React.
@@ -159,7 +160,8 @@ living in JavaScript, with no architecture to hold it. Enter React.
 React rebuilt the dining room from the two OOP ideas you already know:
 
 **Components are encapsulation, again.** A component is a bento box: self-contained,
-with its own little compartments of state, a tidy public surface (its props), and no
+with its own little compartments of state, a tidy public surface (its **props** — the
+inputs a parent component hands down, like the order ticket the waiter carries in), and no
 peeking inside. A `MenuItem` doesn't care how `OrderButton` works. It just uses it.
 
 **Composition over inheritance.** You don't build a `FancyMenuItem` by inheriting from
@@ -233,54 +235,54 @@ Compare the two eras directly:
       question:
         "In the diner analogy, which role is the Controller — and why?",
       options: [
-        "The kitchen, because it does the real work",
-        "The waiter, because it's the only one that takes your input and carries it to the kitchen",
-        "The menu board, because it displays all the options",
-        "The customer, because everything starts with them",
+        "The kitchen, because the kitchen does all the real work",
+        "The menu board, because it displays every option available",
+        "The waiter, because it's the only one that takes your input to the kitchen",
+        "The customer, because every order starts with them",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question: "In classic MVC, what does the Model know about the View?",
       options: [
-        "Everything — it renders the view directly",
-        "Only the view's address, so it can send updates",
-        "It builds the view's HTML on every change",
         "Nothing — the model is unaware of the UI; the view observes the model",
+        "Everything — the model renders each view directly on every change",
+        "Only the view's address, so the model can push updates to it",
+        "It builds the view's HTML itself whenever its state changes",
       ],
-      correctIndex: 3,
+      correctIndex: 0,
     },
     {
       question: "What distinguishes MVP from classic MVC?",
       options: [
-        "The view becomes passive — it never talks to the model; the presenter carries every message",
-        "The model and the view merge into a single object",
-        "The presenter is removed and the view talks straight to the database",
-        "MVP requires a relational database underneath",
+        "The model and the view merge into a single object that does both",
+        "The presenter is removed, and the view talks straight to the database",
+        "MVP requires a relational database underneath to work",
+        "The view becomes passive — the presenter carries every message both ways",
       ],
-      correctIndex: 0,
+      correctIndex: 3,
     },
     {
       question:
         "In React's unidirectional data flow, how does a click on a deeply nested button update what the user sees?",
       options: [
-        "The button edits its sibling components directly",
-        "The click travels straight to the database and back",
-        "It calls a handler that updates state; the new state flows down as props and the UI re-renders",
-        "The view observes the model and redraws itself",
+        "The button edits its sibling components directly, in place",
+        "It calls a handler that updates state; new state flows down as props and re-renders the UI",
+        "The click travels straight to the database and back again",
+        "The view observes the model and redraws itself on change",
       ],
-      correctIndex: 2,
+      correctIndex: 1,
     },
     {
       question:
         'The lesson says React favors "LEGO, not woodcarving." What does that mean?',
       options: [
-        "React apps must be prototyped with physical toys",
-        "Build UIs by composing small components, not by inheriting from big ones",
+        "React apps must be prototyped with physical toys first",
         "React is slower to build with than plain JavaScript",
+        "Compose small components instead of inheriting from big ones",
         "Every React component is required to use inheritance",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
   ]}
 />

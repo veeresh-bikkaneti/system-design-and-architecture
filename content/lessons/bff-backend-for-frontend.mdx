@@ -237,55 +237,55 @@ you've rebuilt the lobby desk with extra steps.
       question:
         "Your mobile app calls an endpoint that returns 60 fields, but the screen shows 6. What's the core problem the BFF pattern solves here?",
       options: [
-        "The database is too slow at returning 60 fields",
-        "The phone downloads, parses, and pays battery for 54 fields it never shows — a generic payload shaped for nobody in particular",
         "The API needs more fields, not fewer",
+        "The database is too slow at returning 60 fields",
         "The mobile app should cache the extra fields for later",
-      ],
-      correctIndex: 1,
-    },
-    {
-      question:
-        "The web team wants to add a field to their screens today, but the backend team ships monthly. How does a web BFF help?",
-      options: [
-        "The web team owns their BFF, so they can add the field to their own layer immediately and fan out to existing services",
-        "It doesn't — BFFs still require backend team approval for every change",
-        "It forces the backend team to ship weekly instead",
-        "It removes the need for the downstream services entirely",
-      ],
-      correctIndex: 0,
-    },
-    {
-      question: "Where does a BFF sit in the request path?",
-      options: [
-        "In front of the API gateway, handling TLS termination for all clients",
-        "Inside the database, as a stored procedure",
-        "On the client device, as part of the mobile SDK",
-        "Behind the API gateway and in front of the domain services — translating and aggregating between them",
+        "The phone downloads, parses, and pays battery for 54 fields it never shows — a generic payload shaped for nobody in particular",
       ],
       correctIndex: 3,
     },
     {
       question:
+        "The web team wants to add a field to their screens today, but the backend team ships monthly. How does a web BFF help?",
+      options: [
+        "It doesn't — BFFs still require backend team approval for every change",
+        "It removes the need for the downstream services entirely",
+        "It forces the backend team to ship weekly instead",
+        "The web team owns their BFF, so they can add the field to their own layer immediately and fan out to existing services",
+      ],
+      correctIndex: 3,
+    },
+    {
+      question: "Where does a BFF sit in the request path?",
+      options: [
+        "Inside the database, as a stored procedure",
+        "Behind the API gateway and in front of the domain services — translating and aggregating between them",
+        "In front of the API gateway, handling TLS termination for all clients",
+        "On the client device, as part of the mobile SDK",
+      ],
+      correctIndex: 1,
+    },
+    {
+      question:
         "Your mobile BFF and web BFF both implement discount-eligibility rules, and they've started disagreeing. What went wrong, and what's the fix?",
       options: [
-        "BFF sprawl — delete one of the BFFs",
-        "The gateway is misconfigured; add rate limiting",
         "Business logic leaked into the BFF layer; move the rules down into a shared domain service that both BFFs call",
+        "The gateway is misconfigured; add rate limiting",
         "Nothing went wrong — BFFs are supposed to each own business rules",
+        "BFF sprawl — delete one of the BFFs",
       ],
-      correctIndex: 2,
+      correctIndex: 0,
     },
     {
       question:
         "SoundCloud ran about five BFFs and found the same user-profile fetching logic duplicated across all of them. What did that duplication signal?",
       options: [
+        "That the BFF pattern had failed and they should return to one generic API",
+        "That BFFs should never share any code",
         "A missing domain concept — the fix was a shared UserProfileService downstream, not more copies in the BFFs",
         "That they needed even more BFFs to spread the load",
-        "That BFFs should never share any code",
-        "That the BFF pattern had failed and they should return to one generic API",
       ],
-      correctIndex: 0,
+      correctIndex: 2,
     },
   ]}
 />

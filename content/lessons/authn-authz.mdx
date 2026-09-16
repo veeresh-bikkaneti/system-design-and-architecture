@@ -292,29 +292,29 @@ sign that says "admins this way."
     {
       question: "In the concert-venue analogy, checking a guest's photo ID at the door is an example of...",
       options: [
-        "Authorization — it decides which stage they may visit",
-        "Encryption — it scrambles their identity for privacy",
         "Authentication — it verifies they are who they claim to be",
         "Auditing — it records their visit for later review",
-      ],
-      correctIndex: 2,
-    },
-    {
-      question: "Why is revoking access harder with JWTs than with server-side sessions?",
-      options: [
-        "There is no central record to delete — a signed token stays valid until it expires",
-        "JWT signatures cannot be recomputed after login",
-        "Session cookies are encrypted but JWTs are not",
-        "JWTs are stored in the database, which is slower to update",
+        "Authorization — it decides which stage they may visit",
+        "Encryption — it scrambles their identity for privacy",
       ],
       correctIndex: 0,
     },
     {
+      question: "Why is revoking access harder with JWTs than with server-side sessions?",
+      options: [
+        "JWTs are stored in the database, which is slower to update",
+        "JWT signatures cannot be recomputed after login",
+        "There is no central record to delete — a signed token stays valid until it expires",
+        "Session cookies are encrypted but JWTs are not",
+      ],
+      correctIndex: 2,
+    },
+    {
       question: "In the OAuth2 authorization code flow, what does the third-party app exchange — server-to-server, with its client secret — to get the access token?",
       options: [
-        "The user's password",
-        "The ID token from OpenID Connect",
         "A refresh token it generated itself",
+        "The ID token from OpenID Connect",
+        "The user's password",
         "The short-lived, single-use authorization code",
       ],
       correctIndex: 3,
@@ -322,10 +322,10 @@ sign that says "admins this way."
     {
       question: "Your system needs a rule like 'finance staff may read this report only on company devices during business hours.' Which access model fits best?",
       options: [
-        "RBAC — assign everyone a finance role and be done",
+        "Password salting — it protects the report at rest",
         "ABAC — the decision depends on attributes of the user, device, and environment",
         "OAuth2 scopes — they already cover time-of-day restrictions",
-        "Password salting — it protects the report at rest",
+        "RBAC — assign everyone a finance role and be done",
       ],
       correctIndex: 1,
     },

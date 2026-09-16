@@ -231,22 +231,22 @@ maintain two.
       question: "What is an anti-corruption layer?",
       options: [
         "A firewall rule that blocks legacy traffic",
-        "A translation boundary that keeps another system's model from leaking into yours",
         "A database migration tool for old schemas",
         "A second cache in front of a slow API",
+        "A translation boundary that keeps another system's model from leaking into yours",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question:
         "Your React app consumes a partner API that returns snake_case, inconsistent error shapes, and XML on one endpoint. Where does the lesson put the normalization?",
       options: [
-        "In each component, right where the data is used",
-        "In the CSS, via naming conventions",
         "Nowhere — components should adapt to each API's native shape",
+        "In each component, right where the data is used",
         "In an adapters layer at the boundary, so components only see clean domain types",
+        "In the CSS, via naming conventions",
       ],
-      correctIndex: 3,
+      correctIndex: 2,
     },
     {
       question: "In a strangler-fig migration, what goes in front of the legacy system first?",
@@ -262,21 +262,21 @@ maintain two.
       question: "What is the failure mode of an ACL that becomes a dumping ground?",
       options: [
         "It gets too fast and starves the backend of work",
-        "It automatically rewrites the legacy system",
         "One adapter per external system collapses into a god object nobody owns and everyone fears changing",
+        "It automatically rewrites the legacy system",
         "It encrypts data the domain can no longer read",
       ],
-      correctIndex: 2,
+      correctIndex: 1,
     },
     {
       question: "Gerald the billing server finally retires. What happens to the ACL?",
       options: [
         "It must be kept forever as a monument",
-        "It shrinks: the translation code for Gerald is deleted and the facade thins into a normal API layer",
         "It gets promoted to handle all frontend state",
+        "It shrinks: the translation code for Gerald is deleted and the facade thins into a normal API layer",
         "It is merged into the database schema",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
   ]}
 />

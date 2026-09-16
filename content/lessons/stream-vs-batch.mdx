@@ -350,33 +350,33 @@ The cheat sheet, if you want it on one slide:
     {
       question: "In this lesson's analogy, the live news ticker represents...",
       options: [
+        "The serving layer of a Lambda architecture",
         "A bounded dataset, like yesterday's server logs",
         "An unbounded data stream that never ends",
         "A nightly Spark job that precomputes reports",
-        "The serving layer of a Lambda architecture",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question:
         "Some click events arrive four minutes after the window they belong to has closed. What do watermarks let the stream processor do?",
       options: [
-        "Guarantee that no event will ever arrive late",
-        "Retroactively rewrite the results of closed windows for free",
         "Declare a cut-off time up to which events are assumed seen, so windows can close without waiting forever",
         "Pause the event log until every straggler has arrived",
+        "Retroactively rewrite the results of closed windows for free",
+        "Guarantee that no event will ever arrive late",
       ],
-      correctIndex: 2,
+      correctIndex: 0,
     },
     {
       question: "A team running a Lambda architecture changes how a metric is computed. What must they do to stay correct?",
       options: [
-        "Update and re-run both the batch job and the streaming job, so the two layers keep agreeing",
-        "Only update the speed layer — the batch layer recomputes itself automatically",
-        "Only update the batch layer — the serving layer backfills the speed layer",
         "Delete the serving layer and query the event log directly",
+        "Update and re-run both the batch job and the streaming job, so the two layers keep agreeing",
+        "Only update the batch layer — the serving layer backfills the speed layer",
+        "Only update the speed layer — the batch layer recomputes itself automatically",
       ],
-      correctIndex: 0,
+      correctIndex: 1,
     },
     {
       question: "Kappa architecture can fully replace a batch layer only when...",

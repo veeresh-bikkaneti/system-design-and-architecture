@@ -293,33 +293,33 @@ availability; it gives you two primaries and a data integrity incident.
         "Your nightly backup runs at 2 a.m. and a full restore takes 4 hours. The region dies at 6 p.m. Roughly what are your RPO and RTO?",
       options: [
         "RPO of about 4 hours and RTO of about 16 hours",
-        "RPO of about 16 hours (everything since the 2 a.m. backup) and RTO of about 4 hours",
         "RPO of zero and RTO of zero — backups are magic",
+        "RPO of about 16 hours (everything since the 2 a.m. backup) and RTO of about 4 hours",
         "RPO of about 2 hours and RTO of about 2 hours",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question:
         "Why is active-active harder than active-passive, even though it fails over faster?",
       options: [
-        "It doubles your servers but halves your latency everywhere",
-        "DNS failover becomes instant, which confuses the health checker",
-        "Health checks are unnecessary when both regions are live",
         "Both regions accept writes at once, so replication lag and conflicting writes become your daily problem",
+        "Health checks are unnecessary when both regions are live",
+        "DNS failover becomes instant, which confuses the health checker",
+        "It doubles your servers but halves your latency everywhere",
       ],
-      correctIndex: 3,
+      correctIndex: 0,
     },
     {
       question:
         "The Hendersons book the last 7 p.m. table in Chicago while their cousins book it in Austin, with the link between cities down. Under last-write-wins, what happens when the books sync?",
       options: [
+        "The system pages you to decide, then waits for your answer",
         "Whichever write carries the later timestamp keeps the table; the other booking silently disappears",
         "Both bookings are kept and the restaurant seats 24 people at a table for 12",
-        "The system pages you to decide, then waits for your answer",
         "The older write wins, because seniority",
       ],
-      correctIndex: 0,
+      correctIndex: 1,
     },
     {
       question:
@@ -327,21 +327,21 @@ availability; it gives you two primaries and a data integrity incident.
       options: [
         "DNS changes require a human to approve each one",
         "A 60-second TTL guarantees every client switches within 60 seconds",
-        "Resolvers and apps cache DNS answers longer than your TTL — the phone book reprints on its own schedule",
         "Anycast blocks DNS updates while an outage is in progress",
+        "Resolvers and apps cache DNS answers longer than your TTL — the phone book reprints on its own schedule",
       ],
-      correctIndex: 2,
+      correctIndex: 3,
     },
     {
       question:
         "Your team has a written failover runbook but has never actually run it. According to this lesson, what do you have?",
       options: [
-        "A plan that works, because it was reviewed carefully",
         "A hope, not a plan — untested failover is how you discover the runbook is fiction at 2 a.m.",
         "An active-passive architecture",
         "A guaranteed zero RTO",
+        "A plan that works, because it was reviewed carefully",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
   ]}
 />

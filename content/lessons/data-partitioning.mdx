@@ -43,11 +43,16 @@ books? That question is the entire lesson.
   calling *every* branch and merging the answers.
 - **Directory-based** — a central card catalog maps each book to its branch. Moving books
   between branches is just a catalog update — wonderfully flexible — but if the card catalog
-  burns down, nobody can find anything. The catalog is a critical dependency (and a single
-  point of failure).
+  burns down, nobody can find anything. Real catalogs don't rely on a single copy, though:
+  MongoDB's config servers run as a replica set, and ZooKeeper- or etcd-backed directories
+  answer only by quorum. The catalog is a critical dependency that must itself be made
+  highly available — replicate it like everything else, and the fire becomes a story, not
+  an outage.
 - **Consistent hashing** — arrange branches and books on a ring so that adding or removing a
   branch only moves a small slice of books, instead of re-shelving the entire city. (You met
   this one in the Load Balancers lesson, where it routed *requests*; here it routes *data*.)
+  The full mechanics — virtual nodes, the ~1/N resize math — live in the sharding-strategies
+  lesson; here you just need the ring idea and why it beats modulo hashing on resize.
 
 Each strategy is a trade-off, and real systems pick their poison deliberately. Cassandra
 leans on consistent hashing plus tunable replication; MongoDB's sharding is range/hash-based
@@ -139,6 +144,11 @@ Get this wrong and no amount of servers fixes it: the classic failure is shardin
 `country_code` and discovering that one country's traffic equals everyone else's combined.
 Congratulations, you've built a single point of overload with extra steps.
 
+When the constraints start fighting each other — a key with high cardinality that scatters
+related rows, a whale tenant that dwarfs everyone else — the sharding-strategies lesson
+picks up this thread with strategy selection under pressure: virtual nodes, salted keys,
+directory surgery for hot tenants, and the resharding cost math.
+
 🎥 **Learn more:** [What Is a Partition Key? Routing, Pruning, Hot Partitions, and How to Choose One](https://www.youtube.com/watch?v=fQc2AkDiPXE) — Kandi Brian. Walks through hash, range, and composite keys, hot partitions, and how cardinality shapes a good choice.
 
 ## Takeaways
@@ -159,46 +169,46 @@ Congratulations, you've built a single point of overload with extra steps.
   questions={[
     {
       question: "Which partitioning strategy makes range queries expensive because they must fan out to every shard?",
-      options: ["Range-based", "Hash-based", "Directory-based", "None of the above"],
-      correctIndex: 1,
+      options: ["Directory-based", "Range-based", "None of the above", "Hash-based"],
+      correctIndex: 3,
     },
     {
       question: "What is the main risk of the directory-based (card catalog) strategy?",
       options: [
-        "Range queries become impossible",
-        "The directory service becomes a critical dependency — if it fails, nobody can find anything",
-        "Data can never be rebalanced",
-        "It only works for alphabetical keys",
+        "The directory becomes a critical dependency — it must itself be replicated, or its failure takes down all routing",
+        "Range queries become impossible to run",
+        "Data can never be rebalanced between shards",
+        "It only works for alphabetical or numeric keys",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
     {
       question: "What makes a partition key a *good* choice, according to the lesson?",
       options: [
-        "It has low cardinality so fewer shards are needed",
+        "It has low cardinality so the cluster needs fewer shards",
+        "It is the database's auto-incrementing primary key",
         "It matches the query pattern, has high cardinality, and avoids monotonically increasing hot keys",
-        "It is always the database's auto-incrementing primary key",
-        "It should be a raw timestamp to keep writes ordered",
-      ],
-      correctIndex: 1,
-    },
-    {
-      question: "What technique minimizes data movement when a sharded cluster is resized?",
-      options: [
-        "Directory-based lookup with a single central server",
-        "Range-based partitioning by alphabetical order",
-        "Consistent hashing",
-        "Two-phase commit",
+        "It is a raw timestamp, keeping every write neatly ordered",
       ],
       correctIndex: 2,
     },
     {
+      question: "What technique minimizes data movement when a sharded cluster is resized?",
+      options: [
+        "A single central directory server holding the full mapping",
+        "Consistent hashing",
+        "Range-based partitioning by alphabetical order",
+        "Two-phase commit across all shards",
+      ],
+      correctIndex: 1,
+    },
+    {
       question: "Why does a viral post create a 'hot shard' even when hashing is even on average?",
       options: [
-        "Hashing breaks down under high load",
+        "Hashing silently breaks down once traffic passes a threshold",
         "One key gets a wildly disproportionate share of traffic, overloading whichever shard owns it",
-        "The shard router stops working",
-        "Two-phase commit blocks the shard",
+        "The shard router stops forwarding to healthy shards",
+        "Two-phase commit locks the shard for the duration",
       ],
       correctIndex: 1,
     },

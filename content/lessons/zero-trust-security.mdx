@@ -290,55 +290,55 @@ are a feature. They are also, at 2 a.m., extremely loud.
       question:
         "In the hotel analogy, the door scanner radioing the front desk — 'Card 4821 wants the gym at 11 p.m., allowed?' — represents…",
       options: [
-        "The VPN encrypting traffic between the hotel and the guest",
         "A firewall blocking the gym door after business hours",
-        "A policy enforcement point asking the identity and policy engine to authorize this specific request",
         "The guest's browser caching the gym's web page for faster loading",
-      ],
-      correctIndex: 2,
-    },
-    {
-      question:
-        "An attacker steals one valid service credential in a flat 120-service network with no per-request authorization. Compared with a micro-segmented zero-trust network where the credential's policy names 3 reachable services, the blast radius differs by…",
-      options: [
-        "Nothing — segmentation only helps against outside attackers",
-        "Roughly 120 reachable services versus 3: segmentation divides what one stolen credential can touch",
-        "The segmented network is slower, so the attacker gets bored and leaves",
-        "The flat network is safer because there is only one credential to rotate",
-      ],
-      correctIndex: 1,
-    },
-    {
-      question: "What is a SPIFFE SVID, in this lesson's terms?",
-      options: [
-        "A firewall rule that blocks traffic from untrusted countries",
-        "A long-lived master password shared by every service in a cluster",
-        "A VPN configuration file issued to employees working remotely",
-        "A short-lived identity document — usually a certificate — naming a workload, like the service's key card",
+        "The VPN encrypting traffic between the hotel and the guest",
+        "A policy enforcement point asking the identity and policy engine to authorize this specific request",
       ],
       correctIndex: 3,
     },
     {
       question:
-        "Why does this lesson prefer short-lived credentials over trying to perfect revocation?",
+        "An attacker steals one valid service credential in a flat 120-service network with no per-request authorization. Compared with a micro-segmented zero-trust network where the credential's policy names 3 reachable services, the blast radius differs by…",
       options: [
-        "A stolen credential that expires in hours limits the attacker's window on its own, so revocation matters less",
-        "Short-lived credentials are easier to remember than long passwords",
-        "Revocation lists are illegal in some jurisdictions",
-        "Short-lived credentials never need to be rotated",
+        "Roughly 120 reachable services versus 3: segmentation divides what one stolen credential can touch",
+        "The segmented network is slower, so the attacker gets bored and leaves",
+        "Nothing — segmentation only helps against outside attackers",
+        "The flat network is safer because there is only one credential to rotate",
       ],
       correctIndex: 0,
+    },
+    {
+      question: "What is a SPIFFE SVID, in this lesson's terms?",
+      options: [
+        "A firewall rule that blocks traffic from untrusted countries",
+        "A short-lived identity document — usually a certificate — naming a workload, like the service's key card",
+        "A VPN configuration file issued to employees working remotely",
+        "A long-lived master password shared by every service in a cluster",
+      ],
+      correctIndex: 1,
+    },
+    {
+      question:
+        "Why does this lesson prefer short-lived credentials over trying to perfect revocation?",
+      options: [
+        "Short-lived credentials never need to be rotated",
+        "Short-lived credentials are easier to remember than long passwords",
+        "A stolen credential that expires in hours limits the attacker's window on its own, so revocation matters less",
+        "Revocation lists are illegal in some jurisdictions",
+      ],
+      correctIndex: 2,
     },
     {
       question:
         "What is the main operational lesson of the September 2021 DST Root CA X3 expiration?",
       options: [
-        "Root certificates should never be used in production systems",
-        "In a zero-trust system, certificate issuance and rotation are load-bearing infrastructure — automate them and alert on expiry",
         "Mutual TLS is too slow for real-world use",
+        "Root certificates should never be used in production systems",
         "Identity-aware proxies should be replaced with VPNs",
+        "In a zero-trust system, certificate issuance and rotation are load-bearing infrastructure — automate them and alert on expiry",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
   ]}
 />

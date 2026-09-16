@@ -126,9 +126,24 @@ large, immutable, and fetched by ID — object storage. The metadata is tiny, st
 and queried by owner and time ("show me Maya's latest 20 photos") — a database.
 
 But one database won't hold the metadata for billions of photos, so you shard it — the
-Sharding Strategies lesson, applied. Shard by photo ID or by user ID; either way, each
-shard owns a slice of the ledger and queries for one user's photos hit one shard. This
-isn't hypothetical: Instagram's engineering team has written about running sharded
+Sharding Strategies lesson, applied. And here you face a real fork in the road, because
+the shard key is a trade-off with no painless answer:
+
+**Shard by user ID**, and every photo a person uploads lands on the same slice of the
+ledger. "Show me Maya's latest 20 photos" is a single-shard lookup — the system's most
+common read stays cheap. The cost is the celebrity: all of their uploads land on one
+shard, and every fan's profile view hammers it until that shard runs like a furnace.
+Real systems survive this by splitting the hot user — celebrity sharding, where one
+lopsided account is spread across several shards — or by keeping a secondary index.
+
+**Shard by photo ID** instead, and writes spread beautifully: a celebrity's uploads
+scatter across every shard, and no single shard sweats. The cost is on the read side —
+Maya's photos now live on *all* shards, so "show me her latest 20" fans out across the
+fleet in a scatter-gather. Unless you build a secondary user→photos index so the router
+knows where her photos live — for the sharp reader who just asked: yes, that index
+exists in real systems, and yes, keeping it consistent is a cost of its own.
+
+This isn't hypothetical: Instagram's engineering team has written about running sharded
 PostgreSQL in production, with photo IDs generated to encode the shard they live on.
 The pattern is the point, not the vendor: **the ledger must be partitionable by the
 key you query by**, or your most common read becomes a scatter-gather across every
@@ -277,7 +292,9 @@ The design above is the happy path. The interview points come from naming what b
 - **Hot shards.** If you shard metadata by user ID, the celebrity's shard becomes a
   furnace — every one of their posts lands on the same shard, and every fan's read
   hammers it. Sharding by photo ID spreads a celebrity's photos evenly across shards
-  instead. The shard key must survive your most lopsided user.
+  instead — but now one user's profile read fans out across the fleet. Either way, the
+  shard key must survive your most lopsided user, and in the interview you should name
+  the pain you chose.
 - **The thundering herd.** A photo goes viral and a million phones request the same
   CDN URL within a minute — the classic stampede from the Caching Strategies lesson.
   The CDN's edge cache absorbs it, but the *first* fetch per PoP still hits origin.
@@ -332,10 +349,10 @@ middle. That's a passing answer.
     {
       question: "Why does the design store photo metadata in a sharded database instead of alongside the photo bytes in object storage?",
       options: [
-        "Object storage cannot hold more than a few terabytes, so metadata needs its own home",
-        "Databases are always faster than object storage for every kind of read",
-        "Metadata is small, structured, and queried by owner and time — while photo bytes are large, immutable blobs fetched by ID, so each gets storage optimized for its own shape",
-        "Sharded databases automatically generate thumbnails, which object storage cannot do",
+        "Object storage caps out at a few terabytes, so the metadata needs a database of its own simply to fit the billions of rows",
+        "Databases are always faster than object storage for every kind of read, so moving metadata into a database speeds up the whole system",
+        "Metadata is small, structured, and queried by owner and time; photo bytes are big blobs fetched by ID — each gets storage shaped for its own pattern",
+        "A sharded database automatically generates the thumbnail variants from the photo bytes, a job object storage was never designed to handle",
       ],
       correctIndex: 2,
     },
@@ -352,20 +369,20 @@ middle. That's a passing answer.
     {
       question: "Under pure fan-out on write, a celebrity with 100 million followers posts one photo. What happens?",
       options: [
-        "The system must perform roughly 100M timeline writes for that single post — write amplification that can overwhelm the feed service",
-        "Each follower's phone downloads the photo 100M times",
-        "The object store must replicate the photo to 100M regions",
-        "Nothing special — the CDN absorbs the extra writes",
+        "Roughly 100M timeline writes for a single post — write amplification that can overwhelm the feed service",
+        "Each follower's phone downloads the photo 100M times, so the CDN edge caches melt under the repeat traffic",
+        "The object store must replicate the photo across 100M regions before the post can go live, stalling every upload",
+        "Nothing special — the CDN edge cache absorbs the extra writes, so the feed service never feels them",
       ],
       correctIndex: 0,
     },
     {
       question: "Why are thumbnails generated asynchronously, after the upload API has already responded?",
       options: [
-        "Thumbnail workers can only run at night when traffic is low",
-        "The object store refuses to store more than one size per photo",
-        "The metadata database must be updated before any image processing can begin",
-        "So the user isn't left waiting on CPU-heavy image processing — the upload feels instant, and a failed thumbnail job can retry invisibly",
+        "Thumbnail workers only run during off-peak hours, so they process the queue while the user is already gone",
+        "The object store only keeps one size per photo, so variants are generated just-in-time instead of at upload",
+        "The metadata database has to commit the ledger row before any image processing is allowed to begin",
+        "So uploads feel instant instead of blocking on CPU-heavy image processing — and a failed thumbnail job just retries invisibly",
       ],
       correctIndex: 3,
     },

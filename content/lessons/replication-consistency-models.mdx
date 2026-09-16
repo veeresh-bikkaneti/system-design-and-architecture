@@ -51,6 +51,9 @@ flowchart LR
 - **Synchronous** — the write isn't acknowledged until replicas confirm. Durable (a leader
   crash loses nothing committed) but slow: every write pays the slowest replica's latency.
   **Postgres** synchronous streaming replication and **etcd**'s Raft log work this way.
+  (etcd is the key-value store Kubernetes keeps its cluster state in; its Raft log is the
+  ordered list of changes every node replays — you'll take Raft apart in the advanced
+  consensus-raft lesson.)
 - **Asynchronous** — acknowledge first, replicate after. Fast, but a leader crash can lose
   recently acknowledged writes. The classic "we said success and then the data vanished"
   incident.
@@ -122,6 +125,8 @@ particular weirdness:
 - **Causal consistency** — if you reply to a comment, everyone sees the comment before
   your reply. The strongest model an *always-available* system can provide during
   partitions — it's what AP-oriented designs like the COPS geo-replicated store aim for.
+  (COPS is a 2011 research system from Cornell — still the canonical example of causal
+  consistency running across data centers.)
   (Systems like **CockroachDB** instead pay for *stronger*, serializable guarantees —
   causal consistency is deliberately weaker, which is why it's cheap enough to keep
   serving through a partition.)
@@ -138,8 +143,11 @@ collide. Strategies:
 
 - **Last-write-wins (LWW)** — highest timestamp wins. Simple, and silently *deletes* the
   loser's data. Fine for caches; terrifying for shopping carts.
-- **Application merge** — the app gets both versions and reconciles (Dynamo/Riak-style
-  vector clocks; CRDTs for counters, sets, and text).
+- **Application merge** — the app gets both versions and reconciles. That reconciliation
+  runs on Dynamo/Riak-style vector clocks — per-replica version stamps that record which
+  writes saw which other writes — and on CRDTs for counters, sets, and text: data
+  structures designed so concurrent edits always merge to the same answer on every
+  replica, no referee needed.
 - **Avoid conflicts structurally** — design so concurrent writes to the same key are rare
   (per-user partitions, single writers per entity).
 
@@ -158,43 +166,43 @@ collide. Strategies:
     {
       question: "What is the main risk of asynchronous replication?",
       options: [
-        "Writes become much slower",
         "A leader crash can lose recently acknowledged writes",
+        "Writes become much slower",
         "Reads can never be served from followers",
         "The system cannot scale past three nodes",
       ],
-      correctIndex: 1,
+      correctIndex: 0,
     },
     {
       question: "In a leaderless system with N=3 replicas, which tuning gives strong consistency?",
       options: [
         "W=1, R=1",
-        "W=2, R=2 (because R + W > N)",
         "W=2, R=1",
+        "W=2, R=2 (because R + W > N)",
         "W=1, R=2",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question: "'Read-your-writes' consistency guarantees that...",
       options: [
         "All users worldwide immediately see your write",
-        "After you write, your own subsequent reads reflect that write",
         "Writes are applied in the same order on every replica",
         "No two users can write concurrently",
+        "After you write, your own subsequent reads reflect that write",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question: "What is the danger of last-write-wins (LWW) conflict resolution?",
       options: [
         "It requires synchronized clocks across all nodes",
-        "It is too slow for high-throughput systems",
         "It silently discards the loser's data",
+        "It is too slow for high-throughput systems",
         "It only works with leader-based replication",
       ],
-      correctIndex: 2,
-    },
+      correctIndex: 1,
+    }
   ]}
 />
 

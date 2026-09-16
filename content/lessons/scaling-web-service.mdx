@@ -411,12 +411,12 @@ the truck actually grew:
       question:
         "Your food truck's line is out the door. What's the key difference between scaling vertically and scaling horizontally?",
       options: [
-        "Vertical means adding more trucks; horizontal means getting a bigger grill",
-        "Vertical means a bigger, more powerful truck; horizontal means more trucks side by side",
         "Vertical means hiring more cooks; horizontal means opening longer hours",
         "They're two names for the same thing",
+        "Vertical means a bigger, more powerful truck; horizontal means more trucks side by side",
+        "Vertical means adding more trucks; horizontal means getting a bigger grill",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question:
@@ -432,23 +432,23 @@ the truck actually grew:
     {
       question: "Your service handles 1M requests/day. What are the average and (10×) peak requests per second?",
       options: [
-        "About 120 avg, about 1,200 peak",
-        "About 1,000 avg, about 10,000 peak",
         "About 12 avg, about 120 peak",
         "About 60 avg, about 600 peak",
+        "About 120 avg, about 1,200 peak",
+        "About 1,000 avg, about 10,000 peak",
       ],
-      correctIndex: 2,
+      correctIndex: 0,
     },
     {
       question:
         "Read replicas help you scale, but they do NOT help with which problem?",
       options: [
-        "Serving a huge volume of read queries",
-        "Reducing load on the primary database from reads",
-        "Handling a huge volume of writes — writes still funnel through the single primary",
         "Serving reads from a database copy close to the app servers",
+        "Reducing load on the primary database from reads",
+        "Serving a huge volume of read queries",
+        "Handling a huge volume of writes — writes still funnel through the single primary",
       ],
-      correctIndex: 2,
+      correctIndex: 3,
     },
   ]}
 />

@@ -351,19 +351,19 @@ what's the key?"
     {
       question: "You press the elevator call button, nothing happens, so you press it again. In an idempotent system, what arrives?",
       options: [
-        "One elevator per press — the system dispatches every request it receives",
-        "No elevator at all, because duplicate presses cancel each other out",
         "Exactly one elevator — repeat presses have no additional effect",
         "One elevator per press, but the extras are refunded",
+        "No elevator at all, because duplicate presses cancel each other out",
+        "One elevator per press — the system dispatches every request it receives",
       ],
-      correctIndex: 2,
+      correctIndex: 0,
     },
     {
       question: "Which of these operations is naturally idempotent?",
       options: [
-        "POST /orders — create a new order",
         "Increment a page-view counter by one",
         "Append a line to a log file",
+        "POST /orders — create a new order",
         "PUT /profile — replace the profile with this exact content",
       ],
       correctIndex: 3,
@@ -372,31 +372,31 @@ what's the key?"
       question: "Your charge request times out, so you retry with the same idempotency key. The first request actually succeeded. What does the server do?",
       options: [
         "It charges the card again, because a retry is a new request",
-        "It skips execution and returns the stored response from the first request",
         "It rejects the retry with an error, since the key is already used",
         "It ignores the key and executes the operation only if the amount differs",
+        "It skips execution and returns the stored response from the first request",
       ],
-      correctIndex: 1,
+      correctIndex: 3,
     },
     {
       question: "A queue guarantees at-least-once delivery and your consumer is idempotent. What processing semantics do you get?",
       options: [
-        "Effectively-once: every message takes effect exactly one time",
         "At-most-once: some messages will be silently dropped",
-        "Exactly-once delivery, guaranteed by the queue alone",
+        "Effectively-once: every message takes effect exactly one time",
         "Unordered delivery with no duplicate protection",
+        "Exactly-once delivery, guaranteed by the queue alone",
       ],
-      correctIndex: 0,
+      correctIndex: 1,
     },
     {
       question: "A retry carrying the same idempotency key arrives while the first request is still being processed. What should the server do?",
       options: [
+        "Reject the key as expired and ask the client to generate a new one",
         "Execute the operation again so the client gets a faster response",
         "Return 409 Conflict, so the client backs off and retries later with the same key",
         "Replay the stored response from the first request",
-        "Reject the key as expired and ask the client to generate a new one",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
   ]}
 />

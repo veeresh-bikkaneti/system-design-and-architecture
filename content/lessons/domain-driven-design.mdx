@@ -345,38 +345,38 @@ event sourcing is never tearing a page out of that logbook.
       question: "What does 'ubiquitous language' require of the vocabulary the business uses?",
       options: [
         "It stays in meeting notes while the code uses its own technical terms",
-        "It is used identically in conversations, documentation, and code — no translation layer",
         "It is defined once in a glossary that nobody reads",
+        "It is used identically in conversations, documentation, and code — no translation layer",
         "It applies only to event names, not to classes or tables",
-      ],
-      correctIndex: 1,
-    },
-    {
-      question: "Which name follows the lesson's rules for a domain event?",
-      options: [
-        "CheckInGuest — a clear imperative verb",
-        "GuestUpdated — covers every kind of change at once",
-        "GuestCheckedIn — past tense, a business fact that already happened",
-        "Guest — named after the entity it belongs to",
       ],
       correctIndex: 2,
     },
     {
-      question: "What is the key difference between a domain event and an integration event?",
+      question: "Which name follows the lesson's rules for a domain event?",
       options: [
-        "Domain events stay inside one bounded context and dispatch in-process; integration events cross context boundaries over async transport",
-        "Domain events are stored in the database; integration events are never stored anywhere",
-        "Integration events are always larger than domain events",
-        "They are the same thing with different names",
+        "GuestCheckedIn — past tense, a business fact that already happened",
+        "CheckInGuest — a clear imperative verb",
+        "Guest — named after the entity it belongs to",
+        "GuestUpdated — covers every kind of change at once",
       ],
       correctIndex: 0,
     },
     {
+      question: "What is the key difference between a domain event and an integration event?",
+      options: [
+        "Domain events are stored in the database; integration events are never stored anywhere",
+        "Domain events stay inside one bounded context and dispatch in-process; integration events cross context boundaries over async transport",
+        "Integration events are always larger than domain events",
+        "They are the same thing with different names",
+      ],
+      correctIndex: 1,
+    },
+    {
       question: "Why does the transactional outbox write the event to an outbox table in the same transaction as the state change?",
       options: [
-        "It makes the database write measurably faster",
         "It keeps the events table in third normal form",
         "The message broker requires a database receipt before accepting events",
+        "It makes the database write measurably faster",
         "So the state change and the pending event commit or roll back together — no published event without persisted state, and no lost event on crash",
       ],
       correctIndex: 3,
@@ -384,22 +384,22 @@ event sourcing is never tearing a page out of that logbook.
     {
       question: "In event storming, what goes on the wall first?",
       options: [
-        "The aggregates, so the business rules are settled early",
-        "The domain events, arranged on a timeline from left to right",
         "The database schema, so storage decisions are made up front",
         "The read models, so the UI drives the design",
+        "The domain events, arranged on a timeline from left to right",
+        "The aggregates, so the business rules are settled early",
       ],
-      correctIndex: 1,
+      correctIndex: 2,
     },
     {
       question: "Inside one bounded context, why should the Reservation aggregate publish GuestCheckedIn instead of calling the Folio directly?",
       options: [
-        "Direct method calls are slower than publishing events",
         "Events let you skip the database transaction entirely",
-        "It keeps aggregates decoupled — the publisher never knows its consumers, and the consistency boundary stays intact",
+        "Direct method calls are slower than publishing events",
         "The outbox pattern forbids all method calls between objects",
+        "It keeps aggregates decoupled — the publisher never knows its consumers, and the consistency boundary stays intact",
       ],
-      correctIndex: 2,
+      correctIndex: 3,
     },
   ]}
 />
