@@ -121,6 +121,48 @@ sequenceDiagram
     L->>F2: AppendEntries (next heartbeat carries commitIndex)
 ```
 
+<StepThrough
+  title="Raft: replicating a log entry"
+  nodes={[
+    { id: "client", label: "Client", x: 60, y: 150 },
+    { id: "leader", label: "L · leader", x: 200, y: 150 },
+    { id: "f1", label: "F1", x: 350, y: 70 },
+    { id: "f2", label: "F2", x: 350, y: 230 },
+  ]}
+  edges={[
+    { from: "client", to: "leader" },
+    { from: "leader", to: "f1" },
+    { from: "leader", to: "f2" },
+  ]}
+  steps={[
+    {
+      title: "Client writes x=3",
+      caption: "The leader accepts the write and appends it to its own log at index 42 — not committed yet, just a promise written in pencil.",
+      highlight: ["client", "leader"],
+    },
+    {
+      title: "Leader replicates",
+      caption: "AppendEntries RPCs carry entry [42]: x=3 to every follower. Replication is just the leader saying 'write down what I wrote.'",
+      highlight: ["leader", "f1", "f2"],
+    },
+    {
+      title: "Majority acknowledges",
+      caption: "F1 and F2 append the entry and ack. The leader now has it on 2 of 3 nodes — a majority. F2 could crash right now and the entry would still survive.",
+      highlight: ["f1", "f2", "leader"],
+    },
+    {
+      title: "Leader commits",
+      caption: "commitIndex advances to 42. The leader applies x=3 to its state machine and replies Success to the client — this write is now permanent.",
+      highlight: ["leader", "client"],
+    },
+    {
+      title: "Followers learn the commit",
+      caption: "The next heartbeat carries commitIndex=42, and F1 and F2 apply x=3 too. All three logs match — consensus, achieved one entry at a time.",
+      highlight: ["f1", "f2"],
+    },
+  ]}
+/>
+
 The **commit rule** is everything: an entry is committed once a *majority* has it. A
 committed entry will survive any future election — Raft's election rules guarantee the new
 leader's log contains all committed entries (a candidate's log must be at least as

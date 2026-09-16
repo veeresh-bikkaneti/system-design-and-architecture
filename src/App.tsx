@@ -16,6 +16,10 @@ import { NapkinMathPlayground } from './components/diagrams/NapkinMathPlayground
 import { ScrollyDiagram } from './components/diagrams/ScrollyDiagram';
 import { StepThrough } from './components/diagrams/StepThrough';
 import { VsToggle } from './components/diagrams/VsToggle';
+import { LoadBalancerSim } from './components/diagrams/LoadBalancerSim';
+import { SlidingWindowSim } from './components/diagrams/SlidingWindowSim';
+import { CacheFlow } from './components/diagrams/CacheFlow';
+import { CdnFlow } from './components/diagrams/CdnFlow';
 import {
   slugifyHeading,
   useRegisterHeading,
@@ -66,6 +70,10 @@ const mdxComponents = {
   ScrollyDiagram,
   StepThrough,
   VsToggle,
+  LoadBalancerSim,
+  SlidingWindowSim,
+  CacheFlow,
+  CdnFlow,
   VideoCard,
   pre: Pre,
   h2: H2,

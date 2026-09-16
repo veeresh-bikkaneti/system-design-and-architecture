@@ -105,6 +105,45 @@ flowchart TD
     end
 ```
 
+<StepThrough
+  title="Quorum in action: N=3, W=2, R=2"
+  nodes={[
+    { id: "client", label: "Client", x: 70, y: 150 },
+    { id: "coord", label: "Coordinator", x: 200, y: 150 },
+    { id: "n1", label: "N1", x: 360, y: 60 },
+    { id: "n2", label: "N2", x: 360, y: 150 },
+    { id: "n3", label: "N3", x: 360, y: 240 },
+  ]}
+  edges={[
+    { from: "client", to: "coord" },
+    { from: "coord", to: "n1" },
+    { from: "coord", to: "n2" },
+    { from: "coord", to: "n3" },
+  ]}
+  steps={[
+    {
+      title: "Write fans out to all three",
+      caption: "The coordinator sends the write to N1, N2, and N3. It doesn't need all three to answer — just W of them.",
+      highlight: ["client", "coord", "n1", "n2", "n3"],
+    },
+    {
+      title: "W=2 acknowledges",
+      caption: "N1 and N2 ack quickly; N3 is slow. Two acks make a quorum, so the write succeeds — N3 catches up in the background.",
+      highlight: ["n1", "n2"],
+    },
+    {
+      title: "Read asks two nodes",
+      caption: "R=2: the read goes to N2 and N3 and takes the newest value it finds. It doesn't matter that N3 missed the write.",
+      highlight: ["client", "n2", "n3"],
+    },
+    {
+      title: "Overlap guarantees freshness",
+      caption: "N2 sat in both the write quorum and the read quorum, so the read sees the latest write. R + W = 4 > N = 3: every read overlaps every write on at least one node.",
+      highlight: ["n2"],
+    },
+  ]}
+/>
+
 Typical tunings: `W=1, R=1` for blazing speed and crossed fingers; `W=QUORUM, R=QUORUM`
 for the balanced default; `W=ALL` when you'd rather be slow than sorry. Notice the latency
 implication: quorum writes wait for the *second-fastest* of 3 replicas — usually fine, and
