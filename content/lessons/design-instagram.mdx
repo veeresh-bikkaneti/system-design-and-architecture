@@ -18,6 +18,8 @@ clean thought process: scope the problem, do the math, design the write path, de
 read path, and name the hard part before they do. That's exactly how this lesson is
 structured — think of it as a rehearsal with the answers included.
 
+🎥 **Learn more:** [Instagram's Architecture, Explained | System Design Breakdown | Episode 01](https://www.youtube.com/watch?v=fRsajShniPk) — The Tech Intern. Breaks down Instagram's real architecture at scale, showing why each design choice matters.
+
 ## Step one: clarify the scope
 
 Every strong interview answer starts the same way: by narrowing the problem before touching
@@ -29,6 +31,8 @@ a whiteboard. Say this out loud:
   latency, and photos that must never be lost once uploaded.
 - **Out of scope:** stories, reels, DMs, ads, comments. Naming what you're *not* building
   is half the interview — it shows you can bound a problem.
+
+🎥 **Learn more:** [Design Requirements: The First Step of Every System Design Interview](https://www.youtube.com/watch?v=K6KUb4ci1hQ) — AlgoJS. Covers functional vs non-functional requirements — the scoping questions to ask before designing.
 
 ## Back-of-the-envelope math
 
@@ -60,6 +64,8 @@ responses. Summarized as the capacity plan you'd sketch on the whiteboard:
 | Feed reads | One cache lookup per app open | Timeline cache, not computation |
 
 Now let's build it.
+
+🎥 **Learn more:** [System Design Episode 4 || Capacity Estimation & Back-of-the-Envelope Calculations](https://www.youtube.com/watch?v=L3GLkH2oscw) — CodeTav Management. Walks capacity estimation with Instagram examples: users, storage, and bandwidth math.
 
 ## The upload pipeline: the photo lab
 
@@ -108,6 +114,8 @@ flowchart LR
     API --> Ledger[("Metadata DB<br/>the ledger, sharded")]:::data
 ```
 
+🎥 **Learn more:** [Design a Video Streaming Platform (Netflix/YouTube) — System Design Interview](https://www.youtube.com/watch?v=ZirDk7ZYE4E) — Phani Thaticharla. Details the upload and transcoding pipeline: resumable uploads, workers, and async processing.
+
 ## Metadata: the ledger, sharded
 
 Here's a decision the math forces on you: photo bytes and photo metadata get *different*
@@ -124,6 +132,8 @@ The pattern is the point, not the vendor: **the ledger must be partitionable by 
 key you query by**, or your most common read becomes a scatter-gather across every
 shard.
 
+🎥 **Learn more:** [System Design | Sharding | Database Sharding vs. Partitioning: Scaling to Billions of Rows](https://www.youtube.com/watch?v=MUSRr7zeW6U) — CS AI Think Tinker Learn. Instagram case study on sharded metadata with embedded IDs that eliminate network round-trips.
+
 ## Delivery: the prints go to the corner store
 
 When a user scrolls their feed, the actual photo bytes don't come from your servers —
@@ -133,6 +143,8 @@ signed CDN URLs from the feed response and fetches bytes from the nearest edge P
 Popular photos hit 95%+ edge cache ratios (you did this math in the CDNs lesson); the
 origin object store only serves the first fetch per region. That 5PB/day of read
 bandwidth? The CDN absorbs nearly all of it, and your origin bill stays sane.
+
+🎥 **Learn more:** [System Design Basics #16 — CDNs and Blob Storage: Serving Files and Photos at Scale](https://www.youtube.com/watch?v=Ntj3lQpjxI8) — LLMwork. Shows how photos move from blob storage to CDN edges so viewers fetch nearby copies.
 
 ## The feed: the newspaper routes
 
@@ -220,6 +232,8 @@ split — metadata path vs byte path — is the single most important architectu
 the system. Every time the design gets confusing, ask "is this about IDs or about
 bytes?" and it gets clear again.
 
+🎥 **Learn more:** [System Design 101: News Feed Architecture](https://www.youtube.com/watch?v=3BSC0FfaXYA) — Ptolémé. Compares fan-out on write vs read for feed generation, caching, and ranking tradeoffs.
+
 ## The follow graph: the other database
 
 Photos aren't the only thing that needs sharding — the **follow graph** does too.
@@ -237,6 +251,8 @@ be fast and paginated, not a full table scan wearing a nice query. In the interv
 mentioning the follow graph as a separate sharded concern — distinct from both
 photo bytes and photo metadata — is what separates a good answer from a great one.
 
+🎥 **Learn more:** [System Design Essentials | Data Stores/DB | Graph Databases: Index-Free Adjacency, LPG vs RDF](https://www.youtube.com/watch?v=L9yitYWl8EY) — CS AI Think Tinker Learn. Explains why graph stores handle follow relationships better than relational tables.
+
 ## Serving the right size: variants and signed URLs
 
 One more detail the lab analogy covers nicely: the lab prints your photo in several
@@ -249,6 +265,8 @@ For private accounts, those URLs are **signed** — they carry an expiry timesta
 and a signature, so a leaked URL stops working after an hour instead of living on
 the internet forever. The CDN verifies the signature at the edge without ever
 calling your API. Access control, enforced where the bytes actually flow.
+
+🎥 **Learn more:** [Design Youtube Video Platform | System Design Interview](https://www.youtube.com/watch?v=_0M7ae-ddkM) — ScalaBrix. Covers multiple media renditions plus signed playback URLs for authorized access.
 
 ## Edge cases: what breaks at a billion photos
 
@@ -277,6 +295,8 @@ The design above is the happy path. The interview points come from naming what b
   whole design holds together. Know which parts of your system are allowed to lag;
   it buys you enormous architectural freedom.
 
+🎥 **Learn more:** [Loading the Whole Social Graph OOM-Killed the Feed — Design Instagram](https://www.youtube.com/watch?v=cBTLq-MPhO4) — TheCodeForge. Catalogs real failure modes at scale: OOM kills, hot shards, thundering herds.
+
 ## What you'd say in the interview
 
 Walk it back in one minute: scope to upload, feed, follow; 100M uploads/day means
@@ -287,6 +307,8 @@ hybrid — fan-out on write for normal users, fan-in on read for celebrities, ti
 cached as ID lists. Then name the trade-off you didn't take: pure push melts on
 celebrities, pure pull makes every read expensive, and your hybrid is the deliberate
 middle. That's a passing answer.
+
+🎥 **Learn more:** [System Design Interview: Designing a Social Media Feed (Twitter/Instagram Scale)](https://www.youtube.com/watch?v=jSAD5TDalsg) — Hybeecodes. Full mock-interview walkthrough of a social feed design, from requirements to architecture.
 
 ## Takeaways
 

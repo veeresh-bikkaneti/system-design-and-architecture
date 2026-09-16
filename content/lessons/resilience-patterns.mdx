@@ -18,6 +18,8 @@ The initial failure was a stubbed toe. The cascade was the system. Resilience pa
 how you make the toe-stub survivable — they're the difference between "payments were slow
 for five minutes" and "we were down for five hours."
 
+🎥 **Learn more:** [Episode 55 - What Happens When a Component Fails? | Building Resilient Systems](https://www.youtube.com/watch?v=MscUun1GWu8) — Anupam Tech Talks. Walks through what happens when a component fails — the case for resilient design.
+
 ## The house wiring and the ship's hull
 
 This lesson's running analogy comes in two parts, both stolen from engineering older than
@@ -37,6 +39,8 @@ way: isolate resources per dependency so one slow service can't drown the rest.
 
 Keep both images handy. The breaker protects you from *calling* a sick dependency; the
 bulkhead protects you from *sharing* resources with one.
+
+🎥 **Learn more:** [💊 Designing for Failure: The Key to Robust Microservices Architecture](https://www.youtube.com/watch?v=UySf6ivvGoM) — مصطفى سليمان. Covers timeouts, circuit breakers, and bulkheads — the wiring that keeps ships afloat.
 
 ## The anatomy of a cascade
 
@@ -58,6 +62,8 @@ buried under a mountain of queued, stale work. Michael Nygard's *Release It!* ca
 "cascading failures" and treats them as the default outcome of connecting systems without
 protection. He's right. Unprotected, every distributed system is one slow dependency away
 from this story.
+
+🎥 **Learn more:** [How Adding Servers Froze AWS us-east-1: The Kinesis Thundering Herd Autopsy](https://www.youtube.com/watch?v=C4h-xbwgDGc) — Fault Domain. Postmortem of a real cascading outage: thread exhaustion, health-check starvation, thundering-herd recovery.
 
 ## Timeouts: the cheapest insurance you'll ever buy
 
@@ -84,6 +90,8 @@ A few things engineers learn the hard way about timeouts:
 Timeouts are insurance: you pay a small premium (occasionally giving up on a call that
 would have succeeded at second 31) to avoid the catastrophic loss (the cascade). Buy the
 insurance.
+
+🎥 **Learn more:** [Timeouts & Retries in Distributed Systems (Tuning for Reliability)](https://www.youtube.com/watch?v=G_kExQGrbOs) — Mila Bay. Practical tuning guide for timeouts and retries in distributed systems.
 
 ## Retries: help the patient, don't mob the hospital
 
@@ -139,6 +147,8 @@ read is harmless. Retrying "charge the card" is how someone gets billed twice �
 operation is *idempotent* (safe to repeat, e.g., keyed by an idempotency token the server
 deduplicates). Retry budgets help too: cap retries at, say, 10% of your traffic, so a
 systemic failure can't turn every request into five.
+
+🎥 **Learn more:** [Why Every Microservice Needs Retry Mechanisms | Retry patterns in microservices](https://www.youtube.com/watch?v=RN77jxqHMRg) — Frustrated Programmer. Explains why microservices need retry mechanisms — and how to use them safely.
 
 ## Circuit breakers: stop calling a phone that's off the hook
 
@@ -223,6 +233,8 @@ Second, breakers compose: put them on every outbound call, per dependency, so a 
 payments service trips its own breaker while search keeps humming. Which is exactly the
 bulkhead idea — and a good segue.
 
+🎥 **Learn more:** [Circuit Breaker Pattern in Microservices | System Design](https://www.youtube.com/watch?v=QpLMeEa5l4E) — Prashant Pandey. Clear system-design walkthrough of the circuit breaker pattern in microservices.
+
 ## Bulkheads: one flooded compartment shouldn't sink the ship
 
 The breaker stops you from *calling* a sick dependency. The bulkhead stops a sick
@@ -252,6 +264,8 @@ concurrency plus headroom, then watch the metrics. And bulkheads aren't just poo
 separate queues, separate rate limits, even separate *processes* for critical vs.
 best-effort work all count. Any shared resource is a shared fate.
 
+🎥 **Learn more:** [Bulkhead Pattern in Microservices Explained | Resilience4j + Spring Boot ✅](https://www.youtube.com/watch?v=uOhlKkfcTms) — CodeSnippet. Bulkhead pattern with Resilience4j and Spring Boot — isolating failure compartments.
+
 ## Degrade gracefully: the backup generator
 
 When a compartment floods despite everything, the last question is: what does the user
@@ -274,6 +288,8 @@ Degradation is a product decision as much as an engineering one: someone has to 
 features by "what can we lose and still be useful." Have that argument on a calm Tuesday,
 not during the outage. Write the fallback *with* the feature, not after the postmortem.
 
+🎥 **Learn more:** [Ep. 29: Graceful Degradation: What You Need to Know](https://www.youtube.com/watch?v=Lw8KExizlPQ) — Systemic Stack English. Dedicated explainer on graceful degradation — your backup generator strategy.
+
 ## You can't fix what you can't see
 
 Every pattern in this lesson runs on measurements. A circuit breaker is a failure-rate
@@ -285,6 +301,8 @@ instrument panel. Flying a ship with bulkheads and breakers but no gauges is jus
 with extra steps. If you take one operational habit from this lesson: dashboard the
 failure rate, latency, and saturation of every dependency you add a breaker to — otherwise
 you'll never know whether the pattern is working or merely installed.
+
+🎥 **Learn more:** [SRE101: How Tech Companies Monitor Apps in Production | Hands-On Workshop with Grafana & Prometheus](https://www.youtube.com/watch?v=j_PDMsDxFF8) — Opportunity Hack. Hands-on workshop monitoring apps with Prometheus and Grafana — see issues before users do.
 
 ## Takeaways
 

@@ -20,6 +20,8 @@ perfectly reasonable instinct: *when something fails, try again.* Retrying is co
 networks are flaky, and giving up on the first timeout would be worse. The fix isn't to
 stop retrying. It's to make retries safe. That property has a name: **idempotency**.
 
+🎥 **Learn more:** [One Retry Can Charge Your Customer Twice](https://www.youtube.com/watch?v=D3VOEyDE630) — In Production Media. Shows real production duplicates — webhooks, backups, double charges — and why retries make them inevitable.
+
 ## Pressing the elevator button twice
 
 This lesson's running analogy: the call button outside an elevator. You press it, the
@@ -41,6 +43,8 @@ Map it to your system:
 The elevator doesn't achieve this by being clever. It achieves it because "come to this
 floor" is an operation where repeats are harmless. Not every operation is built that way —
 and that's where the trouble starts.
+
+🎥 **Learn more:** [Salesforce Apex Idempotency Architecture Explained: Stop Duplicate Records | Cloud Developer](https://www.youtube.com/watch?v=2EVSUpI2DEU) — Cloud Developer. Teaches the elevator-button analogy directly: pressing ten times still calls the elevator once.
 
 ## The precise definition
 
@@ -69,6 +73,8 @@ send it five times and find out what your refund policy is.
 Drop the analogy when precision matters: idempotency is a property of the *operation's
 effect*, not of the transport. A retry that arrives twice must not apply its effect twice.
 
+🎥 **Learn more:** [Mastering Idempotency: Distributed System Reliability on AWS](https://www.youtube.com/watch?v=Ra39zPA7m1k) — Cloud Explainers. Contrasts mathematical and system-design definitions of idempotency, then maps them to real HTTP behavior.
+
 ## Why networks force this on you
 
 You might wonder why we can't just avoid retries. Because the alternative is worse, and
@@ -93,6 +99,8 @@ standard queues document exactly this; their FIFO queues even dedupe for you via
 message deduplication IDs, the queue acting as the lit button). Your consumer promises
 "processing the same message twice has no extra effect." Multiply those two promises and
 you get the behavior everyone actually wants: each message takes effect once.
+
+🎥 **Learn more:** [Distributed Systems 2.1: The two generals problem](https://www.youtube.com/watch?v=MDuWnzVnfpI) — Martin Kleppmann. Kleppmann proves why unreliable networks make certainty impossible, forcing retries and duplicate handling.
 
 ## Idempotency keys: the lit button
 
@@ -164,6 +172,8 @@ on the key column: the loser's insert fails, and once the winner finishes it rea
 winner's stored response and returns that (if the winner is still in flight, the loser
 returns 409 instead — see below). Your database already knows how to do atomic inserts; let it.
 
+🎥 **Learn more:** [How to Stop Duplicate Payments with Idempotency Keys | System Design](https://www.youtube.com/watch?v=7HYmUO295eU) — Agenthub. Walks through timeouts causing duplicate payments, then implements idempotency keys with state-locking and TTLs.
+
 ## The key has three states, not two
 
 That flowchart asks "key seen before?" — but "seen" hides two very different situations,
@@ -212,6 +222,8 @@ one row. If your system fails that test, the key column is missing its uniquenes
 constraint — go back and add it. Concurrency is where idempotency designs go to be
 graded, and the grader is strict.
 
+🎥 **Learn more:** [Idempotency System Design || Stop Duplicate Processing at Billion Scale || Part 2](https://www.youtube.com/watch?v=86rHff8QgUM) — ScalaBrix. Details the idempotency-key lifecycle — NEW, IN_PROGRESS, SUCCEEDED, FAILED — and avoids retry race conditions.
+
 ## Failure modes: where idempotency breaks
 
 Idempotency keys are simple, which means the bugs hide in the details:
@@ -232,6 +244,8 @@ Idempotency keys are simple, which means the bugs hide in the details:
   permission check. Anyone who guesses another user's key gets their receipt — so scope
   key lookups to the authenticated user, always.
 
+🎥 **Learn more:** [Why Network Retries Cause Duplicate Payments (And How to Fix It with Idempotency)](https://www.youtube.com/watch?v=mD6Ne9Wn44M) — Agenthub. Breaks down the exact failure loop behind duplicate charges and how blind retries create race conditions.
+
 ## Retries need manners, too
 
 Idempotency makes retries *safe*. It doesn't make them *polite*. A client that retries a
@@ -244,6 +258,8 @@ retry in lockstep.
 Think of it as elevator etiquette: pressing the lit button again is harmless, but jabbing
 it forty times a second doesn't summon the car any faster. It just wears out the button.
 Idempotency is the lit button; backoff is the patience.
+
+🎥 **Learn more:** [Idempotent Consumers for Retry Logic](https://www.youtube.com/watch?v=U2nbwRsE2-I) — ByteDistrict. Covers retry logic paired with idempotent consumers: response replay, TTLs, locks, and out-of-order delivery.
 
 ## Idempotent vs. not: a toggle
 
@@ -281,6 +297,8 @@ absolute form. "Set balance to $100" beats "add $10" every time a retry is possi
 a retry is always possible. The best idempotency mechanism is an operation that doesn't
 need one.
 
+🎥 **Learn more:** [HTTP Methods Are Not CRUD](https://www.youtube.com/watch?v=4DKnSdwgmg8) — LearnThatStack. Maps HTTP methods onto safe and idempotent axes: GET, PUT, DELETE repeat safely; POST can charge twice.
+
 ## The exactly-once illusion
 
 A word of caution before you feel too safe: nobody can promise **exactly-once** delivery
@@ -302,6 +320,8 @@ So when someone says their pipeline is "exactly once," translate it charitably: 
 effectively-once, built on at-least-once delivery and idempotent consumers, with the
 duplicates quietly absorbed. Now you know what to ask them: "where do you dedupe, and
 what's the key?"
+
+🎥 **Learn more:** [Exactly Once Delivery: Why It Does Not Exist and What You Get Instead](https://www.youtube.com/watch?v=W0k2JOUAbdU) — HafsDeepLearning. Derives why exactly-once delivery is impossible over unreliable networks, and what guarantees replace it.
 
 ## Takeaways
 

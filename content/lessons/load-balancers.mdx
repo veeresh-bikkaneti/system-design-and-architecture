@@ -17,6 +17,8 @@ queue up, and eventually the whole thing falls over. A **load balancer** is how 
 favorite apps survive traffic spikes, celebrity tweets, and the occasional server that just
 gives up on life.
 
+🎥 **Learn more:** [Load Balancers, Properly Explained — Part 1: The Why](https://www.youtube.com/watch?v=oUU51Y6XA2w) — whiteboardinterview. Opens with one server buckling under ten thousand users, then shows why every serious service needs a balancer.
+
 ## Picture a restaurant host
 
 Meet **Rita**, the host at the busiest restaurant in town. Rita does three things, and they are
@@ -44,6 +46,8 @@ flowchart LR
 
 (Rita never takes a bathroom break. We'll come back to why that's a problem.)
 
+🎥 **Learn more:** [What is a Load Balancer](https://www.youtube.com/watch?v=3NzIxASfy5k) — Dargslan. Uses a restaurant-host analogy to explain how requests get seated across servers, with clear visual flow.
+
 ## Where Rita works: DNS, Layer 4, Layer 7
 
 Requests pass through several layers before reaching your app, and Rita can stand at more
@@ -57,6 +61,8 @@ than one door:
 - **Layer 7 (application)** — Rita actually reads your reservation: "party of four, sushi
   bar, and you're a regular." She routes based on URL path, host header, or cookies. Smarter,
   but it costs more of her attention per guest.
+
+🎥 **Learn more:** [What Is Load Balancing? Types of Load Balancing Every Cloud Architect Must Know](https://www.youtube.com/watch?v=EDbnQTZvJb8) — Go Cloud Architects. Covers DNS load balancing through network and cloud types, mapping each balancer to its place in the stack.
 
 ## How Rita picks a table: the algorithms
 
@@ -83,12 +89,16 @@ flowchart TD
     A -->|A returning regular| IH[IP hash: same table as last time]
 ```
 
+🎥 **Learn more:** [Top 6 Load Balancing Algorithms Every Developer Should Know](https://www.youtube.com/watch?v=dBmxNsS3BGE) — ByteByteGo. Breaks down six algorithms — round robin, least connections, hashing — with simple diagrams showing when each fits.
+
 ## Health checks: who's actually on shift
 
 Rita's superpower is that she never sends a guest to a table whose waiter just quit. The load
 balancer periodically probes each server — a TCP connect, or an HTTP `GET /health` — and pulls
 unhealthy nodes out of rotation. This turns a single server crash into a brief capacity dip
 instead of an outage. Your users keep eating; they never know a waiter left mid-shift.
+
+🎥 **Learn more:** [Load Balancers Part 2: Algorithms, Health Checks & Sticky Sessions](https://www.youtube.com/watch?v=LcSR7jpVEFI) — whiteboardinterview. Frames health checks as a morning standup that finds dead servers and pulls them out of rotation.
 
 ## Layer 7 example: routing by path
 
@@ -105,6 +115,8 @@ flowchart LR
 
 This is what lets one public address — `app.example.com` — quietly serve orders, users, and
 images from completely different server pools, each scaled for its own appetite.
+
+🎥 **Learn more:** [The Only AWS ALB Guide You Need | Listeners, Rules & Traffic Distribution](https://www.youtube.com/watch?v=XdrypYpVTSs) — Madhukar Reddy. Walks through ALB listener rules sending /api and /app paths to different target groups, step by step.
 
 ## The bathroom-break problem
 
@@ -125,6 +137,8 @@ flowchart LR
 
 So Rita finally gets her bathroom break — as long as there's a second Rita on standby.
 (They split tips.)
+
+🎥 **Learn more:** [AWS Network Load Balancer: Connection Draining & Deregistration Delay Explained](https://www.youtube.com/watch?v=hkXhY9mPmQU) — Network Ninja. Explains deregistration delay so in-flight requests finish before a removed target stops serving them.
 
 ## Takeaways
 

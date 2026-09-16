@@ -22,6 +22,8 @@ back and forth to it for every single order would bring the kitchen to its knees
 ingredients you use constantly live right next to the stove. Caching is mise en place for
 data: keep the hot stuff close.
 
+🎥 **Learn more:** [Why Is Your App Slow? Redis & Caching Explained | C# Cache-Aside](https://www.youtube.com/watch?v=TQPUHnuXWcY) — Backend Developer. A café analogy shows what repeated DB reads cost — and what caching saves.
+
 ## The core trade-off
 
 A cache buys you **speed** and **reduced load** in exchange for **staleness** and
@@ -29,6 +31,8 @@ A cache buys you **speed** and **reduced load** in exchange for **staleness** an
 cache invalidation, naming things, and off-by-one errors. (The joke itself contains an
 off-by-one error. You're welcome.) Every strategy below is a different answer to one
 question: *when this data changes, who is responsible for making the cache agree?*
+
+🎥 **Learn more:** [How One Cache Turns 200ms Into 1ms — Caching Strategies Explained](https://www.youtube.com/watch?v=hk50ZQuZGgQ) — prahack. The 200ms-to-1ms win, then the catch: a second copy drifts out of date.
 
 ## Cache-aside (lazy loading)
 
@@ -78,6 +82,8 @@ your application code now owns all the invalidation logic. Most teams using **Me
   }}
 />
 
+🎥 **Learn more:** [A Step-by-Step Guide for the Cache-Aside Pattern + Stampede Protection](https://www.youtube.com/watch?v=CVQz0E33ft4) — Milan Jovanović. An established educator walks cache-aside through implementation, pros and cons included.
+
 ## Read-through and write-through
 
 In **read-through**, the cache itself knows how to load from the database on a miss — your
@@ -105,6 +111,8 @@ safe, and why they don't lose acknowledged writes on a crash. Application caches
 that safety net, so they should avoid write-behind unless you can afford to lose recent
 writes.
 
+🎥 **Learn more:** [System Design Part 3: Caching Layer](https://www.youtube.com/watch?v=yf1VvSXUANI) — Sketch Mind. Dedicated chapters contrast read-through vs write-through, and the freshness each one buys.
+
 ## Eviction: when the pantry is full
 
 Memory is finite, so caches evict. The classics:
@@ -120,6 +128,8 @@ TTL deserves special respect: it is the *dumbest* invalidation strategy and ther
 most reliable. Short TTLs mean fresher data and more database load; long TTLs mean the
 reverse. Picking a TTL is picking where you live on that line — there is no universal right
 answer, only the one your users will tolerate.
+
+🎥 **Learn more:** [Ep. 21: Cache Eviction Explained in Detail](https://www.youtube.com/watch?v=vAqFJp_eaGI) — Systemic Stack English. Compares FIFO, LRU, and LFU with workload trade-offs — exactly this subtopic.
 
 ## The thundering herd
 
@@ -148,12 +158,16 @@ Defenses, from simplest to fanciest:
 3. **Stale-while-revalidate** — serve the slightly-old value immediately and refresh in the
    background. Users get speed *and* freshness, eventually.
 
+🎥 **Learn more:** [Hot Keys & Cache Stampedes Explained | Prevent Database Meltdowns | System Design](https://www.youtube.com/watch?v=-q_Ku081_SI) — Tejav Academy. A dedicated stampede explainer: warming, stale-while-revalidate, and request coalescing.
+
 ## Where caches live
 
 Caching isn't one layer — it's a stack. Browser caches, [**CDN** edge caches](#/lesson/cdns) (next lesson!),
 application caches like Redis, database query caches, even CPU caches. Each layer trades a
 different amount of staleness for a different amount of speed. When debugging "why is this
 slow," walk the stack top-down: the fix is usually a missing layer, not a faster database.
+
+🎥 **Learn more:** [Caching at Different Levels: Client, CDN, Redis & DB | System Design](https://www.youtube.com/watch?v=ZIDjSV1RZBU) — InfraWithDipankar. Walks the four layers — client, CDN, Redis, database — and when each one goes wrong.
 
 ## Takeaways
 

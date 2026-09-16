@@ -24,6 +24,8 @@ independent, with its own staff, menu, and hours. One stall's grease fire doesn'
 others, but now you need shared plumbing, shared seating, and a directory so customers can
 find the dumplings.
 
+🎥 **Learn more:** [Microservices, Where Did It All Go Wrong - Ian Cooper - NDC London 2025](https://www.youtube.com/watch?v=d8NDgwOllaI) — NDC Conferences. Cooper unpacks the misunderstandings that made a decade of microservices painful, and what each approach was meant to solve.
+
 ## What each buys you
 
 **Monolith strengths:** one codebase to understand, one deployment pipeline, function
@@ -50,6 +52,8 @@ flowchart LR
     end
 ```
 
+🎥 **Learn more:** [Monolithic vs Microservice Architecture: Which To Use and When?](https://www.youtube.com/watch?v=NdeTGlZ__Do) — Alex Hyett. Walks through advantages and disadvantages of each style so you see what monoliths and microservices buy you.
+
 ## Conway's law: the part nobody warns you about
 
 > "Organizations design systems that mirror their own communication structure." — Melvin Conway, 1968 (written 1967)
@@ -63,6 +67,8 @@ The flip side: if you have five genuinely independent teams stepping on each oth
 repo, splitting is how you stop the merge-conflict wars. Architecture follows org, not the
 other way around.
 
+🎥 **Learn more:** [Architecture and Organization: Inverse Conway and Team Topologies](https://www.youtube.com/watch?v=8lfeIdqwWDM) — Adaptive Organizations meet Architecture. Explains how team structures shape software design, and how the inverse Conway maneuver lets you redesign teams deliberately.
+
 ## The distributed monolith: the worst of both
 
 The failure mode to fear has a name: the **distributed monolith**. It looks like
@@ -71,6 +77,8 @@ microservices (many deployables, network calls everywhere) but behaves like a mo
 scaling). You get all the operational pain of distribution with none of the autonomy. Telltale
 signs: distributed transactions across services, lockstep deployments, and a "service"
 diagram that is really one big ball of mud with HTTP in the middle.
+
+🎥 **Learn more:** [Don't Build a Distributed Monolith: How to Avoid Doing Microservices Wrong - Jonathan J. Tower](https://www.youtube.com/watch?v=9iW_2MMLd4w) — NDC Conferences. Tower walks through ten common microservices mistakes that quietly produce a distributed monolith, and how to avoid them.
 
 ## The modular monolith: the underrated middle
 
@@ -82,6 +90,8 @@ boundary is already drawn — extraction becomes a mechanical move, not an archa
 project. **Shopify** runs one of the world's largest Rails monoliths this way; **Amazon
 Prime Video** famously *moved back* from microservices to a monolith for one workload and
 cut infrastructure costs ~90%.
+
+🎥 **Learn more:** [You're Building Modular Monoliths All Wrong](https://www.youtube.com/watch?v=I4dC_lqS_I8) — CodeOpinion. Comartin shows how to draw true module boundaries with real data ownership inside one deployable monolith.
 
 ## A decision framework
 
@@ -96,6 +106,8 @@ And the golden rule, courtesy of everyone who's been burned: **don't start with
 microservices.** Start with a modular monolith; split along the seams that prove painful.
 Premature distribution is the root of all evil — or at least of all 3 AM pages involving
 seven services and one missing trace span.
+
+🎥 **Learn more:** [Monolith vs Microservices (Most Engineers Get This WRONG) | When to Use What (Interview Guide)](https://www.youtube.com/watch?v=sXVpQpsdjfQ) — TechingEasy. Lays out when to use a monolith versus microservices, giving clear criteria for the architecture decision.
 
 ## Takeaways
 

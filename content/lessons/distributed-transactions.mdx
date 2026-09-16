@@ -26,6 +26,8 @@ calls, the planner is stuck: the florist is holding the date, the money is half-
 nobody knows whether the wedding is happening. That stuck state has a name — **blocking** —
 and it's the central drama of this lesson.
 
+🎥 **Learn more:** [Distributed Transactions in Microservices | 2PC, Failures & Compensation | Episode 15](https://www.youtube.com/watch?v=TcjA6iPoods) — Avinash Explains Tech. Covers local vs distributed transactions, ACID limits across services, and the partial-failure problem that starts it all.
+
 ## Two-phase commit (2PC): the classic
 
 One **coordinator** drives the transaction across **participants** (databases/services):
@@ -56,6 +58,8 @@ hold **locks for the entire duration** — including while waiting on a slow coo
 Lock-hold time directly caps throughput: if a 2PC transaction holds locks for 50 ms,
 that's at most ~20 such transactions per second per contended row, no matter how much
 hardware you buy. 2PC buys atomicity with latency and contention.
+
+🎥 **Learn more:** [Two-Phase Commit (2PC) Explained: Pros, Cons & When to Use It](https://www.youtube.com/watch?v=skULExZgBSg) — Escoding. Walks through the prepare and commit phases, why coordinators matter, and where 2PC makes sense.
 
 ## The blocking problem
 
@@ -107,6 +111,8 @@ increasingly avoided *across* independent services — which is where **sagas** 
   ]}
 />
 
+🎥 **Learn more:** [Three Phase Commit Explained: How Distributed Systems Stay Consistent | Reserve, Pre-Commit, Commit](https://www.youtube.com/watch?v=J5Iu3MUae5E) — Kartikeya Sharma. Shows how a coordinator crash leaves participants holding locks in an uncertain state — then how 3PC answers it.
+
 ## Sagas: embracing the lack of atomicity
 
 A **saga** breaks the distributed transaction into a sequence of **local transactions**,
@@ -132,6 +138,8 @@ Compensating actions are the hard part: "refund the card" is easy; "un-send the 
 impossible — you send a *correction* email instead. Design compensations to be
 **idempotent** (the saga might retry them) and accept that some effects are only
 *semantically* undone, never truly erased.
+
+🎥 **Learn more:** [Not Just Events: Developing Asynchronous Microservices • Chris Richardson • GOTO 2019](https://www.youtube.com/watch?v=kyNL7yCvQQc) — GOTO Conferences. Richardson explains sagas as sequences of local transactions, covering orchestration and messaging for reliability.
 
 ## The outbox pattern: transactions + messaging, safely
 
@@ -164,6 +172,8 @@ consumers must be idempotent — there's our old friend from *Message Queues*). 
 (CDC-based) is the industrial-strength version: it tails the database's own replication
 log instead of polling a table.
 
+🎥 **Learn more:** [How to Never Silently Lose an Event | The Transactional Outbox Pattern](https://www.youtube.com/watch?v=3hdQUcz1CA8) — Ops and Odds. Demonstrates writing the event to an outbox table in the same transaction, plus polling vs CDC relay options.
+
 ## Choosing your poison
 
 | Approach | Atomicity | Availability during failures | Complexity |
@@ -177,6 +187,8 @@ The pragmatic default for microservices: **avoid distributed transactions where 
 domain allows it** (redesign boundaries so one service owns the write), use the **outbox**
 for "update + notify," and reach for **sagas** when a multi-step business process truly
 spans services. Reserve 2PC for single-cluster cases where the database does it for you.
+
+🎥 **Learn more:** [Distributed Transactions Explained: 2 Phase Commit vs Saga Pattern](https://www.youtube.com/watch?v=DOFflggE_0Q) — Hello Interview. Compares 2PC and sagas head-to-head, covers the outbox as the glue, and gives a practical verdict.
 
 ## Takeaways
 

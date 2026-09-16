@@ -23,6 +23,8 @@ chain opens **regional kitchens** that keep the sauce ready to go. Diners everyw
 same dish, fast. A CDN is a network of regional kitchens for your bytes: hundreds of edge
 locations (Points of Presence, or **PoPs**) that cache your content near your users.
 
+🎥 **Learn more:** [What is a CDN](https://www.youtube.com/watch?v=G2YyXlMH_5w) — Dargslan. Opens with the distance problem, then shows how CDNs cut latency, absorb traffic spikes, and shield origins.
+
 ## The request path
 
 ```mermaid
@@ -63,6 +65,8 @@ JS bundles) routinely hit 95%+; personalized API responses might be near 0%.
   }}
 />
 
+🎥 **Learn more:** [Content Delivery Networks (CDN) explained in TWO minutes](https://www.youtube.com/watch?v=1fMJKA7Cm0s) — Ptolémé. Visual two-minute walk through DNS routing, the nearest edge server, cache hit versus miss, and origin fetch.
+
 ## The cache hierarchy
 
 Large CDNs don't have just one layer. A typical setup:
@@ -80,6 +84,8 @@ caching layer that collapses duplicate misses from many edges into one request t
 origin. Without it, a cache flush across 300 edges means 300 simultaneous requests to your
 origin — the thundering herd's globe-trotting cousin (see *Caching Strategies*).
 
+🎥 **Learn more:** [CDNs Explained — How Content Delivery Networks Make Websites Faster](https://www.youtube.com/watch?v=HGAyuf0WIEQ) — NetWorks. Explains PoPs, edge versus regional caches, and origin shielding for collapsing many edge misses into one origin request.
+
 ## TTLs, purging, and versioning
 
 Everything cached at the edge eventually goes stale, and CDNs manage that with the same
@@ -92,6 +98,8 @@ instead, ship `app.v2.js` alongside `app.v1.js` and update the reference. Immuta
 get year-long TTLs and never need purging. Your HTML (short TTL, or uncached) points at the
 new filenames. Stop mutating files in place and a whole class of staleness bugs simply
 disappears.
+
+🎥 **Learn more:** [Cache Invalidation: Why Is It So Hard? The #1 Caching Problem](https://www.youtube.com/watch?v=gi9SclyWAA0) — TechingEasy. Compares TTL expiry, explicit invalidation, and versioned cache keys with the trade-offs of each approach.
 
 ## Dynamic content acceleration
 
@@ -107,6 +115,8 @@ help, through the boring magic of better networking:
 thank you for the 80 milliseconds you shaved off their API call, but the conversion-rate
 graphs will.
 
+🎥 **Learn more:** [Content Delivery Network (CDN) Basics by CDNetworks](https://www.youtube.com/watch?v=Uu0f1HRg7aY) — Web Acceleration Channel - by CDNetworks. CDNetworks engineers walk through the techniques used to accelerate dynamic, non-cacheable content across the network.
+
 ## Picking and configuring
 
 A few practical trade-offs worth knowing:
@@ -118,6 +128,8 @@ A few practical trade-offs worth knowing:
   routing sends each user to the nearest one. This is why one DNS answer serves the planet.
 - **Cost model**: you pay mostly for egress bandwidth and requests. A misconfigured cache
   (low hit ratio) doesn't just hurt latency — it shows up on the invoice, twice.
+
+🎥 **Learn more:** [How to implement a CDN](https://www.youtube.com/watch?v=mPDpSwvYafo) — Contabo. Walks through choosing a provider, pointing DNS at it, and tuning Cloudflare caching, compression, and SSL settings.
 
 ## Takeaways
 

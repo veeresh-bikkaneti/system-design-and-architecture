@@ -19,12 +19,16 @@ feed, your order history, and your photo library all survive having billions of 
 question is never *whether* to shard at scale; it's *how*, and which pain you're willing to
 accept.
 
+🎥 **Learn more:** [Database Optimization in System Design | Replication, CAP Theorem, Partitioning & Sharding Explained](https://www.youtube.com/watch?v=jTe6Q78uzQA) — Web Detailed by Mohi. Explains why databases become bottlenecks and how partitioning and sharding unlock performance at scale.
+
 ## Picture a library system
 
 Our analogy: a beloved city library that got *too* popular. The central branch is overflowing —
 shelves groaning, lines out the door. The city opens branch libraries and splits the
 collection across them. Every book lives at exactly one branch. Now, how do patrons find their
 books? That question is the entire lesson.
+
+🎥 **Learn more:** [Sharding, Partitioning & Indexing in Database| System Design | Episode 09](https://www.youtube.com/watch?v=Ws2vMYZgN84) — The Tech Intern. Builds intuition with everyday pictures like a phone book at two counters, then walks range vs hash sharding.
 
 ## Partitioning strategies
 
@@ -78,6 +82,8 @@ flowchart TD
     N1 --> N3["Node D now owns only keys 59-66"]
 ```
 
+🎥 **Learn more:** [Why One Database Is Never Enough — Partitioning Deep Dive (DDIA Ch. 6)](https://www.youtube.com/watch?v=ds-v2gIvTpo) — Savant Space. Compares key-range vs hash partitioning, hot spots, and consistent hashing for rebalancing, straight from DDIA.
+
 ## The hard part: cross-shard operations
 
 Sharding buys horizontal scale at a real price. The library is bigger now, but some things
@@ -112,6 +118,8 @@ sequenceDiagram
     Note over App: Merge partial results
 ```
 
+🎥 **Learn more:** [System Design | Sharding | Database Sharding & Partitioning: A Senior Engineer's Guide to Scaling](https://www.youtube.com/watch?v=OP2qdmAEmYE) — CS AI Think Tinker Learn. Covers 2PC cost, cross-shard writes, and rebalancing in a deep sharding walkthrough.
+
 ## Picking a partition key
 
 The partition key is the single most consequential decision in a sharded design — it's the
@@ -126,6 +134,8 @@ rule that decides where everything lives. A good partition key:
 Get this wrong and no amount of servers fixes it: the classic failure is sharding by
 `country_code` and discovering that one country's traffic equals everyone else's combined.
 Congratulations, you've built a single point of overload with extra steps.
+
+🎥 **Learn more:** [What Is a Partition Key? Routing, Pruning, Hot Partitions, and How to Choose One](https://www.youtube.com/watch?v=fQc2AkDiPXE) — Kandi Brian. Walks through hash, range, and composite keys, hot partitions, and how cardinality shapes a good choice.
 
 ## Takeaways
 

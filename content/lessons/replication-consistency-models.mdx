@@ -25,6 +25,8 @@ temporarily disagree — but if everyone stops writing, the gossip eventually ca
 all copies converge. That convergence is **eventual consistency**, and the speed and
 reliability of the gossip is your replication design.
 
+🎥 **Learn more:** [Why Distributed Data Lies to You (Replication & Consistency Explained)](https://www.youtube.com/watch?v=ukH_EQDhDBM) — The Logic Blueprint. Shows why distributed data misleads you — the honest case for studying replication.
+
 ## Synchronous vs. asynchronous replication
 
 The first fork in the road:
@@ -55,6 +57,8 @@ Most systems offer a dial, not a switch: Postgres lets you require 1, 2, or N sy
 standbys; **MySQL** semi-sync replication waits for *at least one* replica. Turn the dial
 toward durability when the data is money; toward speed when it isn't.
 
+🎥 **Learn more:** [Database Replication Explained (Replication Lag, Sync vs Async) | System Design with Microsoft SWE](https://www.youtube.com/watch?v=fsZA4K0E3kQ) — Mayank Joshi. Covers synchronous versus asynchronous replication, lag, and their real trade-offs.
+
 ## Leader-based vs. leaderless
 
 **Leader-based** (single-leader): one node accepts writes, followers replay its log.
@@ -72,6 +76,8 @@ writes to different nodes create conflicts that somebody must resolve. **Cassand
   requestLabel="W"
   duration={5}
 />
+
+🎥 **Learn more:** [System Design: Data Replication Strategies Explained](https://www.youtube.com/watch?v=9_kqVxgpnbk) — AI & Systems Engineering. Compares leader and leaderless replication strategies with clear system-design framing.
 
 ## Quorums: the tunable middle
 
@@ -99,6 +105,8 @@ for the balanced default; `W=ALL` when you'd rather be slow than sorry. Notice t
 implication: quorum writes wait for the *second-fastest* of 3 replicas — usually fine, and
 resilient to one slow node. `W=ALL` waits for the *slowest*, always.
 
+🎥 **Learn more:** [The Quorum Formula Every Distributed Systems Engineer Must Know](https://www.youtube.com/watch?v=MI0JPeirY1Q) — Arpit Vaish. Explains W+R>N quorum tuning with latency trade-offs in a compact, focused format.
+
 ## Consistency models clients observe
 
 Beyond "eventual vs. strong," clients experience specific guarantees — each one rules out a
@@ -119,6 +127,8 @@ particular weirdness:
 Stronger guarantees cost latency and availability — there's no free consistency, only
 consistency whose price you've decided to pay.
 
+🎥 **Learn more:** [SD 6 | Consistency Models: Strong vs Eventual | System Design Course | Uplatz](https://www.youtube.com/watch?v=2qkVSJ9QbQA) — Uplatz. Strong versus eventual consistency explained — what clients actually observe.
+
 ## Conflict resolution
 
 When two writes hit different replicas concurrently (leaderless, or multi-leader), they
@@ -130,6 +140,8 @@ collide. Strategies:
   vector clocks; CRDTs for counters, sets, and text).
 - **Avoid conflicts structurally** — design so concurrent writes to the same key are rare
   (per-user partitions, single writers per entity).
+
+🎥 **Learn more:** [How CRDTs Actually Work — The Data Structures Behind Real-Time Collaborative Apps](https://www.youtube.com/watch?v=l3WgzxkYNjI) — State & Flow. Shows how CRDTs resolve conflicts in real-time collaborative apps, no coordination needed.
 
 ## Takeaways
 

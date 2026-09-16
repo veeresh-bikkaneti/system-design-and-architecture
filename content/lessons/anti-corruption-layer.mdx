@@ -26,6 +26,8 @@ outside into your clean inside. The DDD books call it an **anti-corruption layer
 This lesson covers both halves: the original backend pattern, and the frontend version
 — because your SPA needs one just as badly.
 
+🎥 **Learn more:** [Can an "Anti-Corruption Layer" save your bad software architecture?](https://www.youtube.com/watch?v=_oAYFR-hexg) — Software Developer Diaries. Shows how an ACL keeps a messy legacy system from infecting your clean model.
+
 ## The idea, from DDD
 
 In *Domain-Driven Design*, Eric Evans describes the situation every large system hits:
@@ -46,6 +48,8 @@ sockets of the world do not: different prongs, different voltages, and Gerald's 
 sparks a little when you plug in. You don't rewire your laptop for every country. You
 carry an adapter, and the adapter absorbs the weirdness. Your components are the
 laptop. The ACL is the adapter. Gerald is the socket.
+
+🎥 **Learn more:** [Exposing the not-so-secret practices of the cult of DDD -  Chris Klug - NDC Oslo 2025](https://www.youtube.com/watch?v=A7WcjoMMp7c) — NDC Conferences. An NDC talk unpacking Evans' strategic patterns, ACL included, without the jargon.
 
 ## The adapter in a React SPA
 
@@ -103,6 +107,8 @@ Watch one request make the trip:
 The dots tell the story: the component speaks one language to the adapter, and the
 adapter speaks three dialects downstream. When Gerald changes his envelope format next
 quarter, exactly one file cares.
+
+🎥 **Learn more:** [Typescript Design Patterns - Adapter Pattern](https://www.youtube.com/watch?v=YrsEnlkjve8) — Choice Specs. A TypeScript adapter walkthrough — the same translation trick an ACL uses at the boundary.
 
 ## The strangler fig: evicting Gerald one floor at a time
 
@@ -174,6 +180,8 @@ for a year and then explodes. Second, keep the facade dumb early. The moment it
 accumulates business logic, you've built a new monolith inside the proxy — that logic
 belongs in the services behind it.
 
+🎥 **Learn more:** [Hans-Peter Grahsl&Gunnar Morling - Dissecting our Legacy: The Strangler Fig Pattern with ...](https://www.youtube.com/watch?v=rl06nAIdIhQ) — Devoxx. Shows the strangler fig pattern in action against a real legacy system.
+
 ## Failure modes (read before you build one)
 
 Advanced tier means the sharp edges, so here they are:
@@ -197,6 +205,8 @@ SPA section has teeth for a reason: components import domain types, full stop.
 differently — the web adapter's `status` and the mobile adapter's `status` disagreeing
 — you've corrupted yourself. Share the translation or share the domain type; never
 maintain two.
+
+🎥 **Learn more:** [Domain-Driven Design | Modeling Complex Enterprise Business Applications | Uplatz](https://www.youtube.com/watch?v=0j2fXqXq4rk) — Uplatz. Catalogs common DDD implementation mistakes — the overengineering warning to read first.
 
 ## Takeaways
 

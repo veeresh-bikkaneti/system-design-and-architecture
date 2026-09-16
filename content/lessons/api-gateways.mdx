@@ -23,6 +23,8 @@ the right department, verifies who's asking, and handles the boring-but-critical
 (keys, billing, wake-up calls). Your API gateway is the concierge; your microservices are
 the departments happily ignoring the lobby chaos.
 
+🎥 **Learn more:** [What is an API Gateway?](https://www.youtube.com/watch?v=hWRRdICvMNs) — IBM Technology. IBM's primer shows where a gateway earns its keep in a microservices setup.
+
 ## Gateway vs. reverse proxy vs. load balancer
 
 These get conflated constantly, so let's be precise:
@@ -46,6 +48,8 @@ flowchart LR
 
 The line is blurry — a reverse proxy with enough plugins *becomes* a gateway — but the
 intent differs: a gateway owns the **API contract** with the outside world.
+
+🎥 **Learn more:** [What is an API Gateway](https://www.youtube.com/watch?v=hQLvgI82MZg) — Dargslan. Lines up gateways, reverse proxies, load balancers, and BFFs side by side.
 
 ## What lives in the gateway
 
@@ -85,6 +89,8 @@ sequenceDiagram
 percentiles, and trace calls across services. When the 3 AM page arrives, the gateway's
 dashboards are where you start.
 
+🎥 **Learn more:** [The API Gateway Pattern: When Your Microservices Need a Traffic Cop](https://www.youtube.com/watch?v=qwASxvKf10k) — System Design Lab. Covers routing, auth, rate limiting, and aggregation — the gateway's daily jobs.
+
 ## The BFF pattern
 
 One gateway rarely fits all clients. A mobile app wants tiny, aggregated payloads; a web
@@ -103,6 +109,8 @@ flowchart LR
     B3 --> S
 ```
 
+🎥 **Learn more:** [Communication Patterns Between Microservices \[Free Meetup\]](https://www.youtube.com/watch?v=t7RCQ_t6A7k) — life michael. Places BFF among gateway-era patterns, so you see exactly where it fits.
+
 ## The honest trade-offs
 
 A gateway is a **single point of control** and therefore a **single point of failure**.
@@ -117,6 +125,8 @@ There's also a philosophical split: **centralized gateways** (one team, one conf
 **sidecar/decentralized** approaches where each service owns its edge via something like
 Envoy. Large orgs often end up with both — a thin edge gateway for auth and DDoS
 protection, plus per-service sidecars for fine-grained policy.
+
+🎥 **Learn more:** [The API Gateway - Software Architecture](https://www.youtube.com/watch?v=EMmxNnq_T50) — The Software Mentor. Weighs when a gateway helps against its cost and single-point-of-failure risk.
 
 ## Takeaways
 

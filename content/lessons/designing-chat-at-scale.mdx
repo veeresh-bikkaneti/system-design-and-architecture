@@ -28,6 +28,8 @@ at all times; clerks fire canisters back and forth through the tubes. Every tech
 gets mapped onto this post office, out loud, as we go. And watch out for the network
 gremlins — they love chewing through tubes, and the whole design assumes they will.
 
+🎥 **Learn more:** [Design a Chat System — Real Interview Explanation | System Design](https://www.youtube.com/watch?v=4-8fV_O_FzI) — CodeGreedy. Walks through why realtime chat is a hard problem: latency, availability, fault tolerance, WebSockets and queues at scale.
+
 ## Step one: clarify the scope
 
 - **Functional scope:** 1:1 messaging, group messaging, delivery receipts
@@ -36,6 +38,8 @@ gremlins — they love chewing through tubes, and the whole design assumes they 
   sub-second delivery, phones with dying batteries on flaky networks.
 - **Out of scope:** voice/video calls, stories/status, payments. Naming what you're
   *not* building is half the interview — it shows you can bound a problem.
+
+🎥 **Learn more:** [WHATSAPP System Design: Chat Messaging Systems for Interviews](https://www.youtube.com/watch?v=vvhC64hQZMk) — Gaurav Sen. Walks the WhatsApp interview starting with requirement setting before any architecture.
 
 ## Back-of-the-envelope math
 
@@ -55,6 +59,8 @@ your assumptions, keep the math simple, and round aggressively:
   changes fan out to all of them, one "came online" event is 200 writes. A billion daily
   presence flaps is 200 billion writes — for green dots. This is why presence gets its
   own section, and its own cautionary tale.
+
+🎥 **Learn more:** [🚀 Back-of-the-Envelope Estimation (System Design) #systemdesign  #bandwidth #coding #tech ](https://www.youtube.com/watch?v=rFoky1Ez4Ds) — Java Treasure Tech. Teaches traffic, QPS, storage, and bandwidth estimation with a worked example, mirroring the section's Fermi math.
 
 ## The realtime channel: picking your tube
 
@@ -82,6 +88,8 @@ connection initiated by an HTTP Upgrade handshake, after which either side can s
 messages with minimal overhead. Long-polling emulates push with repeated half-duplex
 requests; SSE gives you server-to-client push only. The analogy builds the intuition; the
 definition is what you keep.
+
+🎥 **Learn more:** [Polling vs Server-Sent Events (SSE) vs WebSockets | System Design with Microsoft SWE](https://www.youtube.com/watch?v=IIhXKoomoNY) — Mayank Joshi. Compares polling, long polling, SSE and WebSockets with protocol details and a tradeoff table for choosing.
 
 ## Holding two million tubes: connection management
 
@@ -145,6 +153,8 @@ sequenceDiagram
     G1-->>A: sent + delivered
 ```
 
+🎥 **Learn more:** [How to scale WebSockets to millions of connections](https://www.youtube.com/watch?v=vXJsJ52vwAA) — Ably Realtime. Explains vertical and horizontal scaling patterns for millions of stateful persistent connections in production.
+
 ## The message flow: send, store, push
 
 Watch one canister's journey through the post office:
@@ -165,6 +175,8 @@ The acks climb back up the same path: Bob's phone acks to his gateway (delivered
 service records it, Alice's gateway tells her phone. Two grey ticks, then blue — each
 tick is an acknowledgement crossing a specific boundary.
 
+🎥 **Learn more:** [System Design: Design WhatsApp](https://www.youtube.com/watch?v=Uh1TvVMkhw4) — TechGik. Follows one message sender to receiver: persistent connections, durable storage, queues, acks, offline sync and retries.
+
 ## Ordering: the numbered pigeonholes
 
 Canisters don't always arrive in the order they were sent. Alice's "on my way" and "bring
@@ -181,6 +193,8 @@ hands out the numbers, and every client renders in that order. Clock skew betwee
 becomes irrelevant, because wall-clock time is never the ordering mechanism. The failure
 mode this prevents is subtle but maddening: without server sequencing, two group members
 see the same argument in different orders, and both are sure the other is lying.
+
+🎥 **Learn more:** [Kafka Explained — It's Not a Queue](https://www.youtube.com/watch?v=_UTcNPgzqJ4) — The Hot Path. Shows the partition is the unit of ordering: guaranteed within one partition, nowhere else, and what breaks it.
 
 ## Delivery semantics: what the ticks really promise
 
@@ -209,6 +223,8 @@ by the ID dedupe), the message stored but never pushed because the directory ent
 stale (the gateway that died without deregistering — heartbeats bound this window), and
 the read receipt for a message the recipient's phone never rendered (a client bug, but
 your server design can't prevent it — only the client can).
+
+🎥 **Learn more:** [Message Queue System Design | Kafka, Partitions, DLQ & Delivery Semantics](https://www.youtube.com/watch?v=JeCOqpfomJs) — Scale Tales. Explains at-most-once, at-least-once and exactly-once delivery semantics with acks, retries and idempotency context.
 
 ## Presence: the chalkboard that nearly killed the post office
 
@@ -239,6 +255,8 @@ The chalkboard nearly bankrupts the post office, so you ration it:
 The interview line: "presence is a fan-out problem disguised as a status string, and
 I'll isolate it from the message path."
 
+🎥 **Learn more:** [System Design: WhatsApp](https://www.youtube.com/watch?v=UCFsENcAFi8) — Mukul Raina. Deep-dive by a Microsoft engineer on presence at scale: heartbeats, subscriber notification, batching, and approximate status.
+
 ## Group chats: one canister, many tubes
 
 Group messaging is fan-out, plain and simple. Alice sends one canister to the post
@@ -265,6 +283,8 @@ flowchart LR
     Q2 --> Store[("Offline queue")]:::data
 ```
 
+🎥 **Learn more:** [A Reconnection Window Duplicated Messages for 15 Minutes — Design WhatsApp](https://www.youtube.com/watch?v=4Kz2w1i50ME) — TheCodeForge. Covers group chat fan-out, including when write fan-out breaks down at large group sizes.
+
 ## Offline delivery: the overnight holding room
 
 When Bob's tube is cut — phone off, app killed, gremlin activity — his canisters wait in
@@ -288,6 +308,8 @@ message 312. On the next reconnect he asks again from his last acked sequence nu
 the server replays from 313, and his client's idempotency dedupe swallows any overlap.
 At-least-once plus dedupe, all the way down.
 
+🎥 **Learn more:** [Master scalable notification system architecture: core pipelines, async fan-out, and idempotency](https://www.youtube.com/watch?v=q-rQ6zQKSJs) — Tech. Designs a push-notification pipeline with durable queues, per-channel dispatch, retries, and idempotency at scale.
+
 ## Media: canisters too fat for the tubes
 
 A photo is a canister too fat for the pneumatic tube. The post office handles it the way
@@ -301,6 +323,8 @@ the byte pipeline deals in blobs. Media never flows through the gateway servers'
 that would clog the very connections whose whole job is staying light and fast. Uploads
 and downloads are plain HTTPS to the depot; only the *notification* ("there's a photo for
 you, here's where to get it") rides the realtime channel.
+
+🎥 **Learn more:** [How WhatsApp Sends Photos & Videos | Complete System Explained | Part 3](https://www.youtube.com/watch?v=C2IuZsY73Kw) — Learn With Manoj. Explains WhatsApp's media pipeline: chunked uploads, encrypted blobs, media servers, and CDN-based delivery.
 
 ## End-to-end encryption: sealed envelopes
 
@@ -340,6 +364,8 @@ office is *allowed to know*. Every feature that used to read the letters — sea
 moderation, server-side media decisions based on content — moves to the endpoints or
 dies. That's the real cost of E2EE, and naming it is the advanced answer.
 
+🎥 **Learn more:** [How Signal Uses End-to-End Encryption | The Signal Protocol Explained](https://www.youtube.com/watch?v=ihz2WA1Tvbo) — Lexorithm. Covers the Signal protocol's X3DH key agreement, double ratchet, and forward secrecy in messaging.
+
 ## Edge cases: what breaks at two billion users
 
 - **The thundering herd of reconnects.** A datacenter blip drops ten million tubes at
@@ -364,6 +390,8 @@ dies. That's the real cost of E2EE, and naming it is the advanced answer.
   up. Rate-limit group sends per sender, and cap the fan-out work a single message can
   trigger on one gateway.
 
+🎥 **Learn more:** [Building WhatsApp with Jean Lee](https://www.youtube.com/watch?v=5Kn32cIWPSY) — The Pragmatic Engineer. WhatsApp engineer #19 shares scaling lessons: Erlang processes, lean teams, and simplicity at billions of users.
+
 ## What you'd say in the interview
 
 Walk it back in one minute: scope to 1:1, groups, receipts, presence, media; WebSockets
@@ -378,6 +406,8 @@ store, not the realtime channel; and E2EE means the server routes sealed envelop
 metadata alone — no server search, no server moderation, keys via a bulletin board with
 out-of-band verification. Then name your trade-off: heartbeats are a three-way tug
 between detection speed, battery, and server load, and you picked a number on purpose.
+
+🎥 **Learn more:** [Design Whatsapp: System Design Interview w/ a Ex-Meta Senior Manager](https://www.youtube.com/watch?v=cr6p0n0N-VA) — Hello Interview. Step-by-step mock-interview walkthrough of designing WhatsApp by a former Meta senior manager.
 
 ## Takeaways
 

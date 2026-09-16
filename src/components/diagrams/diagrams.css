@@ -219,28 +219,36 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* MermaidDiagram: make flowcharts and sequence diagrams feel alive.    */
-/* Scoped under .mermaid-diagram (set on the MermaidDiagram wrapper).  */
-/* Mermaid v11 emits flowchart edges as <path class="flowchart-link">  */
-/* inside g.edgePath, flowchart nodes as <g class="node"> inside       */
-/* g.nodes, sequence-diagram messages as line.messageLine0/1 and actors */
-/* as g.actor. Animations are transform/opacity/dash-offset only, so   */
-/* they stay legible in both light and dark color schemes.             */
+/* MermaidDiagram: make flowcharts, sequence diagrams, and state        */
+/* diagrams feel alive. Scoped under .mermaid-diagram (set on the       */
+/* MermaidDiagram wrapper). Mermaid v11 emits flowchart edges as        */
+/* <path class="flowchart-link"> inside g.edgePath, flowchart nodes as  */
+/* <g class="node"> inside g.nodes, sequence-diagram messages as        */
+/* path.messageLine0/1 and actors as g.actor, and state-diagram        */
+/* transitions as <path class="transition">. Animations are            */
+/* transform/opacity/dash-offset only, so they stay legible in both     */
+/* light and dark color schemes.                                       */
 /* ------------------------------------------------------------------ */
 
 .mermaid-diagram .flowchart-link,
 .mermaid-diagram .messageLine0,
-.mermaid-diagram .messageLine1 {
+.mermaid-diagram .messageLine1,
+.mermaid-diagram .transition {
   animation: mermaid-dash-flow 2.6s linear infinite;
 }
 
-/* Give solid flowchart edges a dash pattern so the flow is visible.
-   Dotted edges (edge-pattern-dotted) keep their own pattern — the
-   dash-offset animation still makes them crawl gently. Sequence-diagram
-   reply lines (messageLine1) likewise keep their dotted pattern. */
+/* Give solid edges a dash pattern so the flow is visible. Dotted edges
+   (edge-pattern-dotted) keep their own pattern — the dash-offset
+   animation still makes them crawl gently. Sequence-diagram reply lines
+   (messageLine1) likewise keep their dotted pattern.
+   NOTE: !important is required. Mermaid scopes its injected theme styles
+   under each diagram's SVG id (e.g. `#mermaid-abc .edge-pattern-solid
+   { stroke-dasharray: 0 }`), and an ID selector beats our class-only
+   selectors without it. */
 .mermaid-diagram .edge-pattern-solid.flowchart-link,
-.mermaid-diagram .messageLine0 {
-  stroke-dasharray: 7 5;
+.mermaid-diagram .messageLine0,
+.mermaid-diagram .transition {
+  stroke-dasharray: 7, 5 !important;
 }
 
 @keyframes mermaid-dash-flow {
@@ -340,6 +348,7 @@
   .mermaid-diagram .flowchart-link,
   .mermaid-diagram .messageLine0,
   .mermaid-diagram .messageLine1,
+  .mermaid-diagram .transition,
   .mermaid-diagram .node,
   .mermaid-diagram .actor,
   .packetflow .pf-node {

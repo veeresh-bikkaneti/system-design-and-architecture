@@ -26,6 +26,8 @@ messages, but DDD decides which messages deserve to exist.
 For this lesson, you run a hotel. Front desk, housekeeping, billing — one building, three
 different worlds. Keep it in mind; we'll check back in often.
 
+🎥 **Learn more:** [Reactive DDD: Modeling Uncertainty - Vaughn Vernon](https://www.youtube.com/watch?v=MKLRXCiU5IE) — SpringDeveloper. Vaughn Vernon traces DDD's core ideas and why they still guide today's distributed, event-driven systems.
+
 ## Ubiquitous language: call it what the hotel calls it
 
 At the front desk, "check-in" is a five-minute ritual: ID, key card, room assignment. Say
@@ -47,6 +49,8 @@ an `InvoiceRecord`, not `BillingDocV2`.
 This sounds soft until you've debugged a system where "order" meant four different
 things depending on which service you asked. Then it sounds like the cheapest night
 audit you ever ran.
+
+🎥 **Learn more:** [Agile Book Club: Ubiquitous Language](https://www.youtube.com/watch?v=aozNdnfSDBs) — James Shore. James Shore's book-club session explores building a shared domain vocabulary between experts and developers.
 
 ## Bounded contexts: draw the property lines
 
@@ -78,6 +82,8 @@ One caution: a bounded context is a modeling boundary, not a microservice. You c
 three contexts in one deployable or split one context across services. Confuse the two
 and you'll build a distributed monolith with extra YAML.
 
+🎥 **Learn more:** [Bounded Contexts - Eric Evans - DDD Europe 2020](https://www.youtube.com/watch?v=am-HXycfalo) — Domain-Driven Design Europe. Eric Evans himself explains bounded contexts and keeping each model coherent within its boundary.
+
 ## Aggregates: the clerk guarding the reservation book
 
 Inside a context, some rules must never break halfway: a room-night can't be sold twice,
@@ -95,6 +101,8 @@ the hinge of this whole lesson, and we'll come back to it.
 A personal rule of thumb: if your "aggregate" is a bag of getters and setters with the
 real validation scattered across three services, that's a data structure wearing an
 aggregate costume. The root earns the name by saying no.
+
+🎥 **Learn more:** [Mauro Servienti - Talk Session: All Our Aggregates Are Wrong](https://www.youtube.com/watch?v=KkzvQSuYd5I) — Explore DDD. Mauro Servienti shows where aggregate designs go wrong and how to draw consistency boundaries right.
 
 ## Domain events: the past, written down
 
@@ -116,6 +124,8 @@ Back to the hotel: the front-desk logbook. Every entry dated, initialed, written
 A mistaken entry never gets erased — it gets a new entry underneath it. Six months
 later, "what did we know at 9:41 a.m.?" has an exact answer. Domain events give your
 system the same property: a past you can audit and a present you can explain.
+
+🎥 **Learn more:** [Domain Events: The Hidden Power Behind Software Architecture](https://www.youtube.com/watch?v=36HtWmAAH94) — EzzyLearning. Short explainer on what domain events are, why past-tense facts help, and raising them from aggregates.
 
 ## Event storming: the whole hotel on one wall
 
@@ -177,6 +187,8 @@ And one workshop rule worth stealing: anyone who writes a CRUD-y note like `Gues
 owes the sticky-note jar a coin. By lunch the jar is full — and the team has learned
 past-tense naming the fun way.
 
+🎥 **Learn more:** [Alberto Brandolini - 100,000 Orange Stickies Later | Øredev 2019](https://www.youtube.com/watch?v=fGm62ra_mQ8) — Øredev Conference. EventStorming's creator walks through the sticky-note workshop technique for discovering domain models together.
+
 ## Specification by example: agree on the stories first
 
 Storming finds the events; **specification by example** pins down what they mean.
@@ -190,6 +202,8 @@ possible prototype of shared understanding. A dozen good examples surface the
 misunderstandings a forty-page spec would bury. They graduate into acceptance tests, and
 the tests become living documentation — the spec can't rot, because the build enforces
 it.
+
+🎥 **Learn more:** [Automation Obsession: Are You Automating the Wrong Things? - Gojko Adzic "Specification by Example"](https://www.youtube.com/watch?v=8EhH2oqK2-0) — Pragmatic Talks. Gojko Adzic discusses capturing shared understanding with concrete examples before committing to automation.
 
 ## Domain events vs integration events: the desk bell and the radio
 
@@ -244,6 +258,8 @@ One more consequence of dispatch-after-commit: handlers run *outside* the transa
 so a throwing handler can't roll back the business fact. Write handlers to be retryable
 and idempotent — your idempotency lesson from message queues is doing real work here.
 
+🎥 **Learn more:** [Every Event, Everywhere, All at Once • Jacqui Read • GOTO 2025](https://www.youtube.com/watch?v=1dIjb9A4uow) — GOTO Conferences. Jacqui Read tours event types, contrasting internal domain events with public integration events.
+
 ## The transactional outbox: publish without the fear
 
 Here's the nasty problem the last section left on the table: your database commit and
@@ -289,6 +305,8 @@ Now the failure modes worth internalizing:
 - **Prune the outbox.** An outbox table nobody cleans is a disk-full page at 3 a.m.
   Archive or delete sent rows on a schedule.
 
+🎥 **Learn more:** [On .NET Live: Shaving the outbox pattern yak](https://www.youtube.com/watch?v=JoPY0yfElK4) — dotnet. dotnet session on the outbox pattern's ideas, lessons learned, and alternatives from building it.
+
 ## Event sourcing: when the logbook is the database
 
 One step further: what if you skipped the "current state" tables and stored *only* the
@@ -306,6 +324,8 @@ future self, and name them accordingly.
 Notice the through-line of the whole lesson: domain events are the hotel's logbook,
 the outbox is how the front desk reliably radios each entry across the street, and
 event sourcing is never tearing a page out of that logbook.
+
+🎥 **Learn more:** [EventSourcing & CQRS: a light introduction - Paolo Banfi - DDD Europe 2022](https://www.youtube.com/watch?v=nwzxyfsubyM) — Domain-Driven Design Europe. DDD Europe talk introducing event sourcing basics and how it fits with CQRS in real systems.
 
 ## Takeaways
 

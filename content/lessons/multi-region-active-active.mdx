@@ -29,6 +29,8 @@ burns. Going multi-region is the most expensive reliability decision you'll make
 the trade-offs are measured in two numbers and two architectures — plus one very
 cursed dinner reservation.
 
+🎥 **Learn more:** [Multi-AZ Won’t Save You | AWS (SOA-C02) Ep 9](https://www.youtube.com/watch?v=V-UFVf8a31o) — Cram Exam. Shows how a whole region failing takes everything offline, making the case for multi-region design.
+
 ## The twin restaurants
 
 This lesson's running analogy: you own two restaurants — one in Chicago, one in
@@ -52,6 +54,8 @@ Mapping, stated plainly:
 And our running gag for the evening: the Henderson anniversary dinner. Party of 12.
 Saturday, 7 p.m. The most cursed reservation in the history of hospitality.
 Everything that can go wrong with two books will go wrong for the Hendersons first.
+
+🎥 **Learn more:** [PostgreSQL HA Architecture: Surviving a Full Region Failure](https://www.youtube.com/watch?v=gcSWFKX89vo) — PostgreSQL Mechanics. Demonstrates active-active multi-region replication, write conflicts, and planned replica lag.
 
 ## How dead can you afford to be: RPO and RTO
 
@@ -88,6 +92,8 @@ restaurants while hoping you never need the redundancy. Nobody picks it for fun.
 pick it when the cost of being down exceeds the cost of the second restaurant —
 which, for a payments company or a hospital system, it does by 9 a.m.
 
+🎥 **Learn more:** [RTO vs RPO — Explained in Detail](https://www.youtube.com/watch?v=koRSzvlIX1Q) — software-engineer-blog. Prices each RTO and RPO tier with a worked shop example, showing what zero costs.
+
 ## Active-passive vs active-active: who seats the diners?
 
 Here's the real fork in the road. In **active-passive** — backup/restore, pilot
@@ -117,6 +123,8 @@ truth. Across regions, voting gets too slow — nobody wants the hostess to wait
 Austin's permission before seating a walk-in — so multi-region systems usually choose
 availability and sort out the disagreements after. The rest of this lesson is the
 sorting-out.
+
+🎥 **Learn more:** [Redundancy & Replication Explained | Active-Active vs Active-Passive Architectures](https://www.youtube.com/watch?v=__yGOdiTU9A) — Engineering Systems. Explains both architectures through a food-delivery case study, comparing availability against complexity.
 
 ## When the two books disagree: conflicts and how to survive them
 
@@ -170,6 +178,8 @@ sequenceDiagram
     Note over Chi,Aus: Last-write-wins:<br/>later timestamp keeps the table,<br/>the other booking vanishes
 ```
 
+🎥 **Learn more:** [L27 : Leaderless Replication, Topologies, CRDTS, Quorum Writes, Read Repair & Anti-Entropy](https://www.youtube.com/watch?v=RK2odztfP0I) — Aarchi Gandhi. Covers multi-leader conflict handling: last-write-wins, custom merges, and CRDTs, with DynamoDB examples.
+
 ## Getting diners to the open restaurant: DNS failover and anycast
 
 Chicago is on fire. Austin is ready. But every diner in America has Chicago's phone
@@ -206,6 +216,8 @@ Most teams land on DNS failover with health checks for the sign flip, accept the
 TTL slop, and reserve anycast for the front door of truly global systems. Either
 way: the failover mechanism is the easy part. The reservation book was always the
 hard part.
+
+🎥 **Learn more:** [Apply Anycast Best Practices for Resilient & Performant Global Applications](https://www.youtube.com/watch?v=TAGW_H1HNHk) — NetActuate. Shows how anycast routing sends users to the nearest healthy PoP, covering global DNS and failover.
 
 ## The fine print: borders, bills, and fire drills
 
@@ -245,6 +257,8 @@ automatic without fencing: the old primary must be *proven* dead — or forcibly
 fenced off, "shoot the other node in the head" in clustering parlance — before the
 standby takes over. Automatic failover without fencing doesn't give you high
 availability; it gives you two primaries and a data integrity incident.
+
+🎥 **Learn more:** [Balancing Data Locality, Data Sovereignty, and Data Replication](https://www.youtube.com/watch?v=a9mVfHjgANU) — Datadog. Datadog panel on sovereignty, placement costs, and operating through regional failures and outages.
 
 ## Takeaways
 

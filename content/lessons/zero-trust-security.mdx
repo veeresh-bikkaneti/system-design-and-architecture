@@ -30,6 +30,8 @@ older devices overnight. You are trading one class of catastrophe (the breached
 perimeter) for another (the expired credential) — and this lesson is about making that
 trade deliberately, with your eyes open.
 
+🎥 **Learn more:** [CompTIA Security+ Zero Trust Architecture (1.2)](https://www.youtube.com/watch?v=PTpkr2N5S2U) — Rich & Resourceful. Opens with the Colonial Pipeline breach, then shows how zero trust stops one stolen credential from toppling everything.
+
 ## The hotel with one guard
 
 This lesson's running analogy: a hotel. The old-school hotel has one guard at the front
@@ -46,6 +48,8 @@ hallway has no more questions to ask. The 2013 retail breaches taught this the p
 way: attackers entered through a third-party vendor's remote access and then wandered a
 flat internal network until they found the payment systems. The guard checked one
 credential, once, at the door. After that, trust was free.
+
+🎥 **Learn more:** [Why Perimeter Security Failed | Zero Trust Explained](https://www.youtube.com/watch?v=S3MwWi35zhs) — CyberSecurityByDesign. Walks through the castle-and-moat model: one guarded edge, flat interior, and how a single breach reaches everything.
 
 ## The hotel that checks your card at every door
 
@@ -70,6 +74,8 @@ territory, even when you own the building.
 
 The front desk clerk never sleeps, never recognizes you, and never takes your word
 for it. Annoying? Deeply. That is rather the point.
+
+🎥 **Learn more:** [The Real-Time Verification System Behind Zero Trust](https://www.youtube.com/watch?v=c8A8vgAZrag) — CyberTechHaus. Explains the policy engine and enforcement points that re-verify every access request in real time — every door, every time.
 
 ## Identity is the new front desk
 
@@ -116,6 +122,8 @@ Notice what disappeared: the VPN. There is no moat because there is no castle. T
 application never sees an unauthenticated request — the proxy either vouches for the
 caller or the request never arrives.
 
+🎥 **Learn more:** [Identity Is the New Perimeter | Zero Trust Explained](https://www.youtube.com/watch?v=5eDVGSZ7ynM) — CyberSecurityByDesign. Uses a hotel keycard to show why verified identity — not network location — now decides who gets in.
+
 ## mTLS: the staff show their cards to each other
 
 Users are the easy half. The harder half is service-to-service traffic: your order
@@ -151,6 +159,8 @@ and mints fresh SVIDs automatically, so no human is hand-issuing certificates at
 Without that automation, mTLS across hundreds of services is a paperwork nightmare. With
 it, it is plumbing.
 
+🎥 **Learn more:** [mTLS Explained: The 30-Year-Old Fix Nobody Used](https://www.youtube.com/watch?v=qPjFV7Zbt8w) — Devsplainers. Breaks down the mutual TLS handshake step by step, showing how services present certificates to each other.
+
 ## Least privilege, and secrets that die young
 
 Every hotel has a housekeeping master key, and every attacker dreams about it. In your
@@ -175,6 +185,8 @@ hallways. In the zero-trust hotel, the front desk has a timestamped record of ev
 check — granted and denied. When something goes wrong, you are not reconstructing from
 vibes; you have the ledger.
 
+🎥 **Learn more:** [Secrets Management: Vault vs AWS Secrets Manager (Rotation & CI/CD)](https://www.youtube.com/watch?v=4ebOexB3GHE) — Merge Ready. Compares Vault and AWS Secrets Manager on rotation, short-lived credentials, and least-privilege access control.
+
 ## Micro-segmentation: shrinking the blast radius
 
 Now for the payoff, in numbers: take a flat network with 120 services and one
@@ -197,6 +209,8 @@ unrecognized device can be challenged or denied mid-session, because each new re
 a new decision with fresh context. The old model asked "are you a guest?" once. The new
 model asks "are you still *this* guest, doing something *this* guest is allowed to do,
 *right now*?" — every time.
+
+🎥 **Learn more:** [Micro-Segmentation Explained: How Zero Trust Stops Lateral Movement](https://www.youtube.com/watch?v=Rsn6xFAZ2Ys) — CyberSecurityByDesign. Hotel keycard tour of micro-segmentation: small zones, gated corridors, and how they contain lateral movement.
 
 ## The price of paranoia
 
@@ -241,6 +255,8 @@ None of this is an argument against zero trust. It is the argument for going in 
 budget: the perimeter model failed *silently* — breaches you discovered months later —
 while zero trust fails *loudly*, at the front desk, where you can see it. Loud failures
 are a feature. They are also, at 2 a.m., extremely loud.
+
+🎥 **Learn more:** [Zero Trust: From Revolution to Reality](https://www.youtube.com/watch?v=6reox4sqaUc) — Threat Talks. Zero-trust architect Dr. Chase Cunningham on why programs stall: underestimated complexity and the discipline execution demands.
 
 ## Takeaways
 
