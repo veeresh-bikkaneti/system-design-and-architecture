@@ -115,7 +115,17 @@ function page(title: string, body: string, status: number): Response {
 </html>`;
   return new Response(html, {
     status,
-    headers: { 'content-type': 'text/html; charset=utf-8' },
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      // These pages are fully self-contained (no external subresources),
+      // so the headers below apply unconditionally. no-referrer also keeps
+      // the credential id (which lives in the page URL) from leaking to
+      // the badge provider when a learner clicks "View Open Badge", and
+      // DENY keeps the "Confirm it's you" sign-in step out of iframes.
+      'x-content-type-options': 'nosniff',
+      'referrer-policy': 'no-referrer',
+      'x-frame-options': 'DENY',
+    },
   });
 }
 
