@@ -118,12 +118,20 @@ sliding window in **Redis**, built from a sorted set of per-request timestamps:
 now = current timestamp in ms
 window_start = now - 60_000
 
-ZADD ratelimit:{user_id} now now                                # log this request's timestamp
-ZREMRANGEBYSCORE ratelimit:{user_id} -inf window_start          # evict anything older than 60s
-count = ZCOUNT ratelimit:{user_id} window_start now             # how many are left in the window?
-EXPIRE ratelimit:{user_id} 60                                   # don't let idle keys pile up
-→ if count > 100: reject with 429
+ZREMRANGEBYSCORE ratelimit:{user_id} -inf window_start   # evict anything older than 60s
+count = ZCOUNT ratelimit:{user_id} window_start now      # requests in the trailing 60s
+if count >= 100: reject with 429                        # rejected requests are NOT logged
+ZADD ratelimit:{user_id} now {now}:{uuid}                # allowed: log this request
+EXPIRE ratelimit:{user_id} 60                            # don't let idle keys pile up
 ```
+
+Order matters: check *before* you log. If you logged the request first and then
+rejected it, every rejected request would still occupy a slot in the window — a burst
+of junk traffic would keep the user's window full long after the burst ended, punishing
+them for the attack. Two more details worth knowing: the member is `now` *plus a unique
+suffix*, because two requests landing in the same millisecond would otherwise collapse
+into one sorted-set entry and undercount; and in production this check-and-add runs as
+a single Lua script so two servers can't both read `count = 99` and both allow.
 
 No minute boundaries, no reset moments — every request is judged against the trailing 60
 seconds, which is what kills the 11:59:59 → 12:00:00 trick from two sections ago. One

@@ -54,8 +54,7 @@ gets cut by a backhoe, a bad deploy takes down a whole wing. The cloud's answer 
 
 A **region** is one food hall building in one city: `us-east-1` (Virginia),
 `eu-west-1` (Ireland). Regions are far apart on purpose — a hurricane that hits
-Virginia doesn't touch Ireland. Traffic between regions crosses the public internet,
-so it's slow and metered.
+Virginia doesn't touch Ireland. Traffic between regions rides the cloud provider's own private backbone — not the public internet — but distance still makes it slow, and every gigabyte crossing a region boundary is metered.
 
 Inside one building, the hall is divided into **availability zones**: separate kitchen
 wings with fire doors between them, each with its own power feed, cooling, and
@@ -158,8 +157,8 @@ flowchart LR
     C[Meal-prep box<br/>Container]:::service --> P[Tray<br/>Pod]:::service
     P --> D[Shift manager's standing order<br/>Deployment: keep 3 trays out]:::cloud
     D --> S[Counter 5<br/>Service: stable address]:::cloud
-    S --> N1[Counter<br/>Node 1]:::cloud
-    S --> N2[Counter<br/>Node 2]:::cloud
+    S --> P1[Tray<br/>Pod on Node 1]:::service
+    S --> P2[Tray<br/>Pod on Node 2]:::service
 ```
 
 That's genuinely the whole mental model. Everything else in Kubernetes —
