@@ -6,6 +6,8 @@ export const meta = {
   summary:
     'Splitting a dataset across multiple machines so no single node has to hold — or serve — all of it.',
   estimatedMinutes: 18,
+  difficulty: 4,
+  topics: ['databases', 'scaling', 'sharding'],
 };
 
 ## Why this matters
@@ -81,6 +83,8 @@ flowchart TD
     N1 --> N2["Node B now owns keys 34-58"]
     N1 --> N3["Node D now owns only keys 59-66"]
 ```
+
+<HashRingPlayground />
 
 🎥 **Learn more:** [Why One Database Is Never Enough — Partitioning Deep Dive (DDIA Ch. 6)](https://www.youtube.com/watch?v=ds-v2gIvTpo) — Savant Space. Compares key-range vs hash partitioning, hot spots, and consistent hashing for rebalancing, straight from DDIA.
 

@@ -10,8 +10,15 @@ import { BadgesPage, BadgeDetailPage } from './pages/BadgesPage';
 import { Quiz } from './components/Quiz';
 import { MermaidDiagram } from './components/MermaidDiagram';
 import { PacketFlow } from './components/diagrams/PacketFlow';
+import { HashRingPlayground } from './components/diagrams/HashRingPlayground';
+import { NapkinMathPlayground } from './components/diagrams/NapkinMathPlayground';
+import { ScrollyDiagram } from './components/diagrams/ScrollyDiagram';
 import { StepThrough } from './components/diagrams/StepThrough';
 import { VsToggle } from './components/diagrams/VsToggle';
+import {
+  slugifyHeading,
+  useRegisterHeading,
+} from './components/headings';
 
 function extractText(node: ReactNode): string {
   if (typeof node === 'string') return node;
@@ -36,7 +43,21 @@ function Pre(props: ComponentPropsWithoutRef<'pre'>) {
   return <pre {...props} />;
 }
 
-const mdxComponents = { Quiz, PacketFlow, StepThrough, VsToggle, pre: Pre };
+// Every MDX `##` heading gets a stable anchor id, registers itself for the
+// "On this page" rail / "In this lesson" chips, and keeps the sticky-header
+// offset so anchors never hide under the top bar. Still a plain <h2>, so the
+// .lesson-prose typography keeps applying.
+function H2(props: ComponentPropsWithoutRef<'h2'>) {
+  const register = useRegisterHeading();
+  const title = extractText(props.children);
+  const id = slugifyHeading(title);
+  useEffect(() => {
+    register({ id, title });
+  }, [id, title, register]);
+  return <h2 {...props} id={id} className={`${props.className ?? ''} scroll-mt-24`} />;
+}
+
+const mdxComponents = { Quiz, PacketFlow, HashRingPlayground, NapkinMathPlayground, ScrollyDiagram, StepThrough, VsToggle, pre: Pre, h2: H2 };
 
 // Keep the viewport at the top when the route changes (e.g. Home -> lesson).
 function ScrollToTop() {

@@ -9,6 +9,10 @@ export interface LessonMeta {
   order: number;
   summary: string;
   estimatedMinutes: number;
+  /** 1 (gentlest) to 5 (steepest). Optional — cards fall back to a tier-based value. */
+  difficulty?: number;
+  /** Short topic tags shown on lesson cards, e.g. ['caching', 'databases']. */
+  topics?: string[];
 }
 
 export interface Lesson {

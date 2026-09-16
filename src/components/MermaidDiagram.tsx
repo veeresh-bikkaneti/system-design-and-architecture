@@ -1,10 +1,20 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import mermaid from 'mermaid';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import './diagrams/diagrams.css';
 import { useDiagramEntrance } from './diagrams/useDiagramEntrance';
 
 const MONO_STACK = '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+
+/**
+ * Render-once cache: each unique diagram source is passed through
+ * mermaid.render() at most once per page load. Re-running mermaid.render()
+ * for the same code (effect re-fires, remounts, duplicate ids) has been
+ * observed to produce corrupted SVG — edges without node shapes — so the
+ * cache makes repeat renders structurally impossible.
+ */
+const svgCache = new Map<string, string>();
+let renderSeq = 0;
 
 /**
  * Semantic role class contract for lesson diagrams. Lesson authors tag
@@ -102,18 +112,41 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
   // Scroll-triggered entrance shared with every other diagram component
   // (PacketFlow, StepThrough, VsToggle) — see useDiagramEntrance.
   const entrance = useDiagramEntrance();
+  // Traveling request tokens on edges. Skipped entirely for reduced motion
+  // (the dash-crawl CSS is likewise disabled there).
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     let cancelled = false;
     ensureInitialized();
     setError(null);
+
+    // Cache hit: reuse the SVG without touching mermaid again. This is the
+    // fix for the corrupted re-render — the same code can never be rendered
+    // twice, so a good first render can never be replaced by a broken one.
+    const cached = svgCache.get(code);
+    if (cached !== undefined) {
+      setSvg(cached);
+      return () => {
+        cancelled = true;
+      };
+    }
     setSvg(null);
 
+    // Fresh render ids: mermaid misbehaves when an id is reused, so every
+    // actual render call gets a unique id even for the same component.
+    const renderId = `${domId}-r${(renderSeq += 1)}`;
     mermaid
-      .render(domId, withSemanticClasses(code))
+      .render(renderId, withSemanticClasses(code))
       .then((result) => {
         if (cancelled) return;
-        setSvg(result.svg);
+        const out = typeof result.svg === 'string' ? result.svg : '';
+        if (out.includes('<svg')) {
+          svgCache.set(code, out);
+          setSvg(out);
+        } else {
+          setError('The diagram rendered an empty image.');
+        }
       })
       .catch((err) => {
         if (cancelled) return;
@@ -125,6 +158,103 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, domId]);
+
+  // Overlay traveling "request" tokens on every edge so data flow is
+  // unmistakable: small glowing packets ride each edge from source to
+  // target via SMIL animateMotion (no JS ticking, GPU-cheap). Tokens are
+  // appended inside the same <g> as the edges so they share Mermaid's
+  // coordinate transform. SMIL is paused while the diagram is offscreen.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !svg || reduceMotion) return;
+    const svgEl = container.querySelector('svg') as SVGSVGElement | null;
+    if (!svgEl) return;
+
+    const NS = 'http://www.w3.org/2000/svg';
+    const edges = svgEl.querySelectorAll<SVGGeometryElement>(
+      '.flowchart-link, .messageLine0, .messageLine1, .transition',
+    );
+
+    // Group edges by parent so each overlay <g> inherits the right transform.
+    const byParent = new Map<ParentNode, SVGGeometryElement[]>();
+    edges.forEach((edge) => {
+      const parent = edge.parentNode;
+      if (!parent) return;
+      let len = 0;
+      try {
+        len = edge.getTotalLength();
+      } catch {
+        return;
+      }
+      if (len < 24) return;
+      const list = byParent.get(parent);
+      if (list) list.push(edge);
+      else byParent.set(parent, [edge]);
+    });
+
+    const DUR = 2.8;
+    // One counter across every parent group: document-wide ids must be
+    // unique, and mpath href="#…" resolves to the first match, so a
+    // per-group index could collide if edges ever span two <g>s.
+    let edgeSeq = 0;
+    byParent.forEach((list, parent) => {
+      const overlay = document.createElementNS(NS, 'g');
+      overlay.setAttribute('class', 'flow-tokens');
+      overlay.setAttribute('aria-hidden', 'true');
+      list.forEach((edge) => {
+        if (!edge.id) edge.id = `${domId}-edge-${(edgeSeq += 1)}`;
+        let len = 0;
+        try {
+          len = edge.getTotalLength();
+        } catch {
+          return;
+        }
+        const count = Math.min(3, Math.max(1, Math.round(len / 220)));
+        for (let k = 0; k < count; k += 1) {
+          const token = document.createElementNS(NS, 'circle');
+          token.setAttribute('r', '4');
+          token.setAttribute('class', 'flow-token');
+          const anim = document.createElementNS(NS, 'animateMotion');
+          anim.setAttribute('dur', `${DUR}s`);
+          anim.setAttribute('repeatCount', 'indefinite');
+          // Negative begin staggers tokens along the edge from the start.
+          anim.setAttribute('begin', `${(-(k * (DUR / count))).toFixed(2)}s`);
+          const mpath = document.createElementNS(NS, 'mpath');
+          mpath.setAttribute('href', `#${edge.id}`);
+          anim.appendChild(mpath);
+          token.appendChild(anim);
+          overlay.appendChild(token);
+        }
+      });
+      parent.appendChild(overlay);
+    });
+
+    let io: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      io = new IntersectionObserver(
+        ([entry]) => {
+          try {
+            if (entry.isIntersecting) svgEl.unpauseAnimations();
+            else svgEl.pauseAnimations();
+          } catch {
+            /* SMIL control is best-effort */
+          }
+        },
+        { rootMargin: '200px' },
+      );
+      io.observe(container);
+    }
+
+    return () => {
+      io?.disconnect();
+      svgEl.querySelectorAll('.flow-tokens').forEach((el) => el.remove());
+      try {
+        svgEl.unpauseAnimations();
+      } catch {
+        /* noop */
+      }
+    };
+  }, [svg, domId, reduceMotion]);
 
   if (error) {
     return (

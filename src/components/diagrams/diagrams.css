@@ -257,6 +257,26 @@
   }
 }
 
+/* Traveling "request" tokens injected by MermaidDiagram onto every edge.
+   Small glowing packets ride each edge via SMIL animateMotion — the
+   unmistakable "data is flowing" cue. Hidden for reduced motion (the
+   component also skips injecting them there). */
+.mermaid-diagram .flow-token {
+  fill: #d97706;
+  filter: drop-shadow(0 0 4px rgba(217, 119, 6, 0.65));
+}
+@media (prefers-color-scheme: dark) {
+  .mermaid-diagram .flow-token {
+    fill: #fbbf24;
+    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.7));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mermaid-diagram .flow-tokens {
+    display: none;
+  }
+}
+
 /* Nodes fade and rise in on render, with a gentle cascade so the       */
 /* diagram draws itself in reading order.                               */
 .mermaid-diagram .node,

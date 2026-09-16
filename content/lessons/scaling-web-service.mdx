@@ -6,6 +6,8 @@ export const meta = {
   summary:
     'The classic journey from one server to millions of users: vertical and horizontal scaling, load balancers, read replicas, CDNs, and sharding — with the napkin math to back it up.',
   estimatedMinutes: 15,
+  difficulty: 1,
+  topics: ['scaling', 'load balancing', 'caching'],
 };
 
 ## Why this matters
@@ -289,6 +291,8 @@ That last line is the real lesson of this section. Back-of-the-envelope math won
 the exact answer, but it reliably tells you which *stage* of the journey you're in — and
 which stages you can stop worrying about for now.
 
+<NapkinMathPlayground />
+
 🎥 **Learn more:** [SREcon19 Europe/Middle East/Africa - Advanced Napkin Math: Estimating System...](https://www.youtube.com/watch?v=IxkSlnrRFqc) — USENIX. SREcon talk on estimating system performance from first principles, matching the napkin-math discipline.
 
 ## The full journey, one diagram
@@ -312,6 +316,73 @@ flowchart TD
 Stateless trucks behind an order-taker. Reads fanned out to photocopies. Writes spread
 across volumes. Static assets handled by the franchise. Every stage earned its place by
 solving the bottleneck in front of it.
+
+Now walk the whole journey yourself — scroll, and watch each stage light up in the order
+the truck actually grew:
+
+<ScrollyDiagram
+  nodes={[
+    { id: "customers", label: "Customers", sub: "hungry humans", x: 90, y: 60 },
+    { id: "cdn", label: "CDN", sub: "corner stores", x: 320, y: 60 },
+    { id: "lb", label: "Load Balancer", sub: "order taker", x: 90, y: 190 },
+    { id: "app1", label: "App Server", sub: "truck 1", x: 90, y: 320 },
+    { id: "app2", label: "App Server", sub: "truck 2", x: 320, y: 320 },
+    { id: "cache", label: "Cache", sub: "chalkboard", x: 90, y: 450 },
+    { id: "splitter", label: "Read/Write Splitter", sub: "traffic cop", x: 320, y: 450 },
+    { id: "replica", label: "Read Replicas", sub: "photocopies", x: 90, y: 580 },
+    { id: "shard", label: "Sharded Primaries", sub: "recipe volumes", x: 320, y: 580 },
+  ]}
+  edges={[
+    { id: "e_cdn", from: "customers", to: "cdn", label: "static" },
+    { id: "e_lb", from: "customers", to: "lb", label: "orders" },
+    { id: "e_a1", from: "lb", to: "app1" },
+    { id: "e_a2", from: "lb", to: "app2" },
+    { id: "e_cache", from: "app1", to: "cache", label: "hot reads" },
+    { id: "e_s1", from: "app1", to: "splitter" },
+    { id: "e_s2", from: "app2", to: "splitter" },
+    { id: "e_reads", from: "splitter", to: "replica", label: "reads" },
+    { id: "e_writes", from: "splitter", to: "shard", label: "writes" },
+  ]}
+  steps={[
+    {
+      title: "One truck does everything",
+      body: "Every customer lines up at a single truck that takes orders, cooks, and keeps the books. Wonderfully simple — until the line wraps around the block and one breakdown ends the day.",
+      nodes: ["customers", "app1"],
+      edges: [],
+    },
+    {
+      title: "Clone the truck",
+      body: "An order-taker (load balancer) spreads the line across identical truck clones. Any single truck can break down and lunch still gets served.",
+      nodes: ["lb", "app1", "app2"],
+      edges: ["e_lb", "e_a1", "e_a2"],
+    },
+    {
+      title: "Stop re-reading the recipe book",
+      body: "Reads drown the kitchen, so a traffic cop (read/write splitter) sends menu lookups to photocopies (read replicas) and only real orders to the master book.",
+      nodes: ["splitter", "replica"],
+      edges: ["e_s1", "e_s2", "e_reads"],
+    },
+    {
+      title: "The chalkboard by the window",
+      body: "The most-asked questions get answered from the chalkboard (cache) in milliseconds — no trip to the kitchen at all.",
+      nodes: ["cache"],
+      edges: ["e_cache"],
+    },
+    {
+      title: "Corner stores sell the drinks",
+      body: "Bottled drinks don't need the truck. The franchise (CDN) serves static goods from corner stores right next to every customer.",
+      nodes: ["cdn"],
+      edges: ["e_cdn"],
+    },
+    {
+      title: "Split the recipe book",
+      body: "When one master book can't take all the writes, split it into volumes (shards) — each primary owns its own slice of the orders.",
+      nodes: ["shard"],
+      edges: ["e_writes"],
+    },
+  ]}
+  caption="Scroll to walk the food truck's whole journey — each stage solved the bottleneck in front of it."
+/>
 
 🎥 **Learn more:** [System Design Explained: How Apps Scale to 1 Billion Users](https://www.youtube.com/watch?v=Z_D3esVduTk) — TheBinaryBreakdown. Rebuilds the whole journey from one server to global architecture: load balancers, caching, replicas, sharding, CDN.
 
