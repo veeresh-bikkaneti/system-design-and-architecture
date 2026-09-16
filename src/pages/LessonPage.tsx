@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
-import { getLessonBySlug, lessons, tierLabels } from '../lib/lessons';
+import { Link, useParams } from 'react-router-dom';
+import { getLessonBySlug, lessons, tierLabels, tierOrder } from '../lib/lessons';
 import type { Tier } from '../lib/lessons';
 import { isLessonUnlocked } from '../lib/progress-gate';
 import { useProgressStore } from '../store/progress';
@@ -140,6 +140,48 @@ function InThisLessonChips() {
   );
 }
 
+/** Shown instead of silently bouncing home when a lesson can't be opened. */
+function LessonGate({
+  title,
+  heading,
+  body,
+}: {
+  title: string;
+  heading: string;
+  body: string;
+}) {
+  return (
+    <div className="mx-auto max-w-xl py-16 text-center sm:py-24">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-stone-200 bg-white shadow-soft dark:border-stone-800 dark:bg-stone-900">
+        <Icon name="lock" className="h-7 w-7 text-stone-400 dark:text-stone-500" />
+      </div>
+      <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-accent-700 dark:text-accent-400">
+        {title}
+      </p>
+      <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight text-stone-950 dark:text-stone-50">
+        {heading}
+      </h1>
+      <p className="mx-auto mt-4 max-w-md leading-relaxed text-stone-600 dark:text-stone-400">
+        {body}
+      </p>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <Link
+          to="/roadmap"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent-700 px-6 py-3 text-sm font-semibold text-white shadow-soft transition-colors hover:bg-accent-800 dark:bg-accent-400 dark:text-stone-950 dark:hover:bg-accent-300"
+        >
+          View the roadmap
+        </Link>
+        <Link
+          to="/"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 shadow-soft transition-colors hover:border-accent-300 hover:text-accent-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-accent-800 dark:hover:text-accent-300"
+        >
+          Back to home
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export function LessonPage() {
   const { slug } = useParams<{ slug: string }>();
   const lesson = slug ? getLessonBySlug(slug) : undefined;
@@ -152,11 +194,29 @@ export function LessonPage() {
   }, [slug]);
 
   if (!lesson) {
-    return <Navigate to="/" replace />;
+    return (
+      <LessonGate
+        title="Not found"
+        heading="There's no lesson at this address."
+        body="The link may be mistyped, or the lesson may have moved. The roadmap lists every lesson in the course."
+      />
+    );
   }
 
   if (!isLessonUnlocked(lesson.meta.slug, completedLessons)) {
-    return <Navigate to="/" replace />;
+    const tierIndex = tierOrder.indexOf(lesson.meta.tier);
+    const previousTier = tierIndex > 0 ? tierLabels[tierOrder[tierIndex - 1]] : null;
+    return (
+      <LessonGate
+        title="Locked lesson"
+        heading={`"${lesson.meta.title}" unlocks later in the course.`}
+        body={
+          previousTier
+            ? `This is a ${tierLabels[lesson.meta.tier]}-tier lesson. Complete every lesson in the ${previousTier} tier to unlock it — your progress is saved as you go.`
+            : 'Complete the earlier lessons to unlock it — your progress is saved as you go.'
+        }
+      />
+    );
   }
 
   const index = lessons.findIndex((l) => l.meta.slug === lesson.meta.slug);

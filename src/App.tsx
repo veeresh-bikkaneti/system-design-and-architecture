@@ -7,6 +7,7 @@ import { HomePage } from './pages/HomePage';
 import { RoadmapPage } from './pages/RoadmapPage';
 import { LessonPage } from './pages/LessonPage';
 import { BadgesPage, BadgeDetailPage } from './pages/BadgesPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { Quiz } from './components/Quiz';
 import { VideoCard } from './components/VideoCard';
 import { MermaidDiagram } from './components/MermaidDiagram';
@@ -107,6 +108,7 @@ function App() {
             <Route path="lesson/:slug" element={<LessonPage />} />
             <Route path="badges" element={<BadgesPage />} />
             <Route path="badges/:id" element={<BadgeDetailPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
       </HashRouter>
