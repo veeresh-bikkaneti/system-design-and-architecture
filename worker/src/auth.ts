@@ -96,7 +96,10 @@ async function sendMagicLinkEmail(env: Env, email: string, link: string): Promis
   // no longer sufficient. Fail closed (throw, caught by the caller into a
   // clean 'send_failed') whenever that second signal isn't also present.
   if (env.DEV_MODE === 'true') {
-    console.log(`[dev] magic link for ${email}: ${link}`);
+    // The link is handed back in the JSON response body (devLink) so a
+    // developer can complete the flow locally. It is deliberately NOT
+    // logged: a magic link is a bearer credential, and server logs are a
+    // classic place for credentials to leak.
     return { sent: false, devLink: link };
   }
 
