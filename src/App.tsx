@@ -8,6 +8,7 @@ import { RoadmapPage } from './pages/RoadmapPage';
 import { LessonPage } from './pages/LessonPage';
 import { BadgesPage, BadgeDetailPage } from './pages/BadgesPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { Quiz } from './components/Quiz';
 import { VideoCard } from './components/VideoCard';
 import { MermaidDiagram } from './components/MermaidDiagram';
@@ -101,7 +102,8 @@ function App() {
     <MDXProvider components={mdxComponents}>
       <HashRouter>
         <ScrollToTop />
-        <Routes>
+        <AppErrorBoundary>
+          <Routes>
           <Route element={<Layout />}>
             <Route index element={<HomePage />} />
             <Route path="roadmap" element={<RoadmapPage />} />
@@ -111,6 +113,7 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
+        </AppErrorBoundary>
       </HashRouter>
     </MDXProvider>
   );

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { BadgeCard } from '../components/Badges/BadgeCard';
 import { Confetti } from '../components/Badges/Confetti';
@@ -142,7 +142,10 @@ export function BadgeDetailPage() {
   const celebratedBadges = useProgressStore((state) => state.celebratedBadges);
   const markBadgesCelebrated = useProgressStore((state) => state.markBadgesCelebrated);
 
-  const definition = id ? getBadgeById(id) : undefined;
+  // getBadgeById() builds fresh objects on every call — memoize on `id` so the
+  // celebration effect below sees a stable reference and can't loop forever
+  // (new identity every render -> effect re-fires -> set() -> re-render ...).
+  const definition = useMemo(() => (id ? getBadgeById(id) : undefined), [id]);
   const unlocked = definition
     ? isBadgeUnlocked(definition, { completedLessons, quizResults })
     : false;
@@ -151,8 +154,10 @@ export function BadgeDetailPage() {
   const celebrate = !!definition && unlocked && !celebratedBadges.includes(definition.id);
 
   useEffect(() => {
-    if (definition && unlocked) markBadgesCelebrated([definition.id]);
-  }, [definition, unlocked, markBadgesCelebrated]);
+    if (definition && unlocked && !celebratedBadges.includes(definition.id)) {
+      markBadgesCelebrated([definition.id]);
+    }
+  }, [definition, unlocked, celebratedBadges, markBadgesCelebrated]);
 
   if (!definition) {
     return (
