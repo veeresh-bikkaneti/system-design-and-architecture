@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getLessonBySlug, lessons, tierLabels, tierOrder } from '../lib/lessons';
 import type { Tier } from '../lib/lessons';
@@ -7,6 +7,7 @@ import { useProgressStore } from '../store/progress';
 import { Icon } from '../components/ui/Icon';
 import { Button } from '../components/ui/Button';
 import { HeadingsProvider, OnThisPage } from '../components/OnThisPage';
+import { Seo, JsonLd } from '../components/Seo';
 
 /** Thin reading-progress bar pinned to the top of the viewport. */
 function ReadingProgressBar() {
@@ -193,11 +194,45 @@ export function LessonPage() {
   const prevLesson = index > 0 ? lessons[index - 1] : undefined;
   const nextLesson = index < lessons.length - 1 ? lessons[index + 1] : undefined;
 
-  const { Component } = lesson;
   const completed = completedLessons.includes(lesson.meta.slug);
+
+  const siteUrl = new URL(
+    import.meta.env.BASE_URL,
+    'https://veeresh-bikkaneti.github.io',
+  ).toString();
+  const canonical = `${siteUrl}lesson/${lesson.meta.slug}/`;
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'LearningResource',
+      '@id': `${canonical}#learning-resource`,
+      name: lesson.meta.title,
+      description: lesson.meta.summary,
+      url: canonical,
+      isPartOf: { '@id': `${siteUrl}#course` },
+      position: lesson.meta.order,
+      timeRequired: `PT${lesson.meta.estimatedMinutes}M`,
+      isAccessibleForFree: true,
+      inLanguage: 'en',
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: siteUrl },
+        { '@type': 'ListItem', position: 2, name: lesson.meta.title, item: canonical },
+      ],
+    },
+  ];
 
   return (
     <HeadingsProvider key={lesson.meta.slug}>
+      <Seo
+        title={`${lesson.meta.title} | System Design Mastery`}
+        description={lesson.meta.summary}
+        path={`/lesson/${lesson.meta.slug}`}
+      />
+      <JsonLd data={jsonLd} />
       <div className="mx-auto max-w-5xl xl:max-w-6xl">
         <ReadingProgressBar />
 
@@ -235,7 +270,15 @@ export function LessonPage() {
 
             {/* Lesson body at a comfortable reading measure */}
             <div className="lesson-prose mt-10 max-w-[65ch]">
-              <Component />
+              <Suspense
+                fallback={
+                  <p className="text-sm text-stone-500 dark:text-stone-400">
+                    Loading lesson…
+                  </p>
+                }
+              >
+                <lesson.Body />
+              </Suspense>
             </div>
 
             {/* Completion + prev/next */}

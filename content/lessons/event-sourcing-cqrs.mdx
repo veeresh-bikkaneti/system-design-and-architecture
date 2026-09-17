@@ -61,7 +61,7 @@ facts never left.
 Say the mapping out loud once, because the whole lesson hangs on it:
 
 - **A ledger entry is an event.** `Deposited(500)`, `Withdrew(200)` — past tense,
-  immutable, a fact about something that already happened. ([The DDD lesson's logbook](#/lesson/domain-driven-design),
+  immutable, a fact about something that already happened. ([The DDD lesson's logbook](/lesson/domain-driven-design),
   same idea, now load-bearing.)
 - **The bound book is the event log.** Append-only. You never edit line 41; you append
   line 42.
@@ -293,9 +293,9 @@ the duplicates hidden where you can't monitor them. Prefer the visible kind.
 
 **The dual-write trap.** The classic failure: write the row to Postgres, then publish
 the event to Kafka, and crash between the two. Now the whiteboard and the ledger
-disagree and nobody knows. [The DDD lesson's answer](#/lesson/domain-driven-design) stands: the **transactional
+disagree and nobody knows. [The DDD lesson's answer](/lesson/domain-driven-design) stands: the **transactional
 outbox** — the event lands in an outbox table inside the same transaction as the state
-change, and a relay publishes it afterward. One transaction, no [distributed commit](#/lesson/distributed-transactions), no
+change, and a relay publishes it afterward. One transaction, no [distributed commit](/lesson/distributed-transactions), no
 disagreement. If your event-sourced write side still dual-writes, the ledger has a hole
 in it.
 

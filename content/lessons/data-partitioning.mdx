@@ -105,7 +105,7 @@ got harder:
    cross-shard writes simply never happen.
 3. **Rebalancing** — adding a new shard means moving data. With consistent hashing you move a
    slice; without it, you re-shelve the whole library. Schedule it off-hours and bring
-   snacks. The advanced treatment — virtual nodes, live resharding, and hot-key surgery — is in [the sharding-strategies lesson](#/lesson/sharding-strategies).
+   snacks. The advanced treatment — virtual nodes, live resharding, and hot-key surgery — is in [the sharding-strategies lesson](/lesson/sharding-strategies).
 4. **Hot shards** — a celebrity's profile, a viral post: one key can get a million times the
    traffic of the average. Even a "perfectly even" hash can't save you from popularity. Teams
    handle this with caching, key splitting (the celebrity gets `celebrity_1`…`celebrity_N`

@@ -8,6 +8,7 @@ import { Icon } from '../components/ui/Icon';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { buttonClasses } from '../components/ui/Button';
 import { PacketFlow } from '../components/diagrams/PacketFlow';
+import { Seo } from '../components/Seo';
 
 function StatCard({ value, label }: { value: string; label: string }) {
   return (
@@ -160,6 +161,11 @@ export function HomePage() {
 
   return (
     <div className="mx-auto max-w-5xl">
+      <Seo
+        title="System Design Mastery — Learn System Design from Zero to Master"
+        description="Learn system design progressively, from beginner to master, with an AI tutor that draws you the diagrams."
+        path="/"
+      />
       {/* Hero — the course's animated diagrams, live above the fold */}
       <section className="pt-4 sm:pt-8">
         <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -214,11 +220,19 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats — show course totals until the visitor has personal progress,
+            so a first-time searcher never reads their own empty progress as
+            "nobody uses this". */}
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-          <StatCard value={`${completedLessons.length}/${lessons.length}`} label="Lessons completed" />
+          <StatCard
+            value={hasStarted ? `${completedLessons.length}/${lessons.length}` : `${lessons.length}`}
+            label={hasStarted ? 'Lessons completed' : 'Lessons in the course'}
+          />
           <StatCard value={`${totalMinutes}`} label="Minutes of content" />
-          <StatCard value={`${unlockedBadgeCount}/${badgeStatuses.length}`} label="Badges earned" />
+          <StatCard
+            value={hasStarted ? `${unlockedBadgeCount}/${badgeStatuses.length}` : `${badgeStatuses.length}`}
+            label={hasStarted ? 'Badges earned' : 'Badges to earn'}
+          />
           <StatCard value="3" label="Skill tiers" />
         </div>
       </section>

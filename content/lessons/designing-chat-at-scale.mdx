@@ -290,7 +290,7 @@ flowchart LR
 ## Offline delivery: the overnight holding room
 
 When Bob's tube is cut — phone off, app killed, gremlin activity — his canisters wait in
-the **overnight holding room**: a per-user [offline queue](#/lesson/message-queues) on the server. The moment Bob
+the **overnight holding room**: a per-user [offline queue](/lesson/message-queues) on the server. The moment Bob
 reconnects, his phone asks "anything for me?" and drains the queue in sequence-number
 order, acking as it goes. Only acked messages leave the room.
 

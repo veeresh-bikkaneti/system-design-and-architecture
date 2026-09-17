@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "predev": "node scripts/seo/generate-manifest.mjs",
+    "prebuild": "node scripts/seo/generate-manifest.mjs && node scripts/seo/generate-sitemap.mjs && node scripts/seo/generate-llms-txt.mjs",
+    "build": "tsc -b && vite build && node scripts/seo/prerender.mjs",
     "content:check": "python3 scripts/check_mdx_h1.py",
     "content:validate": "python3 scripts/validate_lessons.py",
     "test": "vitest run",
+    "pretest": "node scripts/seo/generate-manifest.mjs",
     "test:e2e": "playwright test",
     "lint": "oxlint",
     "preview": "vite preview"

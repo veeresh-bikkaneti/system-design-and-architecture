@@ -138,7 +138,7 @@ certificate (normal TLS), but both sides presenting certificates to each other. 
 order service shows its SVID; the payments service verifies the signature chain *and*
 checks policy — "is `spiffe://prod/orders` allowed to call my charge endpoint?" Identity
 answers *who is calling*; policy answers *whether this caller may do this thing*. That
-is the authN/authZ split from [the earlier lesson](#/lesson/authn-authz), now applied to every hop between
+is the authN/authZ split from [the earlier lesson](/lesson/authn-authz), now applied to every hop between
 machines, not just at the edge.
 
 Short lifetimes do quiet, enormous work here. A database password that lives for a year

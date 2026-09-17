@@ -6,6 +6,7 @@ import { useProgressStore } from '../store/progress';
 import { Reveal } from '../components/ui/Reveal';
 import { Icon } from '../components/ui/Icon';
 import { ProgressBar } from '../components/ui/ProgressBar';
+import { Seo } from '../components/Seo';
 
 /* ------------------------------------------------------------------ */
 /* Tier storytelling: what each chapter covers and what it gives you.   */
@@ -168,6 +169,11 @@ export function RoadmapPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
+      <Seo
+        title="Roadmap | System Design Mastery"
+        description="The complete system design learning path: 36 lessons from beginner to advanced, in syllabus order."
+        path="/roadmap"
+      />
       {/* Hero */}
       <section className="pt-4 text-center sm:pt-8">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-700 dark:text-accent-400">
