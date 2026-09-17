@@ -23,8 +23,14 @@ beforeEach(() => {
 });
 
 describe('quiz pass threshold', () => {
-  it('is 0.7 and matches the worker exam threshold', () => {
+  it('is 0.7 and matches the worker exam threshold', async () => {
     expect(QUIZ_PASS_THRESHOLD).toBe(0.7);
+    // The worker re-scores exams server-side; if these drift, learners see
+    // "passed" while the server says "failed". The worker package stays
+    // self-contained, so the parity check lives here, where both modules
+    // are importable.
+    const { EXAM_PASS_THRESHOLD } = await import('../../worker/src/exam');
+    expect(QUIZ_PASS_THRESHOLD).toBe(EXAM_PASS_THRESHOLD);
   });
 
   it('exactly 0.7 passes (7/10)', () => {

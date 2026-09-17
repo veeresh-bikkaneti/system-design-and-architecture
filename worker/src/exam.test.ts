@@ -1,16 +1,5 @@
-import { beforeAll, describe, expect, it } from 'vitest';
-import { stubBrowserStorage } from '../../src/test-utils/memoryStorage';
+import { describe, expect, it } from 'vitest';
 import { EXAM_PASS_THRESHOLD, publicQuestions, scoreSubmission } from './exam';
-
-// The frontend's QUIZ_PASS_THRESHOLD lives in a zustand store that persists
-// via window.localStorage at import time; stub it so the parity assertion
-// below loads the real module instead of a storage-less fallback.
-stubBrowserStorage();
-
-let QUIZ_PASS_THRESHOLD: number;
-beforeAll(async () => {
-  ({ QUIZ_PASS_THRESHOLD } = await import('../../src/store/progress'));
-});
 
 describe('scoreSubmission', () => {
   const allCorrect = {
@@ -57,12 +46,5 @@ describe('publicQuestions', () => {
     for (const q of questions) {
       expect(q).not.toHaveProperty('correctIndex');
     }
-  });
-});
-
-describe('threshold parity across the trust boundary', () => {
-  it('the worker exam threshold matches the frontend quiz threshold', () => {
-    // If these drift, learners see "passed" while the server says "failed".
-    expect(EXAM_PASS_THRESHOLD).toBe(QUIZ_PASS_THRESHOLD);
   });
 });
