@@ -2,6 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      Content Security Policy (meta tag: GitHub Pages can't set response
+      headers, so this is the only route). Deliberate trade-offs:
+      - script-src has no 'unsafe-inline': the one inline script (theme boot
+        below) is allowlisted by its sha256 hash. If you edit that script,
+        recompute the hash or the theme boot will silently stop running.
+      - style-src keeps 'unsafe-inline': motion/react and several components
+        set styles via the style attribute; CSS injection is low-risk while
+        script-src stays locked down.
+      - connect-src allows any https: because the AI tutor is provider-
+        agnostic by design (user-configured endpoints). Narrow per-provider
+        if you ever drop custom endpoints.
+      - img-src is tight ('self', data:, YouTube thumbnails): a prompt-
+        injected mermaid diagram can't exfiltrate via a remote <image>.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'sha256-4YWKEnBPEY4KQC/Wysp30Oe7tbyGO3p48I87C3noELI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>System Design Mastery</title>

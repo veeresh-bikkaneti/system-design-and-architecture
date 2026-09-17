@@ -272,3 +272,50 @@ export async function validateSession(env: Env, rawSessionToken: string): Promis
   if (!row || row.expires_at < new Date().toISOString()) return null;
   return row.email;
 }
+
+/**
+ * Deletes a session by token hash. Returns true when a session was actually
+ * revoked. A leaked token is otherwise valid for the full SESSION_TTL_MS --
+ * logout must give the holder a way to kill it.
+ */
+export async function revokeSession(env: Env, rawSessionToken: string): Promise<boolean> {
+  const tokenHash = await sha256Hex(rawSessionToken);
+  const result = await env.DB.prepare(`DELETE FROM sessions WHERE token_hash = ?`)
+    .bind(tokenHash)
+    .run();
+  return (result.meta.changes ?? 0) > 0;
+}
+
+/**
+ * Generic fixed-window rate limiter backed by the rate_limit_counters
+ * table (migration 0004). The increment is ONE atomic statement --
+ * INSERT ... ON CONFLICT DO UPDATE ... RETURNING -- so concurrent bursts
+ * can't slip past the cap the way the older check-then-insert counters
+ * can. Returns true when the request is within the limit.
+ *
+ * `bucketKey` should already be a hashed/opaque identity (e.g. an IP hash),
+ * never a raw IP or email -- this table is keyed for counting, not for
+ * storing PII.
+ */
+export async function checkRateLimit(
+  db: D1Database,
+  bucketKey: string,
+  windowHour: string,
+  maxPerHour: number,
+): Promise<boolean> {
+  const row = await db
+    .prepare(
+      `INSERT INTO rate_limit_counters (bucket_key, window_start, count)
+       VALUES (?, ?, 1)
+       ON CONFLICT (bucket_key, window_start) DO UPDATE SET count = count + 1
+       RETURNING count`,
+    )
+    .bind(bucketKey, windowHour)
+    .first<{ count: number }>();
+  return (row?.count ?? maxPerHour + 1) <= maxPerHour;
+}
+
+/** Current UTC hour as 'YYYY-MM-DDTHH' -- the fixed window for checkRateLimit. */
+export function currentWindowHour(now: Date = new Date()): string {
+  return now.toISOString().slice(0, 13);
+}

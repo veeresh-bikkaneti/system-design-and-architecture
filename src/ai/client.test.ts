@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deltaFromSseLine } from './client';
+import { assertSafeBaseUrl, deltaFromSseLine } from './client';
 
 /**
  * deltaFromSseLine is the streaming contract every non-Anthropic provider
@@ -38,5 +38,32 @@ describe('deltaFromSseLine', () => {
     expect(deltaFromSseLine('data: {"choices":[{"delta":{"content":""}}]}')).toBeNull();
     expect(deltaFromSseLine('data: {"choices":[{"delta":{"content":42}}]}')).toBeNull();
     expect(deltaFromSseLine('data:')).toBeNull();
+  });
+});
+
+/**
+ * assertSafeBaseUrl guards the user's API key: it travels in the
+ * Authorization header, so a plaintext http:// endpoint would broadcast it.
+ * https: always passes; http: only for loopback (local dev servers).
+ */
+describe('assertSafeBaseUrl', () => {
+  it('accepts https endpoints', () => {
+    expect(() => assertSafeBaseUrl('https://api.openai.com/v1')).not.toThrow();
+    expect(() => assertSafeBaseUrl('https://llm.example.com:8443/v1/')).not.toThrow();
+  });
+
+  it('accepts http only for loopback hosts', () => {
+    expect(() => assertSafeBaseUrl('http://localhost:11434/v1')).not.toThrow();
+    expect(() => assertSafeBaseUrl('http://127.0.0.1:1234/v1')).not.toThrow();
+    expect(() => assertSafeBaseUrl('http://[::1]:11434/v1')).not.toThrow();
+  });
+
+  it('rejects plaintext http to remote hosts', () => {
+    expect(() => assertSafeBaseUrl('http://evil.example.com/v1')).toThrow(/https/);
+    expect(() => assertSafeBaseUrl('http://192.168.1.10/v1')).toThrow(/https/);
+  });
+
+  it('rejects non-URL input', () => {
+    expect(() => assertSafeBaseUrl('not a url')).toThrow();
   });
 });

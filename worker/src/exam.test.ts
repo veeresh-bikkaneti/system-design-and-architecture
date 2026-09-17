@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { EXAM_PASS_THRESHOLD, publicQuestions, scoreSubmission } from './exam';
 
+describe('exam threshold', () => {
+  it('is 0.7 (pinned here; the root suite asserts it matches the frontend quiz threshold)', () => {
+    expect(EXAM_PASS_THRESHOLD).toBe(0.7);
+  });
+});
+
 describe('scoreSubmission', () => {
   const allCorrect = {
     'cap-1': 0, 'cap-2': 2, 'cap-3': 1,

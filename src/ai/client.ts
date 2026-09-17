@@ -73,6 +73,7 @@ async function streamOpenAICompatible(opts: StreamTutorReplyOptions): Promise<vo
   if (!base) {
     throw new Error('Set an endpoint URL in AI Tutor settings first.');
   }
+  assertSafeBaseUrl(base);
 
   let res: Response;
   try {
@@ -119,6 +120,28 @@ async function streamOpenAICompatible(opts: StreamTutorReplyOptions): Promise<vo
   // A final data line without a trailing newline would otherwise be dropped.
   const tail = deltaFromSseLine(buffer);
   if (tail) onDelta(tail);
+}
+
+/**
+ * The API key travels in the Authorization header, so the endpoint must use
+ * TLS: a user typing `http://…` would otherwise broadcast their key in
+ * plaintext. `http://` is allowed only for loopback hosts (local dev
+ * servers like Ollama/LM Studio). Throws a user-facing error otherwise.
+ * Pure and exported for unit tests.
+ */
+export function assertSafeBaseUrl(base: string): void {
+  let url: URL;
+  try {
+    url = new URL(base);
+  } catch {
+    throw new Error('That endpoint URL is not valid. Use an https:// URL.');
+  }
+  const host = url.hostname.toLowerCase();
+  const isLoopback =
+    host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '::1';
+  if (url.protocol !== 'https:' && !isLoopback) {
+    throw new Error('Endpoint URL must use https:// (http:// is allowed only for localhost).');
+  }
 }
 
 /**

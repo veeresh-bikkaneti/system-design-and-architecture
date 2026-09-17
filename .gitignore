@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Environment files: never commit secrets. `.env.example` (documented
+# placeholders only) is the exception.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

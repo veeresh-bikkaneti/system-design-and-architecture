@@ -1,11 +1,14 @@
 import { EXAM_PASS_THRESHOLD, publicQuestions, scoreSubmission } from './exam';
 import {
   checkMagicLink,
+  checkRateLimit,
   confirmMagicLink,
+  currentWindowHour,
   exchangeCode,
   isValidEmail,
   normalizeEmail,
   requestMagicLink,
+  revokeSession,
   validateSession,
 } from './auth';
 import { sha256Hex } from './crypto';
@@ -86,6 +89,7 @@ function page(title: string, body: string, status: number): Response {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>${escapeHtml(title)}</title>
 <style>
   :root { color-scheme: light dark; }
@@ -158,7 +162,7 @@ function credentialPage(cred: CredentialRow): Response {
      <dl>
        <dt>Course</dt><dd>${escapeHtml(cred.course_slug)}</dd>
        <dt>Holder</dt><dd>${escapeHtml(maskEmail(cred.email))}</dd>
-       <dt>Score</dt><dd>${cred.score} / ${cred.total_questions}</dd>
+       <dt>Score</dt><dd>${escapeHtml(String(cred.score))} / ${escapeHtml(String(cred.total_questions))}</dd>
        <dt>Issued</dt><dd>${escapeHtml(issuedDate)}</dd>
        ${badgeLine}
      </dl>
@@ -208,17 +212,69 @@ function corsHeaders(origin: string | null): HeadersInit {
 // endpoint. Also parses the body without ever throwing an uncaught
 // exception into the caller. Returns the parsed body, or a ready-to-return
 // Response for the caller to hand straight back.
+const MAX_JSON_BODY_BYTES = 64 * 1024;
+
+/**
+ * JSON responses with `x-content-type-options: nosniff`. Browsers never
+ * render application/json as HTML anyway; this closes the MIME-sniffing
+ * hole for ancient/quirky clients as defense in depth.
+ */
+function jsonResponse(data: unknown, init?: ResponseInit): Response {
+  const headers = new Headers(init?.headers);
+  headers.set('x-content-type-options', 'nosniff');
+  return Response.json(data, { ...init, headers });
+}
+
 async function parseJsonBody(request: Request, cors: HeadersInit): Promise<{ body: unknown } | { errorResponse: Response }> {
   if (!(request.headers.get('Content-Type') ?? '').toLowerCase().startsWith('application/json')) {
     return {
-      errorResponse: Response.json({ error: 'Content-Type must be application/json' }, { status: 415, headers: cors }),
+      errorResponse: jsonResponse({ error: 'Content-Type must be application/json' }, { status: 415, headers: cors }),
+    };
+  }
+  // Defense against memory/CPU exhaustion: these endpoints take small
+  // payloads (answers, emails, codes), so reject anything absurd before
+  // parsing. Check the declared length first, then enforce while reading
+  // for chunked bodies with no Content-Length.
+  const declared = request.headers.get('Content-Length');
+  if (declared !== null && Number(declared) > MAX_JSON_BODY_BYTES) {
+    return {
+      errorResponse: jsonResponse({ error: 'Request body too large' }, { status: 413, headers: cors }),
     };
   }
   try {
-    return { body: await request.json() };
+    const reader = request.body?.getReader();
+    if (!reader) {
+      return { body: await request.json() };
+    }
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_JSON_BODY_BYTES) {
+        await reader.cancel();
+        return {
+          errorResponse: jsonResponse({ error: 'Request body too large' }, { status: 413, headers: cors }),
+        };
+      }
+      chunks.push(value);
+    }
+    const text = new TextDecoder().decode(concatChunks(chunks, total));
+    return { body: JSON.parse(text) };
   } catch {
-    return { errorResponse: Response.json({ error: 'Invalid JSON body' }, { status: 400, headers: cors }) };
+    return { errorResponse: jsonResponse({ error: 'Invalid JSON body' }, { status: 400, headers: cors }) };
   }
+}
+
+function concatChunks(chunks: Uint8Array[], total: number): Uint8Array {
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
 }
 
 // Not a secret -- this exists only so raw IPs aren't stored at rest (data
@@ -229,6 +285,26 @@ const IP_HASH_PEPPER = 'sdm-exam-v1';
 
 function hashIp(ip: string): Promise<string> {
   return sha256Hex(`${IP_HASH_PEPPER}:${ip}`);
+}
+
+// Per-IP fixed-window throttle for endpoints without their own attempt
+// tables (auth verify/exchange/session/logout). Tokens are 256-bit, so
+// guessing is infeasible -- this is about bounding D1 read cost under
+// flood, not about token secrecy. Skips when CF-Connecting-IP is absent
+// (local dev / non-edge), matching the other handlers' convention.
+async function throttleByIp(
+  request: Request,
+  db: D1Database,
+  bucket: string,
+  maxPerHour: number,
+  cors: HeadersInit,
+): Promise<Response | null> {
+  const ip = request.headers.get('CF-Connecting-IP');
+  if (!ip) return null;
+  const ok = await checkRateLimit(db, `${bucket}:ip:${await hashIp(ip)}`, currentWindowHour(), maxPerHour);
+  return ok
+    ? null
+    : jsonResponse({ error: 'Too many attempts. Try again later.' }, { status: 429, headers: cors });
 }
 
 // `column` is a TypeScript literal union, always a hardcoded call-site value,
@@ -255,22 +331,24 @@ async function handleExamSubmit(request: Request, env: Env): Promise<Response> {
   if ('errorResponse' in parsed) return parsed.errorResponse;
   const body = parsed.body;
 
-  const { email: rawEmail, answers } = (body && typeof body === 'object' ? body : {}) as {
-    email?: unknown;
+  // The exam is bound to a verified session: the email comes from the
+  // session token, never from the client body. A client-supplied email
+  // would let anyone burn a victim's daily attempt quota (5/day) or submit
+  // attempts attributed to someone else's address.
+  const auth = request.headers.get('Authorization') ?? '';
+  const sessionToken = auth.startsWith('Bearer ') ? auth.slice('Bearer '.length) : null;
+  if (!sessionToken) {
+    return jsonResponse({ error: 'Missing or invalid Authorization header' }, { status: 401, headers: cors });
+  }
+  const sessionEmail = await validateSession(env, sessionToken);
+  if (!sessionEmail) {
+    return jsonResponse({ error: 'Invalid or expired session' }, { status: 401, headers: cors });
+  }
+  const email = sessionEmail;
+
+  const { answers } = (body && typeof body === 'object' ? body : {}) as {
     answers?: unknown;
   };
-  // Normalize BEFORE validating, not after: isValidEmail's pattern rejects
-  // any whitespace, so a legitimate 'user@example.com ' (trailing space
-  // from autofill/copy-paste) would otherwise fail validation even though
-  // it's valid once trimmed. Lowercasing also matters downstream: SQLite
-  // string equality is case-sensitive, so 'User@Example.com' and
-  // 'user@example.com' would otherwise count as different rate-limit
-  // identities and trivially defeat the per-email cap below. Shared with
-  // the /auth/* handlers (auth.ts) rather than a second copy of this logic.
-  const email = normalizeEmail(rawEmail);
-  if (!isValidEmail(email)) {
-    return Response.json({ error: 'A valid email is required' }, { status: 400, headers: cors });
-  }
 
   // CF-Connecting-IP is set by Cloudflare's edge for all genuine production
   // traffic; it's realistically only absent in local dev or non-edge
@@ -296,7 +374,7 @@ async function handleExamSubmit(request: Request, env: Env): Promise<Response> {
   // truth for the counter, either of which is more machinery than this
   // deserves right now.
   if (emailAttempts >= MAX_ATTEMPTS_PER_EMAIL_PER_DAY || ipAttempts >= MAX_ATTEMPTS_PER_IP_PER_DAY) {
-    return Response.json({ error: 'Too many attempts. Try again later.' }, { status: 429, headers: cors });
+    return jsonResponse({ error: 'Too many attempts. Try again later.' }, { status: 429, headers: cors });
   }
 
   // Scored purely server-side against exam.ts's private answer key -- the
@@ -313,7 +391,7 @@ async function handleExamSubmit(request: Request, env: Env): Promise<Response> {
     .bind(email, now, now, result.score, result.total, result.passed ? 1 : 0, ipHash)
     .run();
 
-  return Response.json(result, { headers: cors });
+  return jsonResponse(result, { headers: cors });
 }
 
 async function handleRequestLink(request: Request, env: Env): Promise<Response> {
@@ -327,7 +405,7 @@ async function handleRequestLink(request: Request, env: Env): Promise<Response> 
   };
   const email = normalizeEmail(rawEmail);
   if (!isValidEmail(email)) {
-    return Response.json({ error: 'A valid email is required' }, { status: 400, headers: cors });
+    return jsonResponse({ error: 'A valid email is required' }, { status: 400, headers: cors });
   }
 
   const ip = request.headers.get('CF-Connecting-IP');
@@ -336,22 +414,33 @@ async function handleRequestLink(request: Request, env: Env): Promise<Response> 
 
   const result = await requestMagicLink(env, workerOrigin, email, ipHash);
   if (result.status === 'rate_limited') {
-    return Response.json({ error: 'Too many attempts. Try again later.' }, { status: 429, headers: cors });
+    return jsonResponse({ error: 'Too many attempts. Try again later.' }, { status: 429, headers: cors });
   }
   if (result.status === 'send_failed') {
-    return Response.json({ error: 'Failed to send the email. Try again shortly.' }, { status: 502, headers: cors });
+    return jsonResponse({ error: 'Failed to send the email. Try again shortly.' }, { status: 502, headers: cors });
   }
 
-  // devLink is only ever populated in local dev (no RESEND_API_KEY -- see
-  // auth.ts). In a real deployment this key is always absent and the body
-  // is just { status: 'sent' }.
-  return Response.json({ status: 'sent', devLink: result.devLink }, { headers: cors });
+  // devLink is a working sign-in link: it must never leave the machine, even
+  // if DEV_MODE were ever misconfigured in production. Echo it only for
+  // loopback origins; anywhere else the body is just { status: 'sent' }.
+  // (auth.ts additionally gates devLink on DEV_MODE=true AND no
+  // RESEND_API_KEY -- this is the second, independent gate.)
+  const originHost = new URL(workerOrigin).hostname.toLowerCase();
+  const isLoopbackOrigin =
+    originHost === 'localhost' || originHost === '127.0.0.1' || originHost === '[::1]';
+  return jsonResponse(
+    { status: 'sent', ...(isLoopbackOrigin ? { devLink: result.devLink } : {}) },
+    { headers: cors },
+  );
 }
 
 const EXPIRED_LINK_PAGE = `<h1><span class="badge-no">✕</span> This link is invalid or has expired</h1>
    <p class="muted">Magic links are single-use and expire after 15 minutes. Request a new one.</p>`;
 
 async function handleVerify(request: Request, env: Env): Promise<Response> {
+  const cors = corsHeaders(request.headers.get('Origin'));
+  const throttled = await throttleByIp(request, env.DB, 'auth_verify', 60, cors);
+  if (throttled) return throttled;
   const url = new URL(request.url);
   const token = url.searchParams.get('token');
   if (!token) {
@@ -394,37 +483,56 @@ async function handleVerify(request: Request, env: Env): Promise<Response> {
 
 async function handleExchange(request: Request, env: Env): Promise<Response> {
   const cors = corsHeaders(request.headers.get('Origin'));
+  const throttled = await throttleByIp(request, env.DB, 'auth_exchange', 60, cors);
+  if (throttled) return throttled;
 
   const parsed = await parseJsonBody(request, cors);
   if ('errorResponse' in parsed) return parsed.errorResponse;
 
   const { code } = (parsed.body && typeof parsed.body === 'object' ? parsed.body : {}) as { code?: unknown };
   if (typeof code !== 'string' || !code) {
-    return Response.json({ error: 'A code is required' }, { status: 400, headers: cors });
+    return jsonResponse({ error: 'A code is required' }, { status: 400, headers: cors });
   }
 
   const result = await exchangeCode(env, code);
   if (result.status === 'invalid_or_expired') {
-    return Response.json({ error: 'Invalid or expired code' }, { status: 400, headers: cors });
+    return jsonResponse({ error: 'Invalid or expired code' }, { status: 400, headers: cors });
   }
 
-  return Response.json({ sessionToken: result.sessionToken, email: result.email }, { headers: cors });
+  return jsonResponse({ sessionToken: result.sessionToken, email: result.email }, { headers: cors });
 }
 
 async function handleGetSession(request: Request, env: Env): Promise<Response> {
   const cors = corsHeaders(request.headers.get('Origin'));
+  const throttled = await throttleByIp(request, env.DB, 'auth_session', 180, cors);
+  if (throttled) return throttled;
   const auth = request.headers.get('Authorization') ?? '';
   const token = auth.startsWith('Bearer ') ? auth.slice('Bearer '.length) : null;
   if (!token) {
-    return Response.json({ error: 'Missing bearer token' }, { status: 401, headers: cors });
+    return jsonResponse({ error: 'Missing bearer token' }, { status: 401, headers: cors });
   }
 
   const email = await validateSession(env, token);
   if (!email) {
-    return Response.json({ error: 'Invalid or expired session' }, { status: 401, headers: cors });
+    return jsonResponse({ error: 'Invalid or expired session' }, { status: 401, headers: cors });
   }
 
-  return Response.json({ email }, { headers: cors });
+  return jsonResponse({ email }, { headers: cors });
+}
+
+async function handleLogout(request: Request, env: Env): Promise<Response> {
+  const cors = corsHeaders(request.headers.get('Origin'));
+  const throttled = await throttleByIp(request, env.DB, 'auth_logout', 60, cors);
+  if (throttled) return throttled;
+  const auth = request.headers.get('Authorization') ?? '';
+  const token = auth.startsWith('Bearer ') ? auth.slice('Bearer '.length) : null;
+  if (!token) {
+    return jsonResponse({ error: 'Missing or invalid Authorization header' }, { status: 401, headers: cors });
+  }
+  // Revoke even an expired token's row: no row, no-op, same 200 either way
+  // so logout can't be used to probe token validity.
+  await revokeSession(env, token);
+  return jsonResponse({ status: 'logged_out' }, { headers: cors });
 }
 
 export default {
@@ -432,7 +540,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/health') {
-      return Response.json({ status: 'ok' });
+      return jsonResponse({ status: 'ok' });
     }
 
     // Preflight for the /exam/* and /auth/* routes below -- a cross-origin
@@ -443,7 +551,7 @@ export default {
     }
 
     if (url.pathname === '/exam/questions' && request.method === 'GET') {
-      return Response.json(
+      return jsonResponse(
         { questions: publicQuestions(), passThreshold: EXAM_PASS_THRESHOLD },
         { headers: corsHeaders(request.headers.get('Origin')) },
       );
@@ -463,6 +571,10 @@ export default {
 
     if (url.pathname === '/auth/session' && request.method === 'GET') {
       return handleGetSession(request, env);
+    }
+
+    if (url.pathname === '/auth/logout' && request.method === 'POST') {
+      return handleLogout(request, env);
     }
 
     if (url.pathname === '/exam/submit' && request.method === 'POST') {
