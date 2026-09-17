@@ -12,6 +12,12 @@ import {
   validateSession,
 } from './auth';
 import { sha256Hex } from './crypto';
+import {
+  handleQaChat,
+  handleQaCreateSession,
+  handleQaDeleteSession,
+  handleQaQuota,
+} from './qa/routes';
 
 export interface Env {
   DB: D1Database;
@@ -191,7 +197,7 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost:4173', // vite preview
 ]);
 
-function corsHeaders(origin: string | null): HeadersInit {
+export function corsHeaders(origin: string | null): HeadersInit {
   if (!origin || !ALLOWED_ORIGINS.has(origin)) return {};
   return {
     'Access-Control-Allow-Origin': origin,
@@ -219,13 +225,13 @@ const MAX_JSON_BODY_BYTES = 64 * 1024;
  * render application/json as HTML anyway; this closes the MIME-sniffing
  * hole for ancient/quirky clients as defense in depth.
  */
-function jsonResponse(data: unknown, init?: ResponseInit): Response {
+export function jsonResponse(data: unknown, init?: ResponseInit): Response {
   const headers = new Headers(init?.headers);
   headers.set('x-content-type-options', 'nosniff');
   return Response.json(data, { ...init, headers });
 }
 
-async function parseJsonBody(request: Request, cors: HeadersInit): Promise<{ body: unknown } | { errorResponse: Response }> {
+export async function parseJsonBody(request: Request, cors: HeadersInit): Promise<{ body: unknown } | { errorResponse: Response }> {
   if (!(request.headers.get('Content-Type') ?? '').toLowerCase().startsWith('application/json')) {
     return {
       errorResponse: jsonResponse({ error: 'Content-Type must be application/json' }, { status: 415, headers: cors }),
@@ -543,10 +549,10 @@ export default {
       return jsonResponse({ status: 'ok' });
     }
 
-    // Preflight for the /exam/* and /auth/* routes below -- a cross-origin
+    // Preflight for the /exam/*, /auth/* and /api/qa/* routes below -- a cross-origin
     // POST with a JSON content-type (or, for /auth/session, an Authorization
     // header) triggers a browser preflight before the real request.
-    if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/'))) {
+    if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/qa/'))) {
       return new Response(null, { status: 204, headers: corsHeaders(request.headers.get('Origin')) });
     }
 
@@ -579,6 +585,23 @@ export default {
 
     if (url.pathname === '/exam/submit' && request.method === 'POST') {
       return handleExamSubmit(request, env);
+    }
+
+    // P0 course Q&A agent. See worker/src/qa/routes.ts for the contract.
+    if (url.pathname === '/api/qa/session' && request.method === 'POST') {
+      return handleQaCreateSession(request, env);
+    }
+
+    if (url.pathname === '/api/qa/session' && request.method === 'DELETE') {
+      return handleQaDeleteSession(request, env);
+    }
+
+    if (url.pathname === '/api/qa/chat' && request.method === 'POST') {
+      return handleQaChat(request, env);
+    }
+
+    if (url.pathname === '/api/qa/quota' && request.method === 'GET') {
+      return handleQaQuota(request, env);
     }
 
     const verifyMatch = url.pathname.match(/^\/verify\/([A-Za-z0-9_-]+)$/);
