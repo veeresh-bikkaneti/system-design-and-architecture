@@ -33,7 +33,8 @@ interface CredentialRow {
   badge_url: string | null;
 }
 
-function escapeHtml(value: string): string {
+// Exported for unit tests.
+export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => {
     switch (char) {
       case '&':
@@ -54,7 +55,8 @@ function escapeHtml(value: string): string {
 // who has the link. Show at most 2 characters of the local part, and never
 // more than half of it -- a 1-2 character local part (common: initials,
 // short handles) must come out fully masked, not fully exposed.
-function maskEmail(email: string): string {
+// Exported for unit tests.
+export function maskEmail(email: string): string {
   const at = email.indexOf('@');
   if (at <= 0) return '***';
   const local = email.slice(0, at);
@@ -68,7 +70,8 @@ function maskEmail(email: string): string {
 // alone stops attribute-breakout/script-tag injection but does NOT stop a
 // javascript:/data: value from becoming a live, clickable link -- those
 // contain none of the characters escapeHtml touches. Reject anything else.
-function safeHttpsUrl(value: string): string | null {
+// Exported for unit tests.
+export function safeHttpsUrl(value: string): string | null {
   try {
     const parsed = new URL(value);
     return parsed.protocol === 'https:' ? parsed.toString() : null;

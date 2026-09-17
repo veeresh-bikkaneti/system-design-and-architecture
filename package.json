@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "content:check": "python3 scripts/check_mdx_h1.py",
+    "content:validate": "python3 scripts/validate_lessons.py",
+    "test": "vitest run",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -33,6 +35,7 @@
     "oxlint": "^1.81.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
   }
 }
