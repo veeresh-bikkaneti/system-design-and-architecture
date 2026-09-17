@@ -1,4 +1,11 @@
+import { existsSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
+
+// This sandbox ships a Chromium that Playwright should use when Playwright's
+// own browser download is unavailable (blocked proxy). On CI and other
+// machines the path doesn't exist, so Playwright falls back to its own
+// downloaded Chromium.
+const SANDBOX_CHROMIUM = '/opt/meta-chromium/chrome';
 
 export default defineConfig({
   testDir: './e2e',
@@ -6,18 +13,16 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:4173',
     launchOptions: {
-      // Playwright's own browser download is blocked by the network proxy,
-      // so use the Chromium shipped with the environment instead.
-      executablePath: '/opt/meta-chromium/chrome',
+      ...(existsSync(SANDBOX_CHROMIUM) ? { executablePath: SANDBOX_CHROMIUM } : {}),
       // Running as root in a container: Chrome's sandbox refuses to start.
-      // --no-proxy-server: the environment's proxy env vars would otherwise
+      // --no-proxy-server: the sandbox's proxy env vars would otherwise
       // route localhost through the public proxy, which trips Chrome's Local
       // Network Access checks and blocks the test server.
       args: [
         '--no-sandbox',
         '--disable-dev-shm-usage',
         '--no-proxy-server',
-        // The environment's networking makes Chrome treat localhost targets
+        // The sandbox's networking makes Chrome treat localhost targets
         // as local-network access from a public initiator; disable those
         // checks so the test server is reachable.
         '--disable-features=LocalNetworkAccessChecks,BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults',

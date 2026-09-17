@@ -47,6 +47,24 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
 
+  e2e:
+    name: E2E smoke tests
+    needs: [checks, worker-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # Throwaway build for testing only (no VITE_BASE_PATH): the e2e spec
+      # serves the app at the server root. The deployable artifact with the
+      # Pages base path is built separately in the `build` job.
+      - run: npm run build
+      - run: npm run test:e2e
+
   build:
     needs: [checks, worker-checks]
     runs-on: ubuntu-latest
@@ -65,7 +83,7 @@ jobs:
           path: dist
 
   deploy:
-    needs: build
+    needs: [build, e2e]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
