@@ -32,7 +32,7 @@ export default defineConfig({
   webServer: {
     // Serves the production build so the smoke test exercises exactly what
     // would deploy. Rebuild with `npm run build` before running.
-    command: 'npx vite preview --port 4173 --strictPort',
+    command: 'npx vite preview --port 4173 --strictPort --host 127.0.0.1',
     port: 4173,
     reuseExistingServer: true,
   },
