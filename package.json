@@ -9,6 +9,7 @@
     "content:check": "python3 scripts/check_mdx_h1.py",
     "content:validate": "python3 scripts/validate_lessons.py",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -26,6 +27,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/mdx": "^2.0.14",
     "@types/node": "^24.13.3",
