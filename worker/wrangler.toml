@@ -8,3 +8,16 @@ compatibility_date = "2026-09-10"
 binding = "DB"
 database_name = "system-design-mastery-cert"
 database_id = "REPLACE_WITH_REAL_D1_DATABASE_ID"
+
+# Course Q&A agent (P2): Workers AI binding for the small open-weight model.
+# Workers AI is billed to the Cloudflare account -- no API key or secret is
+# needed, so nothing sensitive lives in the Worker config.
+[ai]
+binding = "AI"
+
+[vars]
+# Model id for the Q&A agent. Must be a chat model with tool-calling
+# support (Llama 3.1 8B instruct class). Override per-environment with
+# `wrangler deploy --var QA_MODEL_ID=...`; the typed default below is the
+# fp8-quantized Llama 3.1 8B instruct, which workers-types knows by name.
+QA_MODEL_ID = "@cf/meta/llama-3.1-8b-instruct-fp8"

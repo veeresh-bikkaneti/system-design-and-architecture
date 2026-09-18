@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { buildIndexFromLessons, chunkSection, stripMdx } from './build-index.ts';
+import { buildIndexFromLessons, buildQaMetaData, chunkSection, extractVideos, stripMdx } from './build-index.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -158,5 +158,74 @@ describe('buildIndexFromLessons', () => {
     const b = buildIndexFromLessons(input, '2026-01-01T00:00:00.000Z');
     expect(JSON.stringify(a.indexData)).toBe(JSON.stringify(b.indexData));
     expect(a.migrationSql).toBe(b.migrationSql);
+  });
+});
+
+describe('extractVideos', () => {
+  it('extracts VideoCard props and tags them with the lesson', () => {
+    const videos = extractVideos(FIXTURE_MDX);
+    expect(videos).toEqual([
+      {
+        videoId: 'abc123',
+        title: 'A video',
+        source: 'Someone',
+        description: 'A description.',
+      },
+    ]);
+  });
+
+  it('ignores malformed VideoCards without videoId/title', () => {
+    expect(extractVideos('<VideoCard title="No id" />')).toEqual([]);
+    expect(extractVideos('no cards here')).toEqual([]);
+  });
+});
+
+describe('buildQaMetaData', () => {
+  it('builds curriculum in syllabus order plus the video catalog, quiz-free', () => {
+    const meta = buildQaMetaData(
+      [
+        {
+          slug: 'b-lesson',
+          title: 'B Lesson',
+          tier: 'advanced',
+          order: 2,
+          summary: 'B summary',
+          topics: ['t'],
+          mdx: FIXTURE_MDX,
+        },
+        {
+          slug: 'a-lesson',
+          title: 'A Lesson',
+          tier: 'beginner',
+          order: 1,
+          summary: 'A summary',
+          topics: [],
+          mdx: 'export const meta = { slug: "a-lesson" };\n\n## Intro\n\nHi.',
+        },
+      ],
+      '2026-01-01T00:00:00.000Z',
+    );
+    expect(meta.version).toBe(1);
+    expect(meta.curriculum.map((c) => c.slug)).toEqual(['a-lesson', 'b-lesson']);
+    expect(meta.videos).toHaveLength(1);
+    expect(meta.videos[0]).toMatchObject({ slug: 'b-lesson', lessonTitle: 'B Lesson', videoId: 'abc123' });
+    expect(JSON.stringify(meta)).not.toContain('correctIndex');
+  });
+});
+
+describe('generated qa-meta.ts on disk', () => {
+  it('has 36 curriculum lessons and the video catalog, quiz-free', () => {
+    const src = readFileSync(join(repoRoot, 'worker', 'src', 'qa', 'qa-meta.ts'), 'utf8');
+    const match = /export const QA_META: QaMetaData = ([\s\S]*)$/.exec(src);
+    expect(match?.[1]).toBeDefined();
+    const data = JSON.parse(match?.[1] as string) as {
+      curriculum: Array<{ slug: string; order: number }>;
+      videos: Array<{ videoId: string; slug: string }>;
+    };
+    expect(data.curriculum).toHaveLength(36);
+    const orders = data.curriculum.map((c) => c.order);
+    expect([...orders].sort((a, b) => a - b)).toEqual(orders);
+    expect(data.videos.length).toBeGreaterThan(200);
+    expect(src).not.toContain('correctIndex');
   });
 });

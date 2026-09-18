@@ -222,12 +222,27 @@ class CheckpointD1 {
 }
 
 describe('chat flow citations (P1)', () => {
+  // Minimal model: never calls tools, returns a fixed answer. Triage still
+  // runs (deterministic), so the CAP question reaches the model and the
+  // gibberish is refused before any model spend.
+  const fakeModel = {
+    complete: async () => ({ text: 'fake answer', toolCalls: [] }),
+    summarize: async () => 'fake summary',
+  };
+  const emptyStore = { getLessonChunks: async () => [] };
+
   it('runQaTurn attaches real lesson slugs as sources', async () => {
     const db = new CheckpointD1();
-    const turn = await runQaTurn(db as unknown as D1Database, 'sess-1', 'What is the CAP theorem?');
+    const turn = await runQaTurn(db as unknown as D1Database, 'sess-1', 'What is the CAP theorem?', {
+      model: fakeModel,
+      chunkStore: emptyStore,
+    });
     expect(turn.sources).toContain('cap-theorem');
     // Gibberish retrieves nothing -- sources stay empty, honestly.
-    const turn2 = await runQaTurn(db as unknown as D1Database, 'sess-2', 'zxqv wjbmpl kzx');
+    const turn2 = await runQaTurn(db as unknown as D1Database, 'sess-2', 'zxqv wjbmpl kzx', {
+      model: fakeModel,
+      chunkStore: emptyStore,
+    });
     expect(turn2.sources).toEqual([]);
   });
 });
