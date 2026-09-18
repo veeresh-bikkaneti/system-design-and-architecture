@@ -228,9 +228,13 @@ function headTags({ title, description, canonical, jsonLd }) {
     `<meta name="twitter:description" content="${esc(description)}" />`,
   ];
   if (jsonLd) {
-    tags.push(
-      `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`,
-    );
+    // Escape `<` as \u003c: a literal `</script>` inside JSON (e.g. from a
+    // lesson title) would otherwise terminate the script block and allow
+    // HTML/script injection. \u003c is a valid JSON string escape that
+    // JSON.parse decodes back to `<`, so structured-data consumers are
+    // unaffected.
+    const safeJson = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
+    tags.push(`<script type="application/ld+json">${safeJson}</script>`);
   }
   return tags.join('\n    ');
 }
