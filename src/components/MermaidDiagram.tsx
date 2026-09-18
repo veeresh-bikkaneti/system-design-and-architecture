@@ -342,7 +342,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
       // eslint-disable-next-line react/no-danger
       // The SVG comes from mermaid.render() with securityLevel 'strict',
       // but mermaid has a recurring XSS CVE history and the diagram source
-      // can be AI-influenced (prompt-injected tutor output). DOMPurify is
+      // can be AI-influenced (prompt-injected agent output). DOMPurify is
       // the second layer: even a future mermaid sanitizer bypass can't
       // execute here.
       dangerouslySetInnerHTML={{ __html: svg ? DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true } }) : '' }}

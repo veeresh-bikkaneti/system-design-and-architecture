@@ -177,6 +177,12 @@ const mdxComponents = {
   ),
 };
 
+// Course Q&A agent widget (P0): server-side LangGraph agent, anonymous sessions.
+// Lazy so the chat bundle never weighs down the initial page load.
+const QaWidget = lazy(() =>
+  import('./components/qa/QaWidget').then((m) => ({ default: m.QaWidget })),
+);
+
 // Keep the viewport at the top when the route changes (e.g. Home -> lesson).
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -205,6 +211,9 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
+        <Suspense fallback={null}>
+          <QaWidget />
+        </Suspense>
         </AppErrorBoundary>
       </BrowserRouter>
     </MDXProvider>

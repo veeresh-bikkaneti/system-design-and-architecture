@@ -10,17 +10,17 @@
 4. **Track progress and earn badges** — your progress and quiz scores are saved in your own browser. Finish lesson groups to earn badges you can show on LinkedIn.
 5. **Go deeper (optional)** — each lesson ends with hand-picked conference talks and tutorials when you want more than the lesson covers.
 
-There is no backend. The whole course is a static site, so your progress never leaves your machine.
+The lessons, quizzes, and badges are a static site, so your progress never leaves your machine. (Only the optional AI assistant above talks to a backend API.)
 
-## AI tutor (optional, bring your own key)
+## AI assistant (free, no key needed)
 
-Stuck on a lesson? The built-in AI tutor can explain concepts and sketch architecture diagrams for you. It runs on your own API key — paste it in temporarily, and pick Anthropic, OpenAI, or any OpenAI-compatible endpoint in the tutor's settings. Our privacy promise is simple:
+Stuck on a lesson? The floating chat button opens a course Q&A assistant that answers questions about the lessons, points you at the right diagrams and videos, and remembers the conversation while you explore. It runs on our backend (a small language model orchestrated with LangGraph) — anonymous, no login, no API key:
 
-- **Session-based only.** Your key lives in this page's memory while the tab is open. Reload or close the tab and it's gone; you re-enter it next visit.
-- **Never captured, never stored.** We don't write your key to disk, to browser storage, or anywhere else. We never see it.
-- **Straight to the provider.** Your browser talks directly to your chosen provider's API. There is no server in between, and your key is never sent anywhere else.
+- **No key, no account.** Just ask. Usage is rate-limited per session to keep it fair.
+- **Course-scoped.** It answers from the course content and politely declines off-topic questions.
+- **Short memory.** It remembers your current session's conversation so follow-ups make sense; starting a new topic wipes the slate.
 
-The tutor is strictly additive: every lesson, quiz, badge, and progress feature works with no key at all.
+The assistant is strictly additive: every lesson, quiz, badge, and progress feature works without it.
 
 ## Curriculum
 
