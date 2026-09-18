@@ -185,7 +185,7 @@ export async function handleQaChat(request: Request, env: Env): Promise<Response
     return sseErrorResponse('RATE_LIMITED', 'Too many requests. Try again later.', cors);
   }
 
-  // The tutor backend isn't wired up (no [ai] binding): fail BEFORE the
+  // The tutor backend isn't wired up (no MODEL_BASE_URL): fail BEFORE the
   // audit write so unavailable requests consume neither quota nor rows.
   const model = createQaModel(env);
   if (!model) {

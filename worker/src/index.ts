@@ -27,11 +27,15 @@ import {
 
 export interface Env {
   DB: D1Database;
-  // Workers AI binding (see [ai] in wrangler.toml). Absent in unit tests --
-  // createQaModel() returns null then, and /api/qa/chat answers
-  // AI_UNAVAILABLE instead of consuming quota.
-  AI: Ai;
-  // Optional override for the tutor model id; defaults to
+  // Self-hosted tutor model (llama.cpp server, OpenAI-compatible). Set in
+  // wrangler [vars]; when unset, createQaModel() returns null and
+  // /api/qa/chat answers AI_UNAVAILABLE instead of consuming quota.
+  MODEL_BASE_URL?: string;
+  // Shared bearer token the Worker sends to the model server. Set via
+  // `wrangler secret put MODEL_API_KEY`; must never appear in
+  // wrangler.toml or client-side code.
+  MODEL_API_KEY?: string;
+  // Model alias served by the llama.cpp server (--alias); defaults to
   // DEFAULT_QA_MODEL_ID when unset.
   QA_MODEL_ID?: string;
   // Public GitHub OAuth App client id for the tutor sign-in flow

@@ -9,17 +9,21 @@ binding = "DB"
 database_name = "system-design-mastery-cert"
 database_id = "REPLACE_WITH_REAL_D1_DATABASE_ID"
 
-# Workers AI binding for the course Q&A tutor ("Veer"). The Worker calls
-# models through env.AI.run() -- no API token/secret is needed for this
-# binding, which is why the tutor needs no additional credentials beyond
-# the GitHub OAuth client secret below.
-[ai]
-binding = "AI"
-
+# Self-hosted tutor model ("Veer"): a llama.cpp server on Liz's own machine,
+# OpenAI-compatible. The Worker calls it over HTTPS -- no Cloudflare AI
+# binding, no third-party AI subscription.
+# The server must NOT be open to the internet: restrict it to Cloudflare's
+# IP ranges or hide it behind a Cloudflare Tunnel, and require the bearer
+# token below.
 [vars]
-# Small open-weight chat model served from Cloudflare's edge. Overridable
-# per-environment; the Worker falls back to this default when unset.
-QA_MODEL_ID = "@cf/meta/llama-3.1-8b-instruct-fp8"
+# Origin of the OpenAI-compatible model API, e.g.
+# https://llm.example.com/v1  (or the Cloudflare Tunnel hostname + /v1).
+# Empty until the model server exists; the widget shows "Veer is getting
+# ready" and /api/qa/chat answers AI_UNAVAILABLE while unset.
+MODEL_BASE_URL = ""
+# Alias served by the llama.cpp server (--alias). The shared bearer token
+# is never in this file -- set it with: wrangler secret put MODEL_API_KEY
+QA_MODEL_ID = "veer-tutor"
 # Public GitHub OAuth App client id for the tutor sign-in flow. Liz pastes
 # her OAuth App's Client ID here. The client SECRET is never in this file --
 # set it with: wrangler secret put GITHUB_CLIENT_SECRET

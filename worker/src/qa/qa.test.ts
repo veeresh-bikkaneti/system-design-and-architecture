@@ -3,10 +3,10 @@
 //
 // Chat is GitHub-login gated: every test authenticates via a session row in
 // the shared FakeD1 unless the case under test is the unauthenticated path.
-// The "model" is the real ChatWorkersAI over a stubbed Workers AI binding --
+// The "model" is the real ChatSelfHosted over a stubbed fetch --
 // no real model calls, no real network.
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { sha256Hex, randomToken } from '../crypto';
 import type { Env } from '../index';
 import { asD1, FakeD1 } from './fake-d1';
@@ -24,11 +24,65 @@ import {
 const ISO_NOW = () => new Date().toISOString();
 const ISO_FUTURE = () => new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-function baseEnv(fake: FakeD1, aiRun?: (model: string, input: unknown, opts?: unknown) => Promise<unknown>): Env {
+function baseEnv(fake: FakeD1, withModel = false): Env {
   const env = { DB: asD1(fake) } as unknown as Record<string, unknown>;
-  if (aiRun) env['AI'] = { run: aiRun };
+  if (withModel) {
+    env['MODEL_BASE_URL'] = 'https://model.test/v1';
+    env['MODEL_API_KEY'] = 'test-key';
+    // Default stub: short text answers, empty SSE stream. Tests that need
+    // tool calls install their own stubModelFetch after calling baseEnv.
+    stubModelFetch((body) =>
+      body['stream'] ? { sse: ['data: [DONE]\n\n'] } : { json: chatJson('Hello! I am Veer.') },
+    );
+  }
   return env as unknown as Env;
 }
+
+const realFetch = globalThis.fetch;
+afterEach(() => {
+  globalThis.fetch = realFetch;
+});
+
+interface ModelStubResult {
+  status?: number;
+  json?: unknown;
+  sse?: string[];
+}
+
+/**
+ * Install a stub for the model server's OpenAI-compatible endpoint.
+ * `impl` receives the decoded JSON request body and returns either a JSON
+ * payload or SSE frames. The real fetch is restored after each test.
+ */
+function stubModelFetch(impl: (body: Record<string, unknown>) => ModelStubResult): void {
+  globalThis.fetch = (async (_url: unknown, init?: unknown) => {
+    const body = JSON.parse(String((init as RequestInit)?.body ?? '{}')) as Record<
+      string,
+      unknown
+    >;
+    const out = impl(body);
+    const status = out.status ?? 200;
+    if (out.sse) {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          for (const f of out.sse!) controller.enqueue(encoder.encode(f));
+          controller.close();
+        },
+      });
+      return new Response(stream, {
+        status,
+        headers: { 'content-type': 'text/event-stream' },
+      });
+    }
+    return new Response(JSON.stringify(out.json ?? {}), {
+      status,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof fetch;
+}
+
+const chatJson = (content: string) => ({ choices: [{ message: { content } }] });
 
 /** Sign a GitHub user in directly (mirrors what the OAuth callback stores). */
 async function signIn(fake: FakeD1, githubId = '123', login = 'octocat'): Promise<string> {
@@ -109,7 +163,7 @@ describe('POST /api/qa/chat', () => {
     expect(fake.messages).toHaveLength(0);
   });
 
-  it('returns AI_UNAVAILABLE before the audit write when the AI binding is missing', async () => {
+  it('returns AI_UNAVAILABLE before the audit write when MODEL_BASE_URL is missing', async () => {
     const fake = new FakeD1();
     const cookie = await signIn(fake);
     const res = await handleQaChat(chatReq(cookie, { message: 'What is a load balancer?' }), baseEnv(fake));
@@ -122,8 +176,7 @@ describe('POST /api/qa/chat', () => {
   it('validates the message: non-string, empty, too long', async () => {
     const fake = new FakeD1();
     const cookie = await signIn(fake);
-    const ai = { run: async () => ({ response: 'x' }) };
-    const env = baseEnv(fake, ai as never);
+    const env = baseEnv(fake, true);
 
     for (const [body, code] of [
       [{ message: 42 }, 'INVALID_MESSAGE'],
@@ -145,8 +198,7 @@ describe('POST /api/qa/chat', () => {
     for (let i = 0; i < QA_DAILY_QUESTION_LIMIT; i++) {
       fake.messages.push({ github_id: '111', role: 'user', content: `q${i}`, created_at: ISO_NOW() });
     }
-    const ai = { run: async () => ({ response: 'x' }) };
-    const env = baseEnv(fake, ai as never);
+    const env = baseEnv(fake, true);
 
     const resA = await handleQaChat(chatReq(cookieA, { message: 'hi' }), env);
     const eventsA = parseSseEvents(await resA.text());
@@ -163,8 +215,7 @@ describe('POST /api/qa/chat', () => {
   it('streams a turn (message deltas -> sources -> done) and audits both sides', async () => {
     const fake = new FakeD1();
     const cookie = await signIn(fake);
-    const ai = { run: async () => ({ response: 'Hello! I am Veer.' }) };
-    const env = baseEnv(fake, ai as never);
+    const env = baseEnv(fake, true);
 
     const res = await handleQaChat(chatReq(cookie, { message: 'hello' }), env);
     expect(res.status).toBe(200);
@@ -184,28 +235,44 @@ describe('POST /api/qa/chat', () => {
   it('degrades gracefully when retrieval throws: the turn still completes', async () => {
     const fake = new FakeD1(); // FakeD1.all throws on the FTS query -> tools degrade
     const cookie = await signIn(fake);
+    const env = baseEnv(fake, true);
     let calls = 0;
-    const sseStream = (text: string): ReadableStream<Uint8Array> => {
-      const encoder = new TextEncoder();
-      return new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: text })}\n\n`));
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          controller.close();
-        },
-      });
-    };
-    const ai = {
-      run: async (_model: string, input: { stream?: boolean }) => {
-        calls++;
-        if (input.stream) return sseStream('Based on the retrieved context, here is the answer.');
-        if (calls === 1) {
-          return { tool_calls: [{ name: 'search_lessons', arguments: { query: 'caching', top_k: 3 } }] };
-        }
-        return { response: 'second round text' };
-      },
-    };
-    const env = baseEnv(fake, ai.run as never);
+    stubModelFetch((body) => {
+      calls++;
+      if (body['stream']) {
+        const text = 'Based on the retrieved context, here is the answer.';
+        return {
+          sse: [
+            `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+      }
+      if (calls === 1) {
+        return {
+          json: {
+            choices: [
+              {
+                message: {
+                  content: '',
+                  tool_calls: [
+                    {
+                      id: 't1',
+                      type: 'function',
+                      function: {
+                        name: 'search_lessons',
+                        arguments: JSON.stringify({ query: 'caching', top_k: 3 }),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        };
+      }
+      return { json: chatJson('second round text') };
+    });
     const res = await handleQaChat(chatReq(cookie, { message: 'How does caching work?' }), env);
     const events = parseSseEvents(await res.text());
     expect(events.map((e) => e.event)).toEqual(['message', 'sources', 'done']);

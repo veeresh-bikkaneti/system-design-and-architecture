@@ -79,7 +79,7 @@ export const MAX_SUMMARY_CHARS = 2000;
 
 /**
  * The minimal model surface the graph needs. Production passes the real
- * ChatWorkersAI (model.ts), which satisfies this structurally; tests pass a
+ * ChatSelfHosted (model.ts), which satisfies this structurally; tests pass a
  * scripted mock. `invoke` is for tool rounds and the summary call, `stream`
  * for the final answer composition, `bindTools` for the tool loop.
  */
