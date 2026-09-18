@@ -42,6 +42,18 @@ function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
 }
 
+/**
+ * Whether the Q&A backend is configured. The Worker URL comes from the
+ * VITE_QA_API_BASE build variable; when it's empty the backend hasn't been
+ * deployed/wired into the Pages build yet, and the widget must not attempt
+ * any requests — they'd hit the static host instead (GitHub Pages answers
+ * POST with 405). The widget renders Veer's "getting ready" state instead,
+ * and starts working with zero UI changes once the variable is set.
+ */
+export function isQaBackendConfigured(): boolean {
+  return API_BASE !== '';
+}
+
 async function readErrorBody(res: Response): Promise<{ code: string; message: string }> {
   try {
     const body = (await res.json()) as { code?: unknown; message?: unknown };

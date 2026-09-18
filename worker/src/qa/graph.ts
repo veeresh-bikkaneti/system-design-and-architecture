@@ -14,6 +14,9 @@
 
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { loadCheckpoint, saveCheckpoint } from './checkpointer';
+import { OUT_OF_SCOPE_MESSAGE } from './persona';
+// VEER_SYSTEM_PROMPT (persona.ts) becomes the model system prompt when P2
+// replaces reasonActNode's stub with the Workers AI tool-calling loop.
 
 export interface ChatTurn {
   role: 'user' | 'assistant';
@@ -80,9 +83,7 @@ async function reasonActNode(state: typeof QaStateAnnotation.State): Promise<Par
 // Formats the final answer and appends the assistant turn to the
 // transcript, so the NEXT turn's checkpoint carries full context.
 async function answerNode(state: typeof QaStateAnnotation.State): Promise<Partial<QaGraphState>> {
-  const finalAnswer = state.inScope
-    ? state.draft
-    : 'I can only answer questions about the system design course. Try asking about one of the lessons!';
+  const finalAnswer = state.inScope ? state.draft : OUT_OF_SCOPE_MESSAGE;
   return {
     messages: [{ role: 'assistant', content: finalAnswer }],
     finalAnswer,

@@ -4,6 +4,7 @@ import { quotaLabel } from './quota';
 import {
   QaApiError,
   getQuota,
+  isQaBackendConfigured,
   streamChat,
   type QaQuota,
   type QaSource,
@@ -96,6 +97,11 @@ export function QaWidget() {
 
   const { sessionId, ensureSession, newTopic } = useQaSession();
 
+  // False until VITE_QA_API_BASE points at the deployed Worker. While false
+  // the widget shows Veer's "getting ready" state and never attempts a
+  // request (see isQaBackendConfigured in qaApi.ts).
+  const backendReady = isQaBackendConfigured();
+
   const refreshQuota = useCallback(async (sid: string) => {
     try {
       setQuota(await getQuota(sid));
@@ -157,6 +163,7 @@ export function QaWidget() {
   }
 
   async function handleSend() {
+    if (!backendReady) return;
     const text = input.trim().slice(0, MAX_MESSAGE_LENGTH);
     if (!text || streaming) return;
 
@@ -237,7 +244,7 @@ export function QaWidget() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? 'Close course Q&A' : 'Open course Q&A'}
+        aria-label={open ? 'Close chat with Veer' : 'Open chat with Veer'}
         aria-expanded={open}
         className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-amber-600 text-white shadow-[0_8px_24px_rgb(180_83_9/0.45)] transition-[transform,background-color,box-shadow] hover:-translate-y-0.5 hover:bg-amber-700 hover:shadow-[0_12px_28px_rgb(180_83_9/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 active:translate-y-0"
       >
@@ -247,7 +254,7 @@ export function QaWidget() {
       {open && (
         <div
           role="dialog"
-          aria-label="Course Q&A"
+          aria-label="Chat with Veer"
           className="fixed bottom-20 right-5 z-50 flex h-[520px] max-h-[75vh] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-[0_20px_60px_rgb(120_53_15/0.25)] dark:border-stone-700 dark:bg-stone-900"
         >
           <div className="flex items-center gap-3 border-b border-stone-200/80 bg-amber-50/60 px-4 py-3 dark:border-stone-800 dark:bg-stone-900">
@@ -256,17 +263,17 @@ export function QaWidget() {
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                Ask the course
+                Veer
               </h2>
               <p className="truncate text-xs text-stone-500 dark:text-stone-400">
-                {badge ?? 'Answers grounded in the lessons'}
+                {badge ?? 'Educator & expert software architect'}
               </p>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => void handleNewTopic()}
-                disabled={rotating || streaming}
+                disabled={rotating || streaming || !backendReady}
                 aria-label="New topic (forget this conversation)"
                 title="New topic"
                 className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
@@ -287,11 +294,20 @@ export function QaWidget() {
           <div ref={scrollRef} className="flex-1 space-y-3.5 overflow-y-auto px-4 py-4">
             {messages.length === 0 && (
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
-                <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                  Ask anything about the course — the assistant answers from the lessons and
-                  cites its sources. It remembers this conversation until you start a new
-                  topic.
-                </p>
+                {backendReady ? (
+                  <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+                    Ask Veer anything about the course — he answers from the lessons and
+                    cites his sources. He remembers this conversation until you start a new
+                    topic.
+                  </p>
+                ) : (
+                  <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+                    <span className="font-semibold text-stone-800 dark:text-stone-200">Veer is getting ready.</span>
+                    <br />
+                    His Q&amp;A backend isn&apos;t connected yet, so chat is paused for now —
+                    he&apos;ll be here to answer from the lessons as soon as it&apos;s live.
+                  </p>
+                )}
               </div>
             )}
             {messages.map((message) => (
@@ -346,7 +362,7 @@ export function QaWidget() {
             ))}
             {streaming && (
               <p className="px-1 text-xs text-stone-400 dark:text-stone-400" aria-live="polite">
-                The assistant is writing…
+                Veer is writing…
               </p>
             )}
           </div>
@@ -357,17 +373,17 @@ export function QaWidget() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about the course…"
+                placeholder={backendReady ? 'Ask about the course…' : 'Veer is getting ready…'}
                 rows={1}
                 maxLength={MAX_MESSAGE_LENGTH}
-                disabled={streaming}
+                disabled={streaming || !backendReady}
                 aria-label="Ask about the course"
                 className="min-w-0 flex-1 resize-none rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 outline-none transition-colors placeholder:text-stone-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/40 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-amber-600"
               />
               <button
                 type="button"
                 onClick={() => void handleSend()}
-                disabled={streaming || !input.trim()}
+                disabled={streaming || !input.trim() || !backendReady}
                 aria-label="Send message"
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-700 text-white shadow-[0_2px_8px_rgb(180_83_9/0.3)] transition-[transform,background-color,box-shadow] hover:-translate-y-px hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none dark:disabled:bg-stone-700 dark:disabled:text-stone-400"
               >
