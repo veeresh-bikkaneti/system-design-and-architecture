@@ -422,6 +422,21 @@ describe('P2 agent loop', () => {
     expect(calls).toHaveLength(0);
   });
 
+  it('off-topic refusal after an in-scope turn carries no stale citations', async () => {
+    const db = new FakeD1();
+    const fakeAi = makeFakeAi();
+    const d1 = db as unknown as D1Database;
+    const { deps } = makeDeps(db, fakeAi);
+    const sessionId = '123e4567-e89b-12d3-a456-426614174000';
+
+    const first = await runQaTurn(d1, sessionId, 'what is the CAP theorem?', deps);
+    expect(first.sources).toContain('cap-theorem');
+
+    const second = await runQaTurn(d1, sessionId, 'write my resume for a product manager role', deps);
+    expect(second.finalAnswer).toBe(OFFTOPIC_REFUSAL);
+    expect(second.sources).toEqual([]);
+  });
+
   it('redirects small talk with zero model calls', async () => {
     const db = new FakeD1();
     const fakeAi = makeFakeAi();

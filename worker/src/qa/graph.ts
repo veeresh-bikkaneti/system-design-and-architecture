@@ -215,6 +215,11 @@ function buildGraph(deps: QaTurnDeps) {
       inScope: verdict !== 'off-topic',
       refusalKind: verdict === 'in-scope' ? 'none' : verdict === 'smalltalk' ? 'smalltalk' : 'offtopic',
       toolRoundsUsed: 0,
+      // Per-turn reset of turn-scoped fields: a refusal must never inherit
+      // the previous turn's citations or draft text.
+      sources: [],
+      draft: '',
+      retrieved: '',
     };
   }
 
