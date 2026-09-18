@@ -47,9 +47,9 @@ export class AppErrorBoundary extends Component<
             >
               Reload the page
             </button>
-            {/* Plain hash link: works even if the router itself is unhappy. */}
+            {/* Plain base-path link: works even if the router itself is unhappy. */}
             <a
-              href="#/"
+              href={import.meta.env.BASE_URL}
               onClick={this.reset}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 shadow-soft transition-colors hover:border-accent-300 hover:text-accent-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-accent-800 dark:hover:text-accent-300"
             >

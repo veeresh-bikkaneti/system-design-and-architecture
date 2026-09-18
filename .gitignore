@@ -33,3 +33,6 @@ dist-ssr
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Generated at build time from content/lessons/*.mdx (see scripts/seo/)
+src/lib/lesson-manifest.ts

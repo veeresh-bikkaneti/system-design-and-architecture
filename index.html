@@ -28,6 +28,59 @@
       name="description"
       content="Learn system design progressively, from beginner to master, with an AI tutor that draws you the diagrams."
     />
+    <meta name="theme-color" content="#f5f0e6" />
+    <!-- Site-level social preview tags. Route-specific tags are injected by
+         scripts/seo/prerender.mjs for crawlers and by src/components/Seo.tsx
+         during client-side navigation. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="System Design Mastery" />
+    <meta
+      property="og:title"
+      content="System Design Mastery — Learn System Design from Zero to Master"
+    />
+    <meta
+      property="og:description"
+      content="Learn system design progressively, from beginner to master, with an AI tutor that draws you the diagrams."
+    />
+    <meta name="twitter:card" content="summary" />
+    <!-- Site-level structured data: WebSite + Organization + Course. Only
+         real, verifiable facts — no invented ratings, prices, or dates.
+         JSON-LD is data, not executable script: the meta CSP does not block
+         it. Per-lesson LearningResource nodes are injected per route by
+         scripts/seo/prerender.mjs. -->
+    <script type="application/ld+json">
+      [
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "@id": "https://veeresh-bikkaneti.github.io/system-design-and-architecture/#website",
+          "name": "System Design Mastery",
+          "description": "Learn system design progressively, from beginner to master, with an AI tutor that draws you the diagrams.",
+          "url": "https://veeresh-bikkaneti.github.io/system-design-and-architecture/"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "@id": "https://veeresh-bikkaneti.github.io/system-design-and-architecture/#organization",
+          "name": "System Design Mastery",
+          "url": "https://veeresh-bikkaneti.github.io/system-design-and-architecture/",
+          "sameAs": ["https://github.com/veeresh-bikkaneti/system-design-and-architecture"]
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Course",
+          "@id": "https://veeresh-bikkaneti.github.io/system-design-and-architecture/#course",
+          "name": "System Design Mastery",
+          "description": "Learn system design progressively, from beginner to master, with an AI tutor that draws you the diagrams.",
+          "url": "https://veeresh-bikkaneti.github.io/system-design-and-architecture/",
+          "provider": {
+            "@id": "https://veeresh-bikkaneti.github.io/system-design-and-architecture/#organization"
+          },
+          "numberOfLessons": 36,
+          "isAccessibleForFree": true
+        }
+      ]
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

@@ -1,10 +1,16 @@
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/ui/Icon';
+import { Seo } from '../components/Seo';
 
 /** Catch-all for unknown routes: explains, then offers a way back. */
 export function NotFoundPage() {
   return (
     <div className="mx-auto max-w-xl py-16 text-center sm:py-24">
+      <Seo
+        title="Page not found | System Design Mastery"
+        description="The address doesn't match anything in the course. Head back to familiar ground."
+        path="/404"
+      />
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-stone-200 bg-white shadow-soft dark:border-stone-800 dark:bg-stone-900">
         <Icon name="map" className="h-7 w-7 text-stone-400 dark:text-stone-500" />
       </div>

@@ -19,6 +19,7 @@ import { buttonClasses } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Icon } from '../components/ui/Icon';
 import { ProgressBar } from '../components/ui/ProgressBar';
+import { Seo } from '../components/Seo';
 
 const SECTION_ORDER: { kind: BadgeKind; title: string; blurb: string }[] = [
   { kind: 'course', title: 'Course', blurb: 'The ultimate achievement.' },
@@ -55,6 +56,11 @@ export function BadgesPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
+      <Seo
+        title="Badges | System Design Mastery"
+        description="Earn badges as you learn system design: per-lesson, per-quiz, per-tier, and the System Design Master badge."
+        path="/badges"
+      />
       <p className="text-xs font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-400">
         Progress
       </p>
@@ -180,6 +186,11 @@ export function BadgeDetailPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
+      <Seo
+        title={`${badge.name} | System Design Mastery`}
+        description={badge.description}
+        path={`/badges/${badge.id}`}
+      />
       <Link
         to="/badges"
         className="inline-flex items-center gap-1.5 rounded-lg text-sm font-semibold text-amber-700 transition-colors hover:text-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 dark:text-amber-400 dark:hover:text-amber-300"

@@ -1,7 +1,7 @@
-import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
 import { MDXProvider } from '@mdx-js/react';
-import { isValidElement, useEffect } from 'react';
-import type { ComponentPropsWithoutRef, ReactNode } from 'react';
+import { isValidElement, lazy, Suspense, useEffect } from 'react';
+import type { ComponentPropsWithoutRef, ComponentType, ReactNode } from 'react';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
 import { RoadmapPage } from './pages/RoadmapPage';
@@ -11,21 +11,94 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { Quiz } from './components/Quiz';
 import { VideoCard } from './components/VideoCard';
-import { MermaidDiagram } from './components/MermaidDiagram';
-import { PacketFlow } from './components/diagrams/PacketFlow';
-import { HashRingPlayground } from './components/diagrams/HashRingPlayground';
-import { NapkinMathPlayground } from './components/diagrams/NapkinMathPlayground';
-import { ScrollyDiagram } from './components/diagrams/ScrollyDiagram';
-import { StepThrough } from './components/diagrams/StepThrough';
-import { VsToggle } from './components/diagrams/VsToggle';
-import { LoadBalancerSim } from './components/diagrams/LoadBalancerSim';
-import { SlidingWindowSim } from './components/diagrams/SlidingWindowSim';
-import { CacheFlow } from './components/diagrams/CacheFlow';
-import { CdnFlow } from './components/diagrams/CdnFlow';
 import {
   slugifyHeading,
   useRegisterHeading,
 } from './components/headings';
+
+/**
+ * Wrap a heavy MDX component in React.lazy + Suspense so interactive diagrams
+ * ship as separate chunks instead of bloating the entry bundle. MDX pages
+ * only pay for the diagrams they actually render.
+ */
+// oxlint-disable-next-line no-explicit-any
+type AnyComponent = ComponentType<any>;
+// oxlint-disable-next-line no-explicit-any
+function lazyMdx(loader: () => Promise<{ default: AnyComponent }>, label: string): AnyComponent {
+  const Lazy = lazy(loader);
+  function LazyMdx(props: Record<string, unknown>) {
+    return (
+      <Suspense
+        fallback={
+          <div
+            className="my-6 rounded-2xl border border-dashed border-stone-300 p-8 text-center text-sm text-stone-400 dark:border-stone-700 dark:text-stone-500"
+            aria-hidden="true"
+          >
+            Loading {label}…
+          </div>
+        }
+      >
+        <Lazy {...props} />
+      </Suspense>
+    );
+  }
+  LazyMdx.displayName = `LazyMdx(${label})`;
+  return LazyMdx;
+}
+
+const MermaidDiagram = lazyMdx(
+  () => import('./components/MermaidDiagram').then((m) => ({ default: m.MermaidDiagram })),
+  'diagram',
+);
+const PacketFlow = lazyMdx(
+  () => import('./components/diagrams/PacketFlow').then((m) => ({ default: m.PacketFlow })),
+  'packet flow',
+);
+const HashRingPlayground = lazyMdx(
+  () =>
+    import('./components/diagrams/HashRingPlayground').then((m) => ({
+      default: m.HashRingPlayground,
+    })),
+  'hash ring playground',
+);
+const NapkinMathPlayground = lazyMdx(
+  () =>
+    import('./components/diagrams/NapkinMathPlayground').then((m) => ({
+      default: m.NapkinMathPlayground,
+    })),
+  'napkin math playground',
+);
+const ScrollyDiagram = lazyMdx(
+  () =>
+    import('./components/diagrams/ScrollyDiagram').then((m) => ({ default: m.ScrollyDiagram })),
+  'diagram',
+);
+const StepThrough = lazyMdx(
+  () => import('./components/diagrams/StepThrough').then((m) => ({ default: m.StepThrough })),
+  'step-through',
+);
+const VsToggle = lazyMdx(
+  () => import('./components/diagrams/VsToggle').then((m) => ({ default: m.VsToggle })),
+  'comparison',
+);
+const LoadBalancerSim = lazyMdx(
+  () =>
+    import('./components/diagrams/LoadBalancerSim').then((m) => ({ default: m.LoadBalancerSim })),
+  'load balancer simulation',
+);
+const SlidingWindowSim = lazyMdx(
+  () =>
+    import('./components/diagrams/SlidingWindowSim').then((m) => ({ default: m.SlidingWindowSim })),
+  'sliding window simulation',
+);
+const CacheFlow = lazyMdx(
+  () => import('./components/diagrams/CacheFlow').then((m) => ({ default: m.CacheFlow })),
+  'cache flow',
+);
+const CdnFlow = lazyMdx(
+  () => import('./components/diagrams/CdnFlow').then((m) => ({ default: m.CdnFlow })),
+  'CDN flow',
+);
 
 function extractText(node: ReactNode): string {
   if (typeof node === 'string') return node;
@@ -64,6 +137,21 @@ function H2(props: ComponentPropsWithoutRef<'h2'>) {
   return <h2 {...props} id={id} className={`${props.className ?? ''} scroll-mt-24`} />;
 }
 
+/**
+ * MDX anchor override. Internal route links (`/lesson/<slug>`, `/roadmap`,
+ * `/badges`, `/`) go through the router for client-side transitions; in-page
+ * `#anchor` links and external URLs keep native behavior — React Router does
+ * not scroll to hash fragments, so those must stay plain anchors.
+ */
+function SmartLink(props: ComponentPropsWithoutRef<'a'>) {
+  const { href = '', ...rest } = props;
+  const isInternalRoute = href === '/' || /^\/(lesson|roadmap|badges)(\/|$)/.test(href);
+  if (isInternalRoute) {
+    return <Link to={href} {...rest} />;
+  }
+  return <a href={href} {...rest} />;
+}
+
 const mdxComponents = {
   Quiz,
   PacketFlow,
@@ -79,6 +167,7 @@ const mdxComponents = {
   VideoCard,
   pre: Pre,
   h2: H2,
+  a: SmartLink,
   // Every MDX table gets a horizontal-scroll wrapper so wide tables scroll
   // instead of clipping on narrow viewports (styled by .table-scroll).
   table: (props: ComponentPropsWithoutRef<'table'>) => (
@@ -100,7 +189,10 @@ function ScrollToTop() {
 function App() {
   return (
     <MDXProvider components={mdxComponents}>
-      <HashRouter>
+      {/* History-API routing (GitHub Pages serves each prerendered route as a
+          real static file with HTTP 200 — see scripts/seo/prerender.mjs).
+          `basename` honors the Pages subpath from VITE_BASE_PATH. */}
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <ScrollToTop />
         <AppErrorBoundary>
           <Routes>
@@ -114,7 +206,7 @@ function App() {
           </Route>
         </Routes>
         </AppErrorBoundary>
-      </HashRouter>
+      </BrowserRouter>
     </MDXProvider>
   );
 }

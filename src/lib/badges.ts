@@ -27,13 +27,14 @@ export function badgeIconUrl(iconFile: string): string {
 
 /**
  * Full public URL of a badge's shareable detail page.
- * HashRouter makes this work as a static page on GitHub Pages:
- *   https://<user>.github.io/<repo>/#/badges/<id>
+ * History-API routing + the prerendered static files make this a real URL:
+ *   https://<user>.github.io/<repo>/badges/<id>
+ * (Direct visits boot the app via dist/404.html and render client-side.)
  */
 export function badgePublicUrl(badgeId: string): string {
   const base = import.meta.env.BASE_URL;
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${origin}${base}#/badges/${badgeId}`;
+  return `${origin}${base}badges/${badgeId}`;
 }
 
 /** "Add to LinkedIn profile" deep link (Certification). */

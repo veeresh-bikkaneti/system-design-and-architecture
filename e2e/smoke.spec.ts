@@ -80,10 +80,10 @@ test.describe('production build smoke test', () => {
   test('homepage boots cleanly and lists lessons', async ({ page }) => {
     const errors = collectErrors(page);
 
-    await page.goto(`${TARGET}/#/`);
+    await page.goto(`${TARGET}/`);
     await expect(page.locator('section[aria-label="All lessons"]')).toBeVisible();
     await expect(
-      page.locator(`section[aria-label="All lessons"] a[href="#/lesson/${LESSON_SLUG}"]`),
+      page.locator(`section[aria-label="All lessons"] a[href="/lesson/${LESSON_SLUG}"]`),
     ).toBeVisible();
 
     expect(errors).toEqual([]);
@@ -96,7 +96,7 @@ test.describe('production build smoke test', () => {
     const answers = correctAnswers(LESSON_SLUG);
     expect(answers.length).toBeGreaterThan(0);
 
-    await page.goto(`${TARGET}/#/lesson/${LESSON_SLUG}`);
+    await page.goto(`${TARGET}/lesson/${LESSON_SLUG}`);
     await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toBeVisible();
 
     for (const [qIndex, correct] of answers.entries()) {
@@ -114,9 +114,9 @@ test.describe('production build smoke test', () => {
     await page.reload();
     await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toBeVisible();
 
-    await page.goto(`${TARGET}/#/`);
+    await page.goto(`${TARGET}/`);
     const lessonCard = page.locator(
-      `section[aria-label="All lessons"] a[href="#/lesson/${LESSON_SLUG}"]`,
+      `section[aria-label="All lessons"] a[href="/lesson/${LESSON_SLUG}"]`,
     );
     await expect(lessonCard.getByRole('img', { name: 'Completed' })).toBeVisible();
 
@@ -126,7 +126,7 @@ test.describe('production build smoke test', () => {
   test('badges page renders', async ({ page }) => {
     const errors = collectErrors(page);
 
-    await page.goto(`${TARGET}/#/badges`);
+    await page.goto(`${TARGET}/badges`);
     await expect(page.getByRole('heading', { name: 'Your badges' })).toBeVisible();
 
     expect(errors).toEqual([]);

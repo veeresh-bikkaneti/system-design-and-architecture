@@ -167,7 +167,7 @@ Defenses, from simplest to fanciest:
 
 ## Where caches live
 
-Caching isn't one layer — it's a stack. Browser caches, [**CDN** edge caches](#/lesson/cdns) (next lesson!),
+Caching isn't one layer — it's a stack. Browser caches, [**CDN** edge caches](/lesson/cdns) (next lesson!),
 application caches like Redis, database query caches, even CPU caches. Each layer trades a
 different amount of staleness for a different amount of speed. When debugging "why is this
 slow," walk the stack top-down: the fix is usually a missing layer, not a faster database.
