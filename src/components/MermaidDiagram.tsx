@@ -90,13 +90,17 @@ function ensureInitialized() {
     theme: 'neutral',
     securityLevel: 'strict',
     fontFamily: MONO_STACK,
-    // Render flowchart labels as pure SVG <text> instead of HTML inside
+    // Render labels as pure SVG <text> instead of HTML inside
     // <foreignObject>. DOMPurify's SVG profile strips foreignObject
     // (correctly — it's an XSS vector), which was deleting every node
     // and edge label. SVG-text labels survive sanitization untouched,
     // keep <br/> multiline layout via <tspan>s, and are the stricter
     // posture: no HTML parsing inside diagrams at all.
-    flowchart: { htmlLabels: false },
+    // NOTE: this MUST be the top-level `htmlLabels` key. Mermaid 11
+    // deprecated `flowchart.htmlLabels` and ignores it for label
+    // rendering — labels silently stay HTML-in-foreignObject and keep
+    // getting stripped. Verified by render probe, 2026-09-17.
+    htmlLabels: false,
     themeVariables: {
       fontFamily: MONO_STACK,
       // Warm light theme: stone surfaces, slate edges, amber-tinted accents.
