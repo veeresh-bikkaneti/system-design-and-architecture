@@ -27,7 +27,7 @@ temporarily disagree — but if everyone stops writing, the gossip eventually ca
 all copies converge. That convergence is **eventual consistency**, and the speed and
 reliability of the gossip is your replication design.
 
-<VideoCard videoId="ukH_EQDhDBM" title="Why Distributed Data Lies to You (Replication & Consistency Explained)" source="The Logic Blueprint" description="Shows why distributed data misleads you — the honest case for studying replication." />
+<VideoCard videoId="mBUCF1WGI_I" title="Distributed Systems 5.1: Replication" source="Martin Kleppmann" description="Kleppmann shows why copies of data disagree — idempotent retries, tombstones, and anti-entropy, like roommates comparing shopping lists." />
 
 ## Synchronous vs. asynchronous replication
 
@@ -82,7 +82,7 @@ writes to different nodes create conflicts that somebody must resolve. **Cassand
   duration={5}
 />
 
-<VideoCard videoId="9_kqVxgpnbk" title="System Design: Data Replication Strategies Explained" source="AI & Systems Engineering" description="Compares leader and leaderless replication strategies with clear system-design framing." />
+<VideoCard videoId="RK2odztfP0I" title="L27: Leaderless Replication, Topologies, CRDTs, Quorum Writes, Read Repair &amp; Anti-Entropy" source="Aarchi Gandhi" description="A friendly lecture on life without a leader — gossip, quorum math, and read repair, like a group chat with no admin." />
 
 ## Quorums: the tunable middle
 
@@ -173,7 +173,7 @@ particular weirdness:
 Stronger guarantees cost latency and availability — there's no free consistency, only
 consistency whose price you've decided to pay.
 
-<VideoCard videoId="2qkVSJ9QbQA" title="SD 6 | Consistency Models: Strong vs Eventual | System Design Course | Uplatz" source="Uplatz" description="Strong versus eventual consistency explained — what clients actually observe." />
+<VideoCard videoId="noUNH3jDLC0" title="Distributed Systems 7.2: Linearizability" source="Martin Kleppmann" description="Walks the full spectrum from strong to eventual consistency — when you need bank-level agreement and when gossip is good enough, like certified mail versus a rumor." />
 
 ## Conflict resolution
 
@@ -256,6 +256,7 @@ Want to keep pulling this thread? These talks and tutorials go further than we d
 - [Dynamo - Amazon's Highly Available Key-Value Store](https://www.youtube.com/watch?v=hLWgwzzhY0c) — YouTube paper explainer. The Dynamo paper walked through: quorums, vector clocks, gossip, hinted handoff.
 - [System Design Concepts Course and Interview Prep](https://www.youtube.com/watch?v=F2FmTdLtb_4) — freeCodeCamp.org (~54m). Replication and ACID chapters in one sitting — an interview-grade refresher on what each consistency level actually buys you.
 - [Distributed Consensus and Data Replication strategies on the server](https://www.youtube.com/watch?v=GeGxgmPTe4c) — Gaurav Sen. Sync vs async replication, split brain, and quorum — the machinery behind every consistency model in this lesson.
+- [SD 6 | Consistency Models: Strong vs Eventual | System Design Course | Uplatz](https://www.youtube.com/watch?v=2qkVSJ9QbQA) — Uplatz. AI-narrated alternative.
 
 ## Sources & further reading
 

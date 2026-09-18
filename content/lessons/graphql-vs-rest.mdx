@@ -28,7 +28,7 @@ both bills before you sign.
 
 (You already know the front door from [*API Gateways*](/lesson/api-gateways) and the per-client kitchen from [*BFF: One API Per Client*](/lesson/bff-backend-for-frontend). This lesson is about what the menu looks like once you're inside.)
 
-<VideoCard videoId="QhWmL7mbKbY" title="GraphQL vs Rest API - why graphql?" source="Sketch Mind" description="Builds from zero: fixed REST shapes cause over/under-fetching, then shows GraphQL's answer and when each fits." />
+<VideoCard videoId="yWzKJPw_VzM" title="What Is GraphQL? REST vs. GraphQL" source="ByteByteGo" description="REST is the fixed menu — you eat what you&#x27;re given; GraphQL lets you order exactly the plate you want. This one walks through over-fetching, under-fetching, and when each kitchen wins." />
 
 ## The restaurant with two kitchens
 
@@ -159,7 +159,7 @@ customer, the second one doesn't re-query. Two lines of discipline — batch, th
 turn the deadliest GraphQL failure mode into a non-issue. But you have to know the trap
 exists, because the naive code looks perfectly correct.
 
-<VideoCard videoId="nta-CkWIwh4" title="Solving the N+1 Problem with DataLoader" source="ByteDistrict" description="Diagnoses the N+1 query pattern, then shows DataLoader batching collapsing hundreds of lookups into one." />
+<VideoCard videoId="WQHhXf0uwWE" title="GraphQL for Java Developers: 06 - N+1 Problem and Virtual Threads" source="Dan Vega" description="One GraphQL query can quietly fire off a hundred database calls — like a waiter sprinting to the kitchen for every single plate. This video shows how batching (Spring&#x27;s answer to DataLoader) lets the waiter carry the whole tray in one trip." />
 
 ## Caching: the pass can't label a custom plate
 
@@ -187,7 +187,7 @@ Teams recover caching in three places, each with a cost:
 The honest accounting: REST caches at the HTTP layer for free; GraphQL moves caching into
 application code. If your traffic is read-heavy and cache-friendly, that's a real tax.
 
-<VideoCard videoId="d8rRPYSC8mM" title="Is GraphQL Dead? The Real Truth vs REST" source="Code Goat" description="Dedicated chapter on why GraphQL's single-POST endpoint breaks CDN caching that REST GETs get for free." />
+<VideoCard videoId="8-Mzo9OAKOQ" title="You probably don&#x27;t need GraphQL" source="The Merge Log" description="REST dishes come pre-labeled so the CDN pass can cache them for free; GraphQL&#x27;s custom plates all look identical to the cache. This walks the whole trade — with a dedicated chapter on why POST breaks edge caching — and the four cases where GraphQL still earns its keep." />
 
 ## Versioning without reprinting the menu
 
@@ -265,7 +265,7 @@ print one again.
 The decision isn't taste; it's arithmetic. Count your clients, count your bytes, count your
 cache hits — then pick the kitchen whose bill you can afford.
 
-<VideoCard videoId="W1b-icWdw4Q" title="REST vs GraphQL vs gRPC" source="Dargslan" description="Side-by-side of REST, GraphQL, gRPC with a 10-second decision guide and why real systems mix all three." />
+<VideoCard videoId="7e4ox1kNCfw" title="REST vs GraphQL vs gRPC — Which One Should You Actually Use?" source="Priya Vemasani" description="Instead of a feature list, this one cooks the same API three ways — REST, GraphQL, gRPC — runs all three live, and hands you a side-by-side taste test so the right pick for each job feels obvious." />
 
 ## Takeaways
 

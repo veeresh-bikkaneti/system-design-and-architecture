@@ -20,7 +20,7 @@ The initial failure was a stubbed toe. The cascade was the system. Resilience pa
 how you make the toe-stub survivable — they're the difference between "payments were slow
 for five minutes" and "we were down for five hours."
 
-<VideoCard videoId="MscUun1GWu8" title="Episode 55 - What Happens When a Component Fails? | Building Resilient Systems" source="Anupam Tech Talks" description="Walks through what happens when a component fails — the case for resilient design." />
+<VideoCard videoId="15OvdcWEz3Y" title="Design for Failure Explained | Timeouts, Retries, Circuit Breakers &amp; Graceful Degradation" source="escoding" description="A one-stop seminar on the resilience playbook — timeouts, retries, backoff, jitter, circuit breakers, and fallbacks, like packing a first-aid kit before a hike." />
 
 ## The house wiring and the ship's hull
 
@@ -42,7 +42,7 @@ way: isolate resources per dependency so one slow service can't drown the rest.
 Keep both images handy. The breaker protects you from *calling* a sick dependency; the
 bulkhead protects you from *sharing* resources with one.
 
-<VideoCard videoId="UySf6ivvGoM" title="💊 Designing for Failure: The Key to Robust Microservices Architecture" source="مصطفى سليمان" description="Covers timeouts, circuit breakers, and bulkheads — the wiring that keeps ships afloat." />
+<VideoCard videoId="T9MPDmw6MNI" title="Patterns of Resilience - The Untold Stories of Robust Software Design" source="Devoxx" description="A veteran architect&#x27;s field stories on bulkheads, circuit breakers, and designing for failure — like fire drills for your microservices." />
 
 ## The anatomy of a cascade
 
@@ -93,7 +93,7 @@ Timeouts are insurance: you pay a small premium (occasionally giving up on a cal
 would have succeeded at second 31) to avoid the catastrophic loss (the cascade). Buy the
 insurance.
 
-<VideoCard videoId="G_kExQGrbOs" title="Timeouts & Retries in Distributed Systems (Tuning for Reliability)" source="Mila Bay" description="Practical tuning guide for timeouts and retries in distributed systems." />
+<VideoCard videoId="YodnJ2rTqAo" title="How Reliable Services Decide When to Wait, Retry, or Stop" source="Swetank Srivastava" description="Deadlines, retry budgets, and jitter from an original human-narrated explainer — when to wait, retry, or walk away, like knowing how long to hold a restaurant table." />
 
 ## Retries: help the patient, don't mob the hospital
 
@@ -290,7 +290,7 @@ Degradation is a product decision as much as an engineering one: someone has to 
 features by "what can we lose and still be useful." Have that argument on a calm Tuesday,
 not during the outage. Write the fallback *with* the feature, not after the postmortem.
 
-<VideoCard videoId="Lw8KExizlPQ" title="Ep. 29: Graceful Degradation: What You Need to Know" source="Systemic Stack English" description="Dedicated explainer on graceful degradation — your backup generator strategy." />
+<VideoCard videoId="URI5GsOBznk" title="YouTube Recommendation Engine: Complete Meltdown Analysis" source="ByteMonk" description="A real outage teardown: when recommendations went blank, graceful degradation was the design principle YouTube skipped — like keeping the lights on while the chandelier is out." />
 
 ## You can't fix what you can't see
 

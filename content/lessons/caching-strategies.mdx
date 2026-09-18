@@ -24,7 +24,7 @@ back and forth to it for every single order would bring the kitchen to its knees
 ingredients you use constantly live right next to the stove. Caching is mise en place for
 data: keep the hot stuff close.
 
-<VideoCard videoId="TQPUHnuXWcY" title="Why Is Your App Slow? Redis & Caching Explained | C# Cache-Aside" source="Backend Developer" description="A café analogy shows what repeated DB reads cost — and what caching saves." />
+<VideoCard videoId="s8j53j7arIE" title="7. Caching Explained — Cache Hits, TTL, Eviction &amp; Redis (System Design Basics)" source="ByteScaler" description="Like keeping a sticky-note copy of the DB on your desk instead of walking to the filing cabinet, with a TTL alarm so the note never goes stale." />
 
 ## The core trade-off
 
@@ -163,7 +163,7 @@ Defenses, from simplest to fanciest:
 3. **Stale-while-revalidate** — serve the slightly-old value immediately and refresh in the
    background. Users get speed *and* freshness, eventually.
 
-<VideoCard videoId="-q_Ku081_SI" title="Hot Keys & Cache Stampedes Explained | Prevent Database Meltdowns | System Design" source="Tejav Academy" description="A dedicated stampede explainer: warming, stale-while-revalidate, and request coalescing." />
+<VideoCard videoId="EmorKmfITQE" title="Why Expired Cache Keys CRASH Databases | Interview Question #42" source="Binary Dose" description="One expired TTL and 10,000 requests rush the DB at once — like a concert crowd squeezing through a single door." />
 
 ## Where caches live
 
@@ -234,7 +234,7 @@ slow," walk the stack top-down: the fix is usually a missing layer, not a faster
 Want to keep pulling this thread? These talks and tutorials go further than we did here:
 
 - [Caching in System Design: Redis, Strategies, Clustering & Real-World Patterns](https://www.youtube.com/watch?v=kgcMinYM0GE) — Bagherani, YouTube tutorial (~27 min). Cache-aside, write-through, write-behind, and stampede control in Redis.
-- [Caching Explained — Cache Hits, TTL, Eviction & Redis](https://www.youtube.com/watch?v=s8j53j7arIE) — System Design From Zero, YouTube tutorial (~8 min). Hits, misses, TTL, and LRU — the essentials in eight minutes.
+- [Caching Explained — Cache Hits, TTL, Eviction & Redis](https://www.youtube.com/watch?v=s8j53j7arIE) — ByteScaler (formerly System Design From Zero), YouTube tutorial (~8 min). Hits, misses, TTL, and LRU — the essentials in eight minutes.
 - [Caching Explained: Client-Side, CDN, and Server-Side](https://www.youtube.com/watch?v=ZS_8BfDGxvg) — System Design HLD, YouTube tutorial. Multi-layer caching and the freshness-versus-invalidation trade-off.
 - [Redis Course – In-Memory Database Tutorial](https://www.youtube.com/watch?v=XCsS_NVAa1g) — freeCodeCamp.org (~1.5h). Data structures, transactions, Pub/Sub, Lua scripting, security, benchmarking — the toolkit behind the strategies.
 - [System Design Course – APIs, Databases, Caching, CDNs, Load Balancing & Production Infra](https://www.youtube.com/watch?v=C842vFY5kRo) — freeCodeCamp.org (~2h 05m). The caching chapter covers where caches sit, eviction, and invalidation trade-offs.
