@@ -1,11 +1,9 @@
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Icon } from './ui/Icon';
 import { BadgeToastHost } from './ui/BadgeToast';
 import { useDisplayStore, resolveTheme } from '../store/display';
-
-const ChatWidget = lazy(() => import('./ChatWidget').then((m) => ({ default: m.ChatWidget })));
 
 function BrandMark({ className = 'h-9 w-9' }: { className?: string }) {
   return (
@@ -182,10 +180,6 @@ export function Layout() {
           </div>
         </div>
       </div>
-
-      <Suspense fallback={null}>
-        <ChatWidget />
-      </Suspense>
 
       <BadgeToastHost />
     </div>

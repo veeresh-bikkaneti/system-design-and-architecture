@@ -163,7 +163,7 @@ export function HomePage() {
     <div className="mx-auto max-w-5xl">
       <Seo
         title="System Design Mastery — Learn System Design from Zero to Master"
-        description="Learn system design progressively, from beginner to master, with an AI tutor that draws you the diagrams."
+        description="Learn system design progressively, from beginner to master, with an AI assistant that answers your questions."
         path="/"
       />
       {/* Hero — the course's animated diagrams, live above the fold */}
@@ -179,8 +179,8 @@ export function HomePage() {
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-stone-600 dark:text-stone-400">
               Learn how the systems you use every day actually work — caching, load
               balancing, databases, queues — through plain-language lessons,
-              diagrams that move, and an AI tutor that sketches the architecture
-              with you as you go.
+              diagrams that move, and an AI assistant that answers your questions
+              as you go.
             </p>
 
             {continueLesson && (
