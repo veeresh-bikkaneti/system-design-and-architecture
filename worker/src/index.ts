@@ -13,14 +13,36 @@ import {
 } from './auth';
 import { sha256Hex } from './crypto';
 import {
+  handleQaAuthCallback,
+  handleQaAuthLogout,
+  handleQaAuthStart,
+  handleQaAuthStatus,
+} from './qa/oauth';
+import {
   handleQaChat,
-  handleQaCreateSession,
   handleQaDeleteSession,
   handleQaQuota,
+  qaCorsHeaders,
 } from './qa/routes';
 
 export interface Env {
   DB: D1Database;
+  // Workers AI binding (see [ai] in wrangler.toml). Absent in unit tests --
+  // createQaModel() returns null then, and /api/qa/chat answers
+  // AI_UNAVAILABLE instead of consuming quota.
+  AI: Ai;
+  // Optional override for the tutor model id; defaults to
+  // DEFAULT_QA_MODEL_ID when unset.
+  QA_MODEL_ID?: string;
+  // Public GitHub OAuth App client id for the tutor sign-in flow
+  // (wrangler [vars] GITHUB_CLIENT_ID). The client SECRET is set via
+  // `wrangler secret put GITHUB_CLIENT_SECRET` and must never appear in
+  // wrangler.toml or client-side code.
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  // Origin the OAuth callback page postMessages the result to (the Pages
+  // site origin). Defaults to the production Pages origin when unset.
+  PUBLIC_SITE_ORIGIN?: string;
   // Unset in local dev -- see auth.ts's sendMagicLinkEmail for what these
   // control. DEV_MODE must be set alongside RESEND_API_KEY being absent
   // for local testing to echo a magic link back instead of emailing it;
@@ -201,7 +223,9 @@ export function corsHeaders(origin: string | null): HeadersInit {
   if (!origin || !ALLOWED_ORIGINS.has(origin)) return {};
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    // DELETE is listed because /api/qa/session (tutor "new topic") uses it;
+    // allowing the method in preflight does not itself authorize anything.
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
 }
@@ -553,7 +577,14 @@ export default {
     // POST with a JSON content-type (or, for /auth/session, an Authorization
     // header) triggers a browser preflight before the real request.
     if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/qa/'))) {
-      return new Response(null, { status: 204, headers: corsHeaders(request.headers.get('Origin')) });
+      // Tutor routes are fetched with credentials:'include' cross-site, so
+      // their preflight must carry Access-Control-Allow-Credentials (plus the
+      // origin allowlist) or the browser blocks the real request. Exam/auth
+      // preflights are unchanged.
+      const preflightHeaders = url.pathname.startsWith('/api/qa/')
+        ? qaCorsHeaders(request.headers.get('Origin'))
+        : corsHeaders(request.headers.get('Origin'));
+      return new Response(null, { status: 204, headers: preflightHeaders });
     }
 
     if (url.pathname === '/exam/questions' && request.method === 'GET') {
@@ -587,9 +618,24 @@ export default {
       return handleExamSubmit(request, env);
     }
 
-    // P0 course Q&A agent. See worker/src/qa/routes.ts for the contract.
-    if (url.pathname === '/api/qa/session' && request.method === 'POST') {
-      return handleQaCreateSession(request, env);
+    // Course Q&A tutor ("Veer"). The chat endpoint is login-gated (see
+    // worker/src/qa/oauth.ts); the OAuth routes below implement the
+    // GitHub sign-in flow. Lessons, /exam/*, /auth/* and /verify/* are
+    // intentionally NOT behind this -- only the tutor costs model calls.
+    if (url.pathname === '/api/qa/auth/github' && request.method === 'GET') {
+      return handleQaAuthStart(request, env);
+    }
+
+    if (url.pathname === '/api/qa/auth/github/callback' && request.method === 'GET') {
+      return handleQaAuthCallback(request, env);
+    }
+
+    if (url.pathname === '/api/qa/auth/status' && request.method === 'GET') {
+      return handleQaAuthStatus(request, env);
+    }
+
+    if (url.pathname === '/api/qa/auth/logout' && request.method === 'POST') {
+      return handleQaAuthLogout(request, env);
     }
 
     if (url.pathname === '/api/qa/session' && request.method === 'DELETE') {

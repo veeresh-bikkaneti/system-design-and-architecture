@@ -1,10 +1,13 @@
 /**
  * Client for the course Q&A Worker API (`/api/qa/*`).
  *
- * The browser is an untrusted client: it holds no secrets, only an anonymous
- * `sessionId` minted by the Worker. All model access, memory, and rate limits
- * live server-side. This module is DOM-free so the streaming parser and error
- * handling are unit-testable under plain vitest.
+ * The browser is an untrusted client: it holds no secrets. Tutor access is
+ * gated by GitHub OAuth -- the Worker owns the session lifecycle in an
+ * HttpOnly `qa_session` cookie, so every request here uses
+ * `credentials: 'include'` and never touches a token. All model access,
+ * memory, and rate limits live server-side. This module is DOM-free (popup
+ * handling lives in useQaAuth.ts) so the streaming parser and error handling
+ * are unit-testable under plain vitest.
  */
 
 const API_BASE: string = import.meta.env.VITE_QA_API_BASE ?? '';
@@ -26,6 +29,11 @@ export interface QaQuota {
   resetAt: string;
 }
 
+export interface QaAuthStatus {
+  authenticated: boolean;
+  login?: string;
+}
+
 export class QaApiError extends Error {
   readonly code: string;
   readonly status?: number;
@@ -40,6 +48,11 @@ export class QaApiError extends Error {
 
 function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
+}
+
+/** Origin of the Worker API, for validating the OAuth popup's postMessage. */
+export function qaApiOrigin(): string {
+  return new URL(API_BASE).origin;
 }
 
 /**
@@ -73,31 +86,57 @@ async function throwIfNotOk(res: Response): Promise<void> {
   throw new QaApiError(code, message, res.status);
 }
 
-/** Mint an anonymous session id. The Worker owns session lifecycle. */
-export async function createSession(signal?: AbortSignal): Promise<string> {
-  const res = await fetch(apiUrl('/api/qa/session'), { method: 'POST', signal });
-  await throwIfNotOk(res);
-  const body = (await res.json()) as { sessionId?: unknown };
-  if (typeof body.sessionId !== 'string' || body.sessionId.length === 0) {
-    throw new QaApiError('bad_response', 'The server returned an invalid session.');
-  }
-  return body.sessionId;
+/** The OAuth start URL -- the sign-in popup navigates here (server 302s to GitHub). */
+export function oauthStartUrl(): string {
+  return apiUrl('/api/qa/auth/github');
 }
 
-/** Wipe the session's server-side memory (transcript + summary). Best-effort. */
-export async function deleteSession(sessionId: string, signal?: AbortSignal): Promise<void> {
-  const res = await fetch(apiUrl('/api/qa/session'), {
-    method: 'DELETE',
+/**
+ * Whether the visitor holds a live tutor session. Never 401s: the backend
+ * answers `{ authenticated: false }` for signed-out visitors.
+ */
+export async function getAuthStatus(signal?: AbortSignal): Promise<QaAuthStatus> {
+  const res = await fetch(apiUrl('/api/qa/auth/status'), {
+    credentials: 'include',
+    signal,
+  });
+  await throwIfNotOk(res);
+  const body = (await res.json()) as { authenticated?: unknown; login?: unknown };
+  if (typeof body.authenticated !== 'boolean') {
+    throw new QaApiError('bad_response', 'The server returned an invalid auth status.');
+  }
+  return {
+    authenticated: body.authenticated,
+    login: typeof body.login === 'string' ? body.login : undefined,
+  };
+}
+
+/** Revoke the tutor session server-side and clear the cookie. */
+export async function logout(signal?: AbortSignal): Promise<void> {
+  const res = await fetch(apiUrl('/api/qa/auth/logout'), {
+    method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ sessionId }),
+    body: '{}',
+    credentials: 'include',
     signal,
   });
   await throwIfNotOk(res);
 }
 
-/** Remaining questions for this session/IP. Drives the "N left today" badge. */
-export async function getQuota(sessionId: string, signal?: AbortSignal): Promise<QaQuota> {
-  const res = await fetch(apiUrl(`/api/qa/quota?sessionId=${encodeURIComponent(sessionId)}`), {
+/** Wipe the tutor memory (transcript + summary) for the signed-in user. Best-effort. */
+export async function deleteSession(signal?: AbortSignal): Promise<void> {
+  const res = await fetch(apiUrl('/api/qa/session'), {
+    method: 'DELETE',
+    credentials: 'include',
+    signal,
+  });
+  await throwIfNotOk(res);
+}
+
+/** Remaining questions for the signed-in user. Drives the "N left today" badge. */
+export async function getQuota(signal?: AbortSignal): Promise<QaQuota> {
+  const res = await fetch(apiUrl('/api/qa/quota'), {
+    credentials: 'include',
     signal,
   });
   await throwIfNotOk(res);
@@ -243,23 +282,18 @@ export async function* readQaStream(response: Response): AsyncGenerator<QaStream
 }
 
 export interface StreamChatArgs {
-  sessionId: string;
   message: string;
   signal?: AbortSignal;
   onEvent: (event: QaStreamEvent) => void;
 }
 
 /** POST a chat turn and stream the SSE events. Throws QaApiError on HTTP errors. */
-export async function streamChat({
-  sessionId,
-  message,
-  signal,
-  onEvent,
-}: StreamChatArgs): Promise<void> {
+export async function streamChat({ message, signal, onEvent }: StreamChatArgs): Promise<void> {
   const res = await fetch(apiUrl('/api/qa/chat'), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ sessionId, message }),
+    body: JSON.stringify({ message }),
+    credentials: 'include',
     signal,
   });
   await throwIfNotOk(res);

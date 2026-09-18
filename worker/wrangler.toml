@@ -8,3 +8,23 @@ compatibility_date = "2026-09-10"
 binding = "DB"
 database_name = "system-design-mastery-cert"
 database_id = "REPLACE_WITH_REAL_D1_DATABASE_ID"
+
+# Workers AI binding for the course Q&A tutor ("Veer"). The Worker calls
+# models through env.AI.run() -- no API token/secret is needed for this
+# binding, which is why the tutor needs no additional credentials beyond
+# the GitHub OAuth client secret below.
+[ai]
+binding = "AI"
+
+[vars]
+# Small open-weight chat model served from Cloudflare's edge. Overridable
+# per-environment; the Worker falls back to this default when unset.
+QA_MODEL_ID = "@cf/meta/llama-3.1-8b-instruct-fp8"
+# Public GitHub OAuth App client id for the tutor sign-in flow. Liz pastes
+# her OAuth App's Client ID here. The client SECRET is never in this file --
+# set it with: wrangler secret put GITHUB_CLIENT_SECRET
+GITHUB_CLIENT_ID = ""
+# Origin the OAuth callback page postMessages the sign-in result to (the
+# widget opens the flow in a popup and listens for it). Must exactly match
+# the site origin or the widget will ignore the message.
+PUBLIC_SITE_ORIGIN = "https://veeresh-bikkaneti.github.io"

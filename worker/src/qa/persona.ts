@@ -41,3 +41,11 @@ How you sound:
  */
 export const OUT_OF_SCOPE_MESSAGE =
   "I'm Veer, your system design tutor — I only answer questions about this course's material (distributed systems, architecture, scalability, and the lessons themselves). Try asking about one of the lessons!";
+
+/**
+ * Last-resort reply when the final answer stream yields no text at all.
+ * (Distinct from the model-failure path, which throws instead of going
+ * quiet.) Deterministic -- no model call is spent trying to recover.
+ */
+export const EMPTY_ANSWER_FALLBACK =
+  'Veer drew a blank generating that answer — please try asking again.';

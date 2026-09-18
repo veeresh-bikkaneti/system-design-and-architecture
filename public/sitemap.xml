@@ -1,159 +1,159 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/</loc>
-    <lastmod>2026-09-16T22:23:47-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/</loc>
+    <lastmod>2026-09-18T00:14:47+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/roadmap/</loc>
-    <lastmod>2026-09-16T16:58:17-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/roadmap/</loc>
+    <lastmod>2026-09-17T10:38:21-05:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/badges/</loc>
-    <lastmod>2026-09-16T16:36:30-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/badges/</loc>
+    <lastmod>2026-09-17T10:38:21-05:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/scaling-web-service/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/scaling-web-service/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/solid-principles/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/solid-principles/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/mvc-to-react/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/mvc-to-react/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/cap-theorem/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/cap-theorem/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/load-balancers/</loc>
-    <lastmod>2026-09-16T20:43:37+00:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/load-balancers/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/nosql-databases/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/nosql-databases/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/data-partitioning/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/data-partitioning/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/url-shortener/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/url-shortener/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/idempotency/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/idempotency/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/authn-authz/</loc>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/authn-authz/</loc>
     <lastmod>2026-09-16T20:40:53+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/caching-strategies/</loc>
-    <lastmod>2026-09-16T20:43:37+00:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/caching-strategies/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/cdns/</loc>
-    <lastmod>2026-09-16T20:43:37+00:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/cdns/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/cloud-native-architecture/</loc>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/cloud-native-architecture/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/message-queues/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/api-gateways/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/bff-backend-for-frontend/</loc>
+    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/replication-consistency-models/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/rate-limiting/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/microservices-vs-monolith/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/microservices-patterns-pitfalls/</loc>
+    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/resilience-patterns/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/stream-vs-batch/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/consensus-raft/</loc>
     <lastmod>2026-09-16T20:40:53+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/message-queues/</loc>
-    <lastmod>2026-09-16T20:40:53+00:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/sharding-strategies/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/api-gateways/</loc>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/distributed-transactions/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/observability/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/domain-driven-design/</loc>
     <lastmod>2026-09-16T15:35:46-05:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/bff-backend-for-frontend/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/anti-corruption-layer/</loc>
+    <lastmod>2026-09-17T10:38:21-05:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/replication-consistency-models/</loc>
-    <lastmod>2026-09-16T20:40:53+00:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/design-instagram/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/rate-limiting/</loc>
-    <lastmod>2026-09-16T15:44:41-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/designing-ai-systems/</loc>
+    <lastmod>2026-09-17T10:38:21-05:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/microservices-vs-monolith/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/agentic-ai-patterns/</loc>
+    <lastmod>2026-09-17T10:38:21-05:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/microservices-patterns-pitfalls/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/event-sourcing-cqrs/</loc>
+    <lastmod>2026-09-17T10:38:21-05:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/resilience-patterns/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/designing-chat-at-scale/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/stream-vs-batch/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/graphql-vs-rest/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/consensus-raft/</loc>
-    <lastmod>2026-09-16T20:40:53+00:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/multi-region-active-active/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
   <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/sharding-strategies/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/distributed-transactions/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/observability/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/domain-driven-design/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/anti-corruption-layer/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/design-instagram/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/designing-ai-systems/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/agentic-ai-patterns/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/event-sourcing-cqrs/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/designing-chat-at-scale/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/graphql-vs-rest/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/multi-region-active-active/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
-  </url>
-  <url>
-    <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/zero-trust-security/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <loc>https://veeresh-bikkaneti.github.io/lesson/zero-trust-security/</loc>
+    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
   </url>
 </urlset>

@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   QaApiError,
-  createSession,
   deleteSession,
+  getAuthStatus,
   getQuota,
+  logout,
+  oauthStartUrl,
   readQaStream,
   streamChat,
   type QaStreamEvent,
@@ -70,6 +72,21 @@ describe('readQaStream', () => {
     ]);
   });
 
+  it('surfaces the UNAUTHENTICATED event the backend emits without a session', async () => {
+    const res = sseResponse([
+      'event: error\n' +
+        'data: {"code":"UNAUTHENTICATED","message":"Sign in with GitHub to chat with Veer."}\n' +
+        '\n',
+    ]);
+    await expect(collect(res)).resolves.toEqual([
+      {
+        type: 'error',
+        code: 'UNAUTHENTICATED',
+        message: 'Sign in with GitHub to chat with Veer.',
+      },
+    ]);
+  });
+
   it('drops malformed JSON, unknown events, and comments without killing the stream', async () => {
     const res = sseResponse([
       ': keep-alive\n' +
@@ -126,81 +143,111 @@ describe('readQaStream', () => {
   });
 });
 
-describe('createSession', () => {
-  it('returns the minted session id', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ sessionId: 'abc-123' })));
-    await expect(createSession()).resolves.toBe('abc-123');
+describe('getAuthStatus', () => {
+  it('returns the signed-in state with the GitHub login', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ authenticated: true, login: 'octocat' }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(getAuthStatus()).resolves.toEqual({ authenticated: true, login: 'octocat' });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/qa/auth/status');
+    expect(init.credentials).toBe('include');
+  });
+
+  it('returns authenticated:false without a login for signed-out visitors', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ authenticated: false })));
+    await expect(getAuthStatus()).resolves.toEqual({ authenticated: false, login: undefined });
   });
 
   it('throws QaApiError when the shape is wrong', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ nope: true })));
-    await expect(createSession()).rejects.toMatchObject({ code: 'bad_response' });
+    await expect(getAuthStatus()).rejects.toMatchObject({ code: 'bad_response' });
+  });
+});
+
+describe('oauthStartUrl', () => {
+  it('points at the Worker OAuth start route', () => {
+    expect(oauthStartUrl()).toContain('/api/qa/auth/github');
+  });
+});
+
+describe('logout', () => {
+  it('POSTs JSON with credentials so the preflight-gated route accepts it', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    await logout();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/qa/auth/logout');
+    expect(init.method).toBe('POST');
+    expect(init.headers).toMatchObject({ 'content-type': 'application/json' });
+    expect(init.credentials).toBe('include');
   });
 });
 
 describe('deleteSession', () => {
-  it('sends a DELETE with the session id in the body', async () => {
+  it('sends a credentialed DELETE with no session id', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
     vi.stubGlobal('fetch', fetchMock);
-    await deleteSession('old-id');
+    await deleteSession();
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain('/api/qa/session');
     expect(init.method).toBe('DELETE');
-    expect(init.body).toBe(JSON.stringify({ sessionId: 'old-id' }));
+    expect(init.body).toBeUndefined();
+    expect(init.credentials).toBe('include');
   });
 });
 
 describe('getQuota', () => {
   it('parses limit, remaining, and resetAt', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
         jsonResponse({ limit: 50, remaining: 49, resetAt: '2026-09-18T00:00:00Z' }),
-      ),
-    );
-    await expect(getQuota('abc')).resolves.toEqual({
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(getQuota()).resolves.toEqual({
       limit: 50,
       remaining: 49,
       resetAt: '2026-09-18T00:00:00Z',
     });
-  });
-
-  it('URL-encodes the session id', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({ limit: 50, remaining: 1, resetAt: 'x' }),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-    await getQuota('a/b?c');
-    const [url] = fetchMock.mock.calls[0] as [string];
-    expect(url).toContain('sessionId=a%2Fb%3Fc');
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/qa/quota');
+    expect(url).not.toContain('sessionId');
+    expect(init.credentials).toBe('include');
   });
 
   it('throws QaApiError on a malformed quota body', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ limit: 50 })));
-    await expect(getQuota('abc')).rejects.toMatchObject({ code: 'bad_response' });
+    await expect(getQuota()).rejects.toMatchObject({ code: 'bad_response' });
   });
 });
 
 describe('streamChat', () => {
-  it('delivers parsed events to onEvent in order', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        sseResponse([
-          'event: message\ndata: {"delta":"A"}\n\n' +
-            'event: sources\ndata: {"lessons":[]}\n\n' +
-            'event: done\ndata: {}\n\n',
-        ]),
-      ),
+  it('posts only the message with credentials and delivers events in order', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      sseResponse([
+        'event: message\ndata: {"delta":"A"}\n\n' +
+          'event: sources\ndata: {"lessons":[]}\n\n' +
+          'event: done\ndata: {}\n\n',
+      ]),
     );
+    vi.stubGlobal('fetch', fetchMock);
     const seen: QaStreamEvent[] = [];
-    await streamChat({ sessionId: 's', message: 'hi', onEvent: (e) => seen.push(e) });
+    await streamChat({ message: 'hi', onEvent: (e) => seen.push(e) });
     expect(seen).toEqual([
       { type: 'delta', delta: 'A' },
       { type: 'sources', lessons: [] },
       { type: 'done' },
     ]);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/qa/chat');
+    expect(init.method).toBe('POST');
+    expect(init.headers).toMatchObject({ 'content-type': 'application/json' });
+    expect(init.body).toBe(JSON.stringify({ message: 'hi' }));
+    expect(init.credentials).toBe('include');
   });
 
   it('throws QaApiError carrying the server code on HTTP errors', async () => {
@@ -210,7 +257,7 @@ describe('streamChat', () => {
         .fn()
         .mockResolvedValue(jsonResponse({ code: 'rate_limited', message: 'Slow down' }, 429)),
     );
-    const err = await streamChat({ sessionId: 's', message: 'hi', onEvent: () => {} }).catch(
+    const err = await streamChat({ message: 'hi', onEvent: () => {} }).catch(
       (e: unknown) => e,
     );
     expect(err).toBeInstanceOf(QaApiError);
@@ -220,7 +267,7 @@ describe('streamChat', () => {
   it('falls back to http_<status> when the error body is not JSON', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('nope', { status: 500 })));
     await expect(
-      streamChat({ sessionId: 's', message: 'hi', onEvent: () => {} }),
+      streamChat({ message: 'hi', onEvent: () => {} }),
     ).rejects.toMatchObject({ code: 'http_500', status: 500 });
   });
 });

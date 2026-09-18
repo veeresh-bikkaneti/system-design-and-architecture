@@ -3,6 +3,7 @@ import { ChatMarkdown } from '../ChatMarkdown';
 import { quotaLabel } from './quota';
 import {
   QaApiError,
+  deleteSession,
   getQuota,
   isQaBackendConfigured,
   streamChat,
@@ -10,7 +11,7 @@ import {
   type QaSource,
   type QaStreamEvent,
 } from './qaApi';
-import { useQaSession } from './useQaSession';
+import { useQaAuth } from './useQaAuth';
 
 /** Backend input cap (architecture §4.2): never send more than the Worker accepts. */
 const MAX_MESSAGE_LENGTH = 2000;
@@ -84,6 +85,25 @@ function NewTopicIcon({ className }: { className?: string }) {
   );
 }
 
+function SignOutIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="M16 17l5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
+  );
+}
+
 export function QaWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<QaMessage[]>([]);
@@ -91,29 +111,36 @@ export function QaWidget() {
   const [streaming, setStreaming] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [quota, setQuota] = useState<QaQuota | null>(null);
+  const [signInHint, setSignInHint] = useState<string | null>(null);
   const nextId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { sessionId, ensureSession, newTopic } = useQaSession();
+  const auth = useQaAuth();
 
   // False until VITE_QA_API_BASE points at the deployed Worker. While false
   // the widget shows Veer's "getting ready" state and never attempts a
   // request (see isQaBackendConfigured in qaApi.ts).
   const backendReady = isQaBackendConfigured();
+  const signedIn = backendReady && auth.state === 'signed-in';
 
-  const refreshQuota = useCallback(async (sid: string) => {
+  const refreshQuota = useCallback(async () => {
     try {
-      setQuota(await getQuota(sid));
+      setQuota(await getQuota());
     } catch {
       // The badge is informational; a failed refresh must never break chat.
     }
   }, []);
 
-  // A stored session from a previous visit restores its quota on mount.
+  // Quota belongs to the signed-in user; clear it (and the transcript) on sign-out.
   useEffect(() => {
-    if (sessionId) void refreshQuota(sessionId);
-  }, [sessionId, refreshQuota]);
+    if (auth.state === 'signed-in') {
+      void refreshQuota();
+    } else {
+      setQuota(null);
+      setMessages([]);
+    }
+  }, [auth.state, refreshQuota]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -151,6 +178,11 @@ export function QaWidget() {
       case 'done':
         break;
       case 'error':
+        if (event.code === 'UNAUTHENTICATED') {
+          // The session died server-side (expiry/revocation): re-check auth
+          // so the widget drops back to the sign-in state.
+          void auth.refresh();
+        }
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
@@ -163,7 +195,7 @@ export function QaWidget() {
   }
 
   async function handleSend() {
-    if (!backendReady) return;
+    if (!signedIn) return;
     const text = input.trim().slice(0, MAX_MESSAGE_LENGTH);
     if (!text || streaming) return;
 
@@ -176,9 +208,7 @@ export function QaWidget() {
     abortRef.current = controller;
 
     try {
-      const sid = await ensureSession();
       await streamChat({
-        sessionId: sid,
         message: text,
         signal: controller.signal,
         onEvent: (event) => handleStreamEvent(assistantId, event),
@@ -192,7 +222,7 @@ export function QaWidget() {
             : m,
         ),
       );
-      void refreshQuota(sid);
+      void refreshQuota();
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         // Aborted by "New topic" or unmount; the transcript was cleared.
@@ -216,17 +246,34 @@ export function QaWidget() {
   }
 
   async function handleNewTopic() {
-    if (rotating || streaming) return;
+    if (rotating || streaming || !signedIn) return;
     abortRef.current?.abort();
     setRotating(true);
     try {
-      await newTopic();
+      await deleteSession();
       setMessages([]);
       setQuota(null);
     } catch {
       addMessage('assistant', 'Could not start a new topic. Please try again.', true);
     } finally {
       setRotating(false);
+    }
+  }
+
+  async function handleSignIn() {
+    setSignInHint(null);
+    const result = await auth.signIn();
+    if (result === 'blocked') {
+      setSignInHint('Your browser blocked the sign-in popup — allow popups for this site and try again.');
+    }
+    // 'dismissed' needs no message: the visitor simply closed the popup.
+  }
+
+  async function handleSignOut() {
+    try {
+      await auth.signOut();
+    } catch {
+      addMessage('assistant', 'Could not sign out. Please try again.', true);
     }
   }
 
@@ -238,6 +285,11 @@ export function QaWidget() {
   }
 
   const badge = quotaLabel(quota);
+  const subtitle = !backendReady
+    ? 'Educator & expert software architect'
+    : auth.state === 'signed-in'
+      ? (badge ?? (auth.login ? `Signed in as ${auth.login}` : 'Educator & expert software architect'))
+      : 'Educator & expert software architect';
 
   return (
     <>
@@ -266,20 +318,34 @@ export function QaWidget() {
                 Veer
               </h2>
               <p className="truncate text-xs text-stone-500 dark:text-stone-400">
-                {badge ?? 'Educator & expert software architect'}
+                {subtitle}
               </p>
             </div>
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => void handleNewTopic()}
-                disabled={rotating || streaming || !backendReady}
-                aria-label="New topic (forget this conversation)"
-                title="New topic"
-                className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
-              >
-                <NewTopicIcon className="h-5 w-5" />
-              </button>
+              {signedIn && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void handleNewTopic()}
+                    disabled={rotating || streaming}
+                    aria-label="New topic (forget this conversation)"
+                    title="New topic"
+                    className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                  >
+                    <NewTopicIcon className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleSignOut()}
+                    disabled={auth.busy}
+                    aria-label="Sign out of Veer"
+                    title="Sign out"
+                    className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                  >
+                    <SignOutIcon className="h-5 w-5" />
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -292,78 +358,111 @@ export function QaWidget() {
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-3.5 overflow-y-auto px-4 py-4">
-            {messages.length === 0 && (
+            {!backendReady ? (
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
-                {backendReady ? (
-                  <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                    Ask Veer anything about the course — he answers from the lessons and
-                    cites his sources. He remembers this conversation until you start a new
-                    topic.
-                  </p>
-                ) : (
-                  <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                    <span className="font-semibold text-stone-800 dark:text-stone-200">Veer is getting ready.</span>
-                    <br />
-                    His Q&amp;A backend isn&apos;t connected yet, so chat is paused for now —
-                    he&apos;ll be here to answer from the lessons as soon as it&apos;s live.
+                <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+                  <span className="font-semibold text-stone-800 dark:text-stone-200">Veer is getting ready.</span>
+                  <br />
+                  His Q&amp;A backend isn&apos;t connected yet, so chat is paused for now —
+                  he&apos;ll be here to answer from the lessons as soon as it&apos;s live.
+                </p>
+              </div>
+            ) : auth.state === 'unknown' ? (
+              <div className="rounded-xl border border-dashed border-stone-300 px-4 py-3 dark:border-stone-700">
+                <p className="text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+                  Checking sign-in status…
+                </p>
+              </div>
+            ) : !signedIn ? (
+              <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-4 dark:border-amber-800 dark:bg-amber-950/20">
+                <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+                  <span className="font-semibold text-stone-800 dark:text-stone-200">Sign in with GitHub to chat with Veer.</span>
+                  <br />
+                  Veer answers from the course lessons and remembers your conversation.
+                  Sign-in keeps the tutor free from anonymous abuse — nothing is posted
+                  to GitHub on your behalf.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void handleSignIn()}
+                  disabled={auth.busy}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 disabled:opacity-60 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
+                >
+                  {auth.busy ? 'Opening GitHub…' : 'Sign in with GitHub'}
+                </button>
+                {signInHint && (
+                  <p className="mt-2 text-xs leading-relaxed text-amber-700 dark:text-amber-400">
+                    {signInHint}
                   </p>
                 )}
               </div>
-            )}
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 ${
-                    message.role === 'user'
-                      ? 'rounded-br-md bg-amber-700 text-white shadow-[0_2px_8px_rgb(180_83_9/0.25)]'
-                      : message.isError
-                        ? 'rounded-bl-md border border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300'
-                        : 'rounded-bl-md border border-stone-200/70 bg-stone-100 text-stone-800 shadow-[0_1px_3px_rgb(0_0_0/0.04)] dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100'
-                  }`}
-                >
-                  {message.role === 'user' ? (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
-                  ) : message.content ? (
-                    <ChatMarkdown content={message.content} />
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-sm text-stone-400 dark:text-stone-400">
-                      <span className="flex gap-1" aria-hidden="true">
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-                        <span
-                          className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500"
-                          style={{ animationDelay: '0.2s' }}
-                        />
-                        <span
-                          className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500"
-                          style={{ animationDelay: '0.4s' }}
-                        />
-                      </span>
-                      Thinking
-                    </span>
-                  )}
-                  {message.sources && message.sources.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5 border-t border-stone-200/70 pt-2 dark:border-stone-700">
-                      {message.sources.map((source) => (
-                        <a
-                          key={source.slug}
-                          href={`#/lesson/${source.slug}`}
-                          className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70"
-                        >
-                          {source.title}
-                        </a>
-                      ))}
+            ) : (
+              <>
+                {messages.length === 0 && (
+                  <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
+                    <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+                      Ask Veer anything about the course — he answers from the lessons and
+                      cites his sources. He remembers this conversation until you start a new
+                      topic.
+                    </p>
+                  </div>
+                )}
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 ${
+                        message.role === 'user'
+                          ? 'rounded-br-md bg-amber-700 text-white shadow-[0_2px_8px_rgb(180_83_9/0.25)]'
+                          : message.isError
+                            ? 'rounded-bl-md border border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300'
+                            : 'rounded-bl-md border border-stone-200/70 bg-stone-100 text-stone-800 shadow-[0_1px_3px_rgb(0_0_0/0.04)] dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100'
+                      }`}
+                    >
+                      {message.role === 'user' ? (
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                      ) : message.content ? (
+                        <ChatMarkdown content={message.content} />
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-stone-400 dark:text-stone-400">
+                          <span className="flex gap-1" aria-hidden="true">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+                            <span
+                              className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500"
+                              style={{ animationDelay: '0.2s' }}
+                            />
+                            <span
+                              className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500"
+                              style={{ animationDelay: '0.4s' }}
+                            />
+                          </span>
+                          Thinking
+                        </span>
+                      )}
+                      {message.sources && message.sources.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5 border-t border-stone-200/70 pt-2 dark:border-stone-700">
+                          {message.sources.map((source) => (
+                            <a
+                              key={source.slug}
+                              href={`/lesson/${source.slug}`}
+                              className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70"
+                            >
+                              {source.title}
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            {streaming && (
-              <p className="px-1 text-xs text-stone-400 dark:text-stone-400" aria-live="polite">
-                Veer is writing…
-              </p>
+                  </div>
+                ))}
+                {streaming && (
+                  <p className="px-1 text-xs text-stone-400 dark:text-stone-400" aria-live="polite">
+                    Veer is writing…
+                  </p>
+                )}
+              </>
             )}
           </div>
 
@@ -373,17 +472,17 @@ export function QaWidget() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={backendReady ? 'Ask about the course…' : 'Veer is getting ready…'}
+                placeholder={!backendReady ? 'Veer is getting ready…' : !signedIn ? 'Sign in to chat with Veer…' : 'Ask about the course…'}
                 rows={1}
                 maxLength={MAX_MESSAGE_LENGTH}
-                disabled={streaming || !backendReady}
+                disabled={streaming || !signedIn}
                 aria-label="Ask about the course"
                 className="min-w-0 flex-1 resize-none rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 outline-none transition-colors placeholder:text-stone-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/40 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-amber-600"
               />
               <button
                 type="button"
                 onClick={() => void handleSend()}
-                disabled={streaming || !input.trim() || !backendReady}
+                disabled={streaming || !input.trim() || !signedIn}
                 aria-label="Send message"
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-700 text-white shadow-[0_2px_8px_rgb(180_83_9/0.3)] transition-[transform,background-color,box-shadow] hover:-translate-y-px hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none dark:disabled:bg-stone-700 dark:disabled:text-stone-400"
               >
