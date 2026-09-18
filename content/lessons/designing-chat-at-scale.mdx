@@ -41,7 +41,7 @@ gremlins — they love chewing through tubes, and the whole design assumes they 
 - **Out of scope:** voice/video calls, stories/status, payments. Naming what you're
   *not* building is half the interview — it shows you can bound a problem.
 
-<VideoCard videoId="vvhC64hQZMk" title="WHATSAPP System Design: Chat Messaging Systems for Interviews" source="Gaurav Sen" description="Walks the WhatsApp interview starting with requirement setting before any architecture." />
+<VideoCard videoId="M6UZ7pVD-rQ" title="System design mock interview: 'Design WhatsApp or Telegram' (with ex-Google EM)" source="IGotAnOffer: Engineering" description="Watch a candidate pin down scope and requirements with an ex-Google engineering manager before drawing a single box — scoping under interview pressure." />
 
 ## Back-of-the-envelope math
 
@@ -177,7 +177,7 @@ The acks climb back up the same path: Bob's phone acks to his gateway (delivered
 service records it, Alice's gateway tells her phone. Two grey ticks, then blue — each
 tick is an acknowledgement crossing a specific boundary.
 
-<VideoCard videoId="Uh1TvVMkhw4" title="System Design: Design WhatsApp" source="TechGik" description="Follows one message sender to receiver: persistent connections, durable storage, queues, acks, offline sync and retries." />
+<VideoCard videoId="vvhC64hQZMk" title="WHATSAPP System Design: Chat Messaging Systems for Interviews" source="Gaurav Sen" description="Gaurav Sen traces one message from send to push — persistent connections, queues, delivery acks — like following a single order through a busy kitchen." />
 
 ## Ordering: the numbered pigeonholes
 
@@ -285,7 +285,7 @@ flowchart LR
     Q2 --> Store[("Offline queue")]:::data
 ```
 
-<VideoCard videoId="4Kz2w1i50ME" title="A Reconnection Window Duplicated Messages for 15 Minutes — Design WhatsApp" source="TheCodeForge" description="Covers group chat fan-out, including when write fan-out breaks down at large group sizes." />
+<VideoCard videoId="M1Xv-sxBG1E" title="Design the News Feed (Twitter / X) — System Design Interview" source="The Hot Path" description="Like a group text with five million members: copying one message into every inbox is simple until a celebrity posts — that&#x27;s when fan-out-on-write breaks and the hybrid fix kicks in." />
 
 ## Offline delivery: the overnight holding room
 

@@ -22,7 +22,7 @@ perfectly reasonable instinct: *when something fails, try again.* Retrying is co
 networks are flaky, and giving up on the first timeout would be worse. The fix isn't to
 stop retrying. It's to make retries safe. That property has a name: **idempotency**.
 
-<VideoCard videoId="D3VOEyDE630" title="One Retry Can Charge Your Customer Twice" source="In Production Media" description="Shows real production duplicates — webhooks, backups, double charges — and why retries make them inevitable." />
+<VideoCard videoId="DqUyk6SXBT4" title="Idempotency on AWS — Explained" source="System Design Lab" description="Joud opens on every backend dev&#x27;s nightmare — the double charge — then shows why retries make it inevitable and how to stop it" />
 
 ## Pressing the elevator button twice
 
@@ -46,7 +46,7 @@ The elevator doesn't achieve this by being clever. It achieves it because "come 
 floor" is an operation where repeats are harmless. Not every operation is built that way —
 and that's where the trouble starts.
 
-<VideoCard videoId="2EVSUpI2DEU" title="Salesforce Apex Idempotency Architecture Explained: Stop Duplicate Records | Cloud Developer" source="Cloud Developer" description="Teaches the elevator-button analogy directly: pressing ten times still calls the elevator once." />
+<VideoCard videoId="4OuaONkZw1I" title="Why Idempotency is very critical in Backend Applications" source="Hussein Nasser" description="Hussein Nasser builds the core intuition — repeat the same call, get the same result — the idea behind the elevator button" />
 
 ## The precise definition
 
@@ -75,7 +75,7 @@ send it five times and find out what your refund policy is.
 Drop the analogy when precision matters: idempotency is a property of the *operation's
 effect*, not of the transport. A retry that arrives twice must not apply its effect twice.
 
-<VideoCard videoId="Ra39zPA7m1k" title="Mastering Idempotency: Distributed System Reliability on AWS" source="Cloud Explainers" description="Contrasts mathematical and system-design definitions of idempotency, then maps them to real HTTP behavior." />
+<VideoCard videoId="6dVNdFwqeKs" title="Idempotency in Cows and REST APIs" source="Todd Fredrich (RestApiTutorial)" description="A short classic from REST tutorial author Todd Fredrich that nails the plain-English definition: same call, same effect, every time" />
 
 ## Why networks force this on you
 
@@ -174,7 +174,7 @@ on the key column: the loser's insert fails, and once the winner finishes it rea
 winner's stored response and returns that (if the winner is still in flight, the loser
 returns 409 instead — see below). Your database already knows how to do atomic inserts; let it.
 
-<VideoCard videoId="7HYmUO295eU" title="How to Stop Duplicate Payments with Idempotency Keys | System Design" source="Agenthub" description="Walks through timeouts causing duplicate payments, then implements idempotency keys with state-locking and TTLs." />
+<VideoCard videoId="8yp2espaaaQ" title="Idempotency Keys - Redis for Developers" source="The Software Mentor" description="One atomic SET NX claims the slot — like the elevator button lighting up: claimed means the work is already handled, so skip it" />
 
 ## The key has three states, not two
 
@@ -224,7 +224,7 @@ one row. If your system fails that test, the key column is missing its uniquenes
 constraint — go back and add it. Concurrency is where idempotency designs go to be
 graded, and the grader is strict.
 
-<VideoCard videoId="86rHff8QgUM" title="Idempotency System Design || Stop Duplicate Processing at Billion Scale || Part 2" source="ScalaBrix" description="Details the idempotency-key lifecycle — NEW, IN_PROGRESS, SUCCEEDED, FAILED — and avoids retry race conditions." />
+<VideoCard videoId="0cwRRCBpPPM" title="Apache Kafka Idempotency Explained / Prevent Duplicate Messages / Kafka Idempotent Producer" source="Coding with Neeraj" description="Neeraj shows how Kafka&#x27;s idempotent producer tags every message with a producer ID and sequence number, so the broker can tell a fresh send from a retried one" />
 
 ## Failure modes: where idempotency breaks
 
@@ -246,7 +246,7 @@ Idempotency keys are simple, which means the bugs hide in the details:
   permission check. Anyone who guesses another user's key gets their receipt — so scope
   key lookups to the authenticated user, always.
 
-<VideoCard videoId="mD6Ne9Wn44M" title="Why Network Retries Cause Duplicate Payments (And How to Fix It with Idempotency)" source="Agenthub" description="Breaks down the exact failure loop behind duplicate charges and how blind retries create race conditions." />
+<VideoCard videoId="weBA-sQibhY" title="Your Background Jobs Are Silently Running Twice" source="The Merge Log" description="Four ways jobs go wrong — lost jobs, double-runs, poison messages, thundering herds — and why idempotency, not exactly-once, is the actual fix" />
 
 ## Retries need manners, too
 
@@ -261,7 +261,7 @@ Think of it as elevator etiquette: pressing the lit button again is harmless, bu
 it forty times a second doesn't summon the car any faster. It just wears out the button.
 Idempotency is the lit button; backoff is the patience.
 
-<VideoCard videoId="U2nbwRsE2-I" title="Idempotent Consumers for Retry Logic" source="ByteDistrict" description="Covers retry logic paired with idempotent consumers: response replay, TTLs, locks, and out-of-order delivery." />
+<VideoCard videoId="hLoIWC2NSNI" title="Why a Timeout Doesn&#x27;t Mean It Failed" source="The Hot Path" description="A timeout means &quot;I don&#x27;t know,&quot; not &quot;no&quot; — so every retry is a bet, and polite retries bring backoff, jitter, and an idempotency key" />
 
 ## Idempotent vs. not: a toggle
 
@@ -299,7 +299,7 @@ absolute form. "Set balance to $100" beats "add $10" every time a retry is possi
 a retry is always possible. The best idempotency mechanism is an operation that doesn't
 need one.
 
-<VideoCard videoId="4DKnSdwgmg8" title="HTTP Methods Are Not CRUD" source="LearnThatStack" description="Maps HTTP methods onto safe and idempotent axes: GET, PUT, DELETE repeat safely; POST can charge twice." />
+<VideoCard videoId="qKoLrvAcuIQ" title="Idempotency in ASP.NET Core (.NET 10): The Definitive Guide for 2026" source="Frontend to Backend with Rohan" description="Rohan lines up GET vs POST vs PUT to show which methods are idempotent by nature — then builds the key pattern in Redis for the ones that aren&#x27;t" />
 
 ## The exactly-once illusion
 
@@ -323,7 +323,7 @@ effectively-once, built on at-least-once delivery and idempotent consumers, with
 duplicates quietly absorbed. Now you know what to ask them: "where do you dedupe, and
 what's the key?"
 
-<VideoCard videoId="W0k2JOUAbdU" title="Exactly Once Delivery: Why It Does Not Exist and What You Get Instead" source="HafsDeepLearning" description="Derives why exactly-once delivery is impossible over unreliable networks, and what guarantees replace it." />
+<VideoCard videoId="IP-rGJKSZ3s" title="The Two Generals&#x27; Problem" source="Tom Scott" description="Tom Scott tells the classic story of two generals who can never be sure a message arrived — the same math that pops the exactly-once bubble" />
 
 ## Takeaways
 

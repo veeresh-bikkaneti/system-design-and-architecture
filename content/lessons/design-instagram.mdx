@@ -20,7 +20,7 @@ clean thought process: scope the problem, do the math, design the write path, de
 read path, and name the hard part before they do. That's exactly how this lesson is
 structured — think of it as a rehearsal with the answers included.
 
-<VideoCard videoId="fRsajShniPk" title="Instagram's Architecture, Explained | System Design Breakdown | Episode 01" source="The Tech Intern" description="Breaks down Instagram's real architecture at scale, showing why each design choice matters." />
+<VideoCard videoId="QmX2NPkJTKg" title="Designing INSTAGRAM: System Design of News Feed" source="Gaurav Sen" description="Builds Instagram from ER diagram to celebrity fan-out so every design choice feels earned — like watching the machine get assembled before it&#x27;s switched on." />
 
 ## Step one: clarify the scope
 
@@ -67,7 +67,7 @@ responses. Summarized as the capacity plan you'd sketch on the whiteboard:
 
 Now let's build it.
 
-<VideoCard videoId="L3GLkH2oscw" title="System Design Episode 4 || Capacity Estimation & Back-of-the-Envelope Calculations" source="CodeTav Management" description="Walks capacity estimation with Instagram examples: users, storage, and bandwidth math." />
+<VideoCard videoId="TEt5hAxv1WA" title="System Design Interview Course • Back of the Envelop Calculation aka Capacity Estimates" source="Anubhav Sethi" description="Drills the numbers worth memorizing and the four estimation formulas, then works them through URL-shortener and Google-Drive examples — times tables for scale." />
 
 ## The upload pipeline: the photo lab
 
@@ -149,7 +149,7 @@ The pattern is the point, not the vendor: **the ledger must be partitionable by 
 key you query by**, or your most common read becomes a scatter-gather across every
 shard.
 
-<VideoCard videoId="MUSRr7zeW6U" title="System Design | Sharding | Database Sharding vs. Partitioning: Scaling to Billions of Rows" source="CS AI Think Tinker Learn" description="Instagram case study on sharded metadata with embedded IDs that eliminate network round-trips." />
+<VideoCard videoId="XP98YCr-iXQ" title="What is Database Sharding?" source="Anton Putra" description="A senior engineer explains sharding like splitting a phone book across offices — same data, smarter routing — and how to pick a shard key so one office doesn&#x27;t drown." />
 
 ## Delivery: the prints go to the corner store
 
@@ -161,7 +161,7 @@ Popular photos hit 95%+ edge cache ratios (you did this math in the CDNs lesson)
 origin object store only serves the first fetch per region. That 5PB/day of read
 bandwidth? The CDN absorbs nearly all of it, and your origin bill stays sane.
 
-<VideoCard videoId="Ntj3lQpjxI8" title="System Design Basics #16 — CDNs and Blob Storage: Serving Files and Photos at Scale" source="LLMwork" description="Shows how photos move from blob storage to CDN edges so viewers fetch nearby copies." />
+<VideoCard videoId="zEUfss3Jork" title="Amazon S3 Explained Buckets, Objects &amp; Permissions" source="Hired in IT (unverified — confirm channel on YouTube)" description="Teaches object storage like renting storage units — buckets, keys, and who gets a key — including the permission mistakes that bite, plus S3-plus-CloudFront serving." />
 
 ## The feed: the newspaper routes
 
@@ -268,7 +268,7 @@ be fast and paginated, not a full table scan wearing a nice query. In the interv
 mentioning the follow graph as a separate sharded concern — distinct from both
 photo bytes and photo metadata — is what separates a good answer from a great one.
 
-<VideoCard videoId="L9yitYWl8EY" title="System Design Essentials | Data Stores/DB | Graph Databases: Index-Free Adjacency, LPG vs RDF" source="CS AI Think Tinker Learn" description="Explains why graph stores handle follow relationships better than relational tables." />
+<VideoCard videoId="n6Mts3gomNA" title="Neo4j (Graphdb) vs SQL (RDBMS) | Graph Database Explained for SQL Developers" source="Learn IT Tech" description="Maps SQL tables and JOINs onto graph nodes and relationships so the &quot;why graphs&quot; moment clicks — like swapping a filing cabinet for a whiteboard of connections." />
 
 ## Serving the right size: variants and signed URLs
 
@@ -283,7 +283,7 @@ and a signature, so a leaked URL stops working after an hour instead of living o
 the internet forever. The CDN verifies the signature at the edge without ever
 calling your API. Access control, enforced where the bytes actually flow.
 
-<VideoCard videoId="_0M7ae-ddkM" title="Design Youtube Video Platform | System Design Interview" source="ScalaBrix" description="Covers multiple media renditions plus signed playback URLs for authorized access." />
+<VideoCard videoId="IUrQ5_g3XKs" title="System Design Interview: Design YouTube w/ a Ex-Meta Staff Engineer" source="Hello Interview" description="An ex-Meta staff engineer whiteboards YouTube end to end — like watching a senior think out loud through every trade-off from upload to playback." />
 
 ## Edge cases: what breaks at a billion photos
 
@@ -314,7 +314,7 @@ The design above is the happy path. The interview points come from naming what b
   whole design holds together. Know which parts of your system are allowed to lag;
   it buys you enormous architectural freedom.
 
-<VideoCard videoId="cBTLq-MPhO4" title="Loading the Whole Social Graph OOM-Killed the Feed — Design Instagram" source="TheCodeForge" description="Catalogs real failure modes at scale: OOM kills, hot shards, thundering herds." />
+<VideoCard videoId="M1Xv-sxBG1E" title="Design the News Feed (Twitter / X) — System Design Interview" source="The Hot Path" description="Starts where the real difficulty lives — the celebrity hot-key that breaks naive fan-out — then shows the hybrid and failover fixes, like a post-mortem before the outage." />
 
 ## What you'd say in the interview
 
@@ -327,7 +327,7 @@ cached as ID lists. Then name the trade-off you didn't take: pure push melts on
 celebrities, pure pull makes every read expensive, and your hybrid is the deliberate
 middle. That's a passing answer.
 
-<VideoCard videoId="jSAD5TDalsg" title="System Design Interview: Designing a Social Media Feed (Twitter/Instagram Scale)" source="Hybeecodes" description="Full mock-interview walkthrough of a social feed design, from requirements to architecture." />
+<VideoCard videoId="Qj4-GruzyDU" title="Design FB News Feed System Design Interview w/ ex: Meta Senior Manager" source="Hello Interview (unverified — confirm channel on YouTube)" description="Full interview-framework walkthrough, requirements to deep dives, with an ex-Meta senior manager — a dress rehearsal for the real round." />
 
 ## Takeaways
 
@@ -399,6 +399,8 @@ Want to keep pulling this thread? These talks and tutorials go further than we d
 - [Designing Instagram: A Social Media Platform System Design Interview Guide](https://www.youtube.com/watch?v=GMzFBT1_vdQ) — YouTube tutorial. Capacity planning, API design, schema, caching, and sharding.
 - [Design Instagram Reels System — Complete Capacity Planning & System Design](https://www.youtube.com/watch?v=qxjyA-BXHxk) — YouTube tutorial. Upload pipeline, object storage, CDN, and feed generation at scale.
 - [System Design Mock Interview: Design Instagram](https://www.youtube.com/watch?v=VJpfO6KdyWE) — Aced (formerly Exponent). A full mock-interview walkthrough of this exact lesson problem — requirements, scale estimation, and photo-sharing design — from an established interview-prep platform.
+- [Instagram's Architecture, Explained | System Design Breakdown | Episode 01](https://www.youtube.com/watch?v=fRsajShniPk) — The Tech Intern. AI-narrated alternative.
+- [System Design Episode 4 || Capacity Estimation & Back-of-the-Envelope Calculations](https://www.youtube.com/watch?v=L3GLkH2oscw) — CodeTav Management. AI-narrated alternative.
 
 ## Sources & further reading
 

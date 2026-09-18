@@ -24,7 +24,7 @@ one hopes) anyone arriving faster than the club can absorb. Without the bouncer,
 marshal shuts you down. Without rate limiting, your database is the fire marshal, and it
 expresses itself through timeouts.
 
-<VideoCard videoId="5D-dZvgEXi0" title="What is Rate Limiting" source="Dargslan" description="Covers why rate limits exist — protecting APIs from abuse, overload, and spiraling cost." />
+<VideoCard videoId="YXkOdWBwqaA" title="Rate Limiter System Design: Token Bucket, Leaky Bucket, Scaling" source="ByteByteGo" description="The classic toll-booth walkthrough — token bucket vs leaky bucket, and how they scale — the mental model every rate limiter builds on." />
 
 ## The algorithms
 
@@ -162,7 +162,7 @@ And on the client side: respect 429s with **exponential backoff and jitter** (re
 thundering herd's needy cousin). A client that ignores backoff signals is how you get
 rate-limited harder.
 
-<VideoCard videoId="s9JUA0d4pQ0" title="Rate Limiting Explained: The System Design Control That Stops Request Floods" source="The Logic Blueprint" description="Explains bursts, steady-state limits, and graceful 429s — limiting with fairness." />
+<VideoCard videoId="SgWb6tWx3S8" title="System Design Mock Interview: Design a Rate Limiter (with Meta Engineering Manager)" source="Exponent" description="Watch a real Meta engineering manager design a rate limiter out loud — the closest you&#x27;ll get to seeing the toll booth engineered from the inside." />
 
 ## Where to enforce
 
@@ -245,6 +245,7 @@ Want to keep pulling this thread? These talks and tutorials go further than we d
 - [Token bucket vs leaky bucket, rate limiting explained](https://www.youtube.com/watch?v=41H7TQl1IfU) — Konadu (~11 min). The two classic algorithms, the fixed-window exploit, and sliding windows.
 - [Rate Limiter Explained: 4 Algorithms + Interview Q&A](https://www.youtube.com/watch?v=YVxYnYmZC6E) — The Leap (~20 min). From fixed window to token bucket, then the multi-server problem: Redis races and 429s.
 - [Rate Limiter: Low Level System Design](https://www.youtube.com/watch?v=Eg5uH5sU3zw) — Gaurav Sen. A dedicated rate-limiter design walkthrough from the most-cited system-design educator on YouTube — the long-form companion to this lesson.
+- [Rate Limiting Explained: The System Design Control That Stops Request Floods](https://www.youtube.com/watch?v=s9JUA0d4pQ0) — The Logic Blueprint. AI-narrated alternative.
 
 ## Sources & further reading
 

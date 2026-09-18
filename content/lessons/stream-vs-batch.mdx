@@ -128,7 +128,7 @@ restarts from the last checkpoint and replays the log from there. Conceptually: 
 off during the broadcast, you rewind to where you remember and keep watching. That
 log-replay trick will matter a lot in a moment.
 
-<VideoCard videoId="rDT42hwD1ck" title="Stream Processing System Design: From Fundamentals to Real-Time Architecture" source="programmerCave" description="Builds stream processing from first principles: Kafka log brokers, CDC, event vs processing time, joins, and fault tolerance." />
+<VideoCard videoId="DUxHZVBpJWE" title="Chapter 11: Stream Processing Explained" source="deferstech" description="The DDIA chapter on stream processing, distilled: Kafka&#x27;s log-first design, CDC, event time vs processing time, windows, stream joins, and exactly-once — the missing manual for the live ticker." />
 
 ## Lambda: the stack *and* the ticker, stapled together
 
@@ -243,7 +243,7 @@ operations, batch for money. That's the decision guide in action, and it's how m
 serious ad platforms actually work. Freshness where it changes behavior, exactness
 where it changes balances.
 
-<VideoCard videoId="tFv2ydbD0Ys" title="Ad Metrics Collection System Design | Kafka, Flink, ClickHouse, Redis | Ad Click Aggregation" source="PartTimeEngineer" description="Designs ad click counting end-to-end: Flink stream aggregation with windowing, dedup, plus failure recovery and reconciliation." />
+<VideoCard videoId="fU9hR3kiOK0" title="Turning the database inside out with Apache Samza" source="Martin Kleppmann (Strange Loop)" description="The DDIA author himself: treat data as a stream of immutable facts, and a live counter becomes just a rollup of the click log — the core mental model behind real-time aggregation." />
 
 ## Delivery semantics: the fine print on the ticker
 
@@ -292,7 +292,7 @@ Advanced means knowing how it fails. The two families fail differently:
   yet. Retention is a promise: keep less log than your reprocessing horizon and kappa
   quietly becomes "lambda without the batch layer to fall back on."
 
-<VideoCard videoId="nm0DjhNk3Hc" title="Lambda vs. Kappa: The Battle for Real-Time Pipelines" source="CodeForData" description="Compares Lambda and Kappa, covering dual-codebase drift and log-replay reprocessing costs." />
+<VideoCard videoId="lW68_KeMNnA" title="Your Stream Is Falling Behind: Backpressure, Lag, and Batching" source="SwetankLabs" description="What actually pages you at 2 a.m.: consumer lag, backpressure, skewed partitions, and buffer pileups — like a traffic jam on the ticker — plus how much spare capacity you need to drain it." />
 
 ## How to choose: a decision guide
 
@@ -401,6 +401,7 @@ Want to keep pulling this thread? These talks and tutorials go further than we d
 - [Stephan Ewen, data Artisans](https://www.youtube.com/watch?v=4U9m5SwCtK8) — Stephan Ewen, theCUBE @ Flink Forward 2018. Stream vs batch time and consistency models; batch as a special case of streaming.
 - [Kafka Crash Course – Hands-On Project](https://www.youtube.com/watch?v=B7CwU_tNYIE) — TechWorld with Nana (~1h 08m). The streaming half, hands-on — producers, consumers, and why a log beats a nightly job for data that's always moving.
 - [System Design for Beginners Course](https://www.youtube.com/watch?v=m8Icp_Cid5o) — freeCodeCamp.org (~1h 25m). Skip to the MapReduce chapter (~0:34:37) for the batch half — big parallel jobs inside the same system Gaurav Sen designs live.
+- [Ad Metrics Collection System Design | Kafka, Flink, ClickHouse, Redis | Ad Click Aggregation](https://www.youtube.com/watch?v=tFv2ydbD0Ys) — PartTimeEngineer. AI-narrated alternative.
 
 ## Sources & further reading
 
