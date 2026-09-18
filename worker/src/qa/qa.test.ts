@@ -256,7 +256,8 @@ describe('graph two-turn memory', () => {
 
     const turn1 = await runQaTurn(d1, sessionId, 'what is the CAP theorem?');
     expect(turn1.finalAnswer).toBe(`${QA_P0_ECHO_PREFIX}what is the CAP theorem?`);
-    expect(turn1.sources).toEqual([]);
+    // P1: retrieval now attaches real lesson slugs as sources.
+    expect(turn1.sources).toContain('cap-theorem');
 
     const turn2 = await runQaTurn(d1, sessionId, 'and how does it relate to consistency?');
     expect(turn2.finalAnswer).toBe(`${QA_P0_ECHO_PREFIX}and how does it relate to consistency?`);
@@ -335,7 +336,8 @@ describe('POST /api/qa/chat', () => {
   it('streams an echo: message deltas, then sources, then done', async () => {
     const env = makeEnv(new FakeD1());
     const sessionId = await createSession(env);
-    const res = await chat(env, sessionId, 'hello course');
+    // Gibberish retrieves nothing, so the sources event is honestly empty.
+    const res = await chat(env, sessionId, 'zxqv wjbmpl kzx');
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/event-stream');
 
@@ -343,10 +345,22 @@ describe('POST /api/qa/chat', () => {
     const messageEvents = events.filter((e) => e.event === 'message');
     expect(messageEvents.length).toBeGreaterThanOrEqual(1);
     const joined = messageEvents.map((e) => (e.data as { delta: string }).delta).join('');
-    expect(joined).toBe(`${QA_P0_ECHO_PREFIX}hello course`);
+    expect(joined).toBe(`${QA_P0_ECHO_PREFIX}zxqv wjbmpl kzx`);
 
     expect(events).toContainEqual({ event: 'sources', data: { lessons: [] } });
     expect(events[events.length - 1]).toEqual({ event: 'done', data: {} });
+  });
+
+  it('streams real citations for a course question (P1 retrieval)', async () => {
+    const env = makeEnv(new FakeD1());
+    const sessionId = await createSession(env);
+    const res = await chat(env, sessionId, 'What is the CAP theorem?');
+    const events = await readSseEvents(res);
+    const sources = events.find((e) => e.event === 'sources');
+    expect(sources).toBeDefined();
+    const lessons = (sources?.data as { lessons: Array<{ slug: string; title: string }> }).lessons;
+    // Citation shape matches the frontend QaSource contract {slug, title}.
+    expect(lessons[0]).toEqual({ slug: 'cap-theorem', title: 'The CAP Theorem' });
   });
 
   it('writes user and assistant turns to the qa_messages audit trail', async () => {

@@ -14,6 +14,8 @@
 
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { loadCheckpoint, saveCheckpoint } from './checkpointer';
+import { QA_INDEX } from './qa-index';
+import { searchLessons, uniqueSources } from './retrieval';
 
 export interface ChatTurn {
   role: 'user' | 'assistant';
@@ -65,9 +67,16 @@ async function triageNode(): Promise<Partial<QaGraphState>> {
   return { inScope: true };
 }
 
-// P0 stub: no retrieval index yet. P1 returns top-k lesson chunks here.
-async function retrieveNode(): Promise<Partial<QaGraphState>> {
-  return { sources: [] };
+// P1: real keyword retrieval over the build-time lesson chunk index.
+// Returns the top-k chunks' lesson slugs as citations; P2's reasonAct will
+// additionally consume the chunk texts. Sources feed the citation chips in
+// the chat UI via the `sources` SSE event.
+async function retrieveNode(
+  state: typeof QaStateAnnotation.State,
+): Promise<Partial<QaGraphState>> {
+  const lastUser = [...state.messages].reverse().find((m) => m.role === 'user');
+  const results = searchLessons(QA_INDEX, lastUser?.content ?? '', 5);
+  return { sources: uniqueSources(results).map((s) => s.slug) };
 }
 
 // P0 stub: echo. P2 runs the Workers AI tool-calling loop here (max 4
