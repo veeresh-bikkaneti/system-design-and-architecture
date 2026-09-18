@@ -39,6 +39,38 @@
 /*   security = rose    — auth, security                               */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* MermaidDiagram: SVG text label colors (light mode). Flowchart       */
+/* labels render as <text> (htmlLabels: false in MermaidDiagram.tsx)   */
+/* and mermaid injects a `#<id> .label text { fill: #000000 }` rule,    */
+/* so these need !important to win. Keep the values in sync with       */
+/* SEMANTIC_CLASSDEFS in MermaidDiagram.tsx (which carries only shape   */
+/* paint): text colors live here so dark mode can override them —      */
+/* impossible once mermaid bakes a classDef `color` into an inline     */
+/* style on the <text> element.                                        */
+/* ------------------------------------------------------------------ */
+
+.mermaid-diagram .node.client .label text,
+.mermaid-diagram .node.client .nodeLabel text {
+  fill: #164e63 !important;
+}
+.mermaid-diagram .node.service .label text,
+.mermaid-diagram .node.service .nodeLabel text {
+  fill: #064e3b !important;
+}
+.mermaid-diagram .node.data .label text,
+.mermaid-diagram .node.data .nodeLabel text {
+  fill: #4c1d95 !important;
+}
+.mermaid-diagram .node.cloud .label text,
+.mermaid-diagram .node.cloud .nodeLabel text {
+  fill: #78350f !important;
+}
+.mermaid-diagram .node.security .label text,
+.mermaid-diagram .node.security .nodeLabel text {
+  fill: #881337 !important;
+}
+
 .dark {
   .mermaid-diagram .node.client rect,
   .mermaid-diagram .node.client polygon,
@@ -80,25 +112,25 @@
     fill: #4c0519 !important;
     stroke: #fb7185 !important;
   }
-  .mermaid-diagram .node.client .label,
-  .mermaid-diagram .node.client .nodeLabel {
-    color: #a5f3fc !important;
+  .mermaid-diagram .node.client .label text,
+  .mermaid-diagram .node.client .nodeLabel text {
+    fill: #a5f3fc !important;
   }
-  .mermaid-diagram .node.service .label,
-  .mermaid-diagram .node.service .nodeLabel {
-    color: #a7f3d0 !important;
+  .mermaid-diagram .node.service .label text,
+  .mermaid-diagram .node.service .nodeLabel text {
+    fill: #a7f3d0 !important;
   }
-  .mermaid-diagram .node.data .label,
-  .mermaid-diagram .node.data .nodeLabel {
-    color: #ddd6fe !important;
+  .mermaid-diagram .node.data .label text,
+  .mermaid-diagram .node.data .nodeLabel text {
+    fill: #ddd6fe !important;
   }
-  .mermaid-diagram .node.cloud .label,
-  .mermaid-diagram .node.cloud .nodeLabel {
-    color: #fde68a !important;
+  .mermaid-diagram .node.cloud .label text,
+  .mermaid-diagram .node.cloud .nodeLabel text {
+    fill: #fde68a !important;
   }
-  .mermaid-diagram .node.security .label,
-  .mermaid-diagram .node.security .nodeLabel {
-    color: #fecdd3 !important;
+  .mermaid-diagram .node.security .label text,
+  .mermaid-diagram .node.security .nodeLabel text {
+    fill: #fecdd3 !important;
   }
 }
 
@@ -119,9 +151,9 @@
     fill: #292524 !important;
     stroke: #78716c !important;
   }
-  .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) .label,
-  .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) .nodeLabel {
-    color: #e7e5e4 !important;
+  .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) .label text,
+  .mermaid-diagram .node:not(.client):not(.service):not(.data):not(.cloud):not(.security) .nodeLabel text {
+    fill: #e7e5e4 !important;
   }
 
   /* Edges: clean stone arrows */
@@ -134,8 +166,10 @@
     stroke: #a8a29e !important;
   }
   .mermaid-diagram .edgeLabel {
-    color: #d6d3d1 !important;
     background-color: transparent !important;
+  }
+  .mermaid-diagram .edgeLabel text {
+    fill: #d6d3d1 !important;
   }
   .mermaid-diagram .edgeLabel rect {
     fill: #1c1917 !important;
@@ -147,9 +181,9 @@
     fill: #1c1917 !important;
     stroke: #44403c !important;
   }
-  .mermaid-diagram .cluster .label,
-  .mermaid-diagram .cluster .nodeLabel {
-    color: #a8a29e !important;
+  .mermaid-diagram .cluster .label text,
+  .mermaid-diagram .cluster .nodeLabel text {
+    fill: #a8a29e !important;
   }
 
   /* Sequence diagrams */

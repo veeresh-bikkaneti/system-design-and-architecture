@@ -131,4 +131,33 @@ test.describe('production build smoke test', () => {
 
     expect(errors).toEqual([]);
   });
+
+  test('flowchart diagram labels survive sanitization and stay visible', async ({ page }) => {
+    const errors = collectErrors(page);
+
+    await page.goto(`${TARGET}/lesson/${LESSON_SLUG}`);
+    // The read-replica diagram exercises node labels, <br/> multiline
+    // labels, edge labels, and semantic class colors.
+    const diagram = page.locator('.mermaid-diagram', { hasText: 'Photocopy' });
+    await expect(diagram.locator('svg')).toBeAttached({ timeout: 15000 });
+
+    // Regression: DOMPurify's SVG profile strips <foreignObject>, which is
+    // where mermaid puts HTML labels — so labels must render as pure SVG
+    // <text>, never as foreignObject content.
+    expect(await diagram.locator('foreignObject').count()).toBe(0);
+
+    const text = (await diagram.locator('svg').textContent()) ?? '';
+    for (const label of [
+      'Photocopy',
+      'Read Replica',
+      'Reads',
+      'menus',
+      'Master Recipe Book',
+      'Writes',
+    ]) {
+      expect(text).toContain(label);
+    }
+
+    expect(errors).toEqual([]);
+  });
 });

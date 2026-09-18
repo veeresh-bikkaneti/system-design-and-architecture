@@ -51,13 +51,20 @@ function svgLooksUsable(svg: string, code: string): boolean {
  * applied with CSS overrides in diagrams.css (mermaid themeVariables can't
  * express per-class dark variants), targeting the class names mermaid
  * copies onto the node `<g>` elements.
+ *
+ * NOTE: classDefs deliberately omit `color`. Mermaid renders flowchart
+ * labels as pure SVG <text> (see `htmlLabels: false` below) and bakes a
+ * classDef `color` into an inline `style="fill:… !important"` on the
+ * <text> element — which no stylesheet rule, including the dark-mode
+ * overrides, can beat. Label text colors therefore live in diagrams.css
+ * (light + dark), while classDefs carry only shape paint (fill/stroke).
  */
 const SEMANTIC_CLASSDEFS = [
-  'classDef client fill:#ecfeff,stroke:#0891b2,stroke-width:1.5px,color:#164e63',
-  'classDef service fill:#ecfdf5,stroke:#059669,stroke-width:1.5px,color:#064e3b',
-  'classDef data fill:#f5f3ff,stroke:#7c3aed,stroke-width:1.5px,color:#4c1d95',
-  'classDef cloud fill:#fffbeb,stroke:#d97706,stroke-width:1.5px,color:#78350f',
-  'classDef security fill:#fff1f2,stroke:#e11d48,stroke-width:1.5px,color:#881337',
+  'classDef client fill:#ecfeff,stroke:#0891b2,stroke-width:1.5px',
+  'classDef service fill:#ecfdf5,stroke:#059669,stroke-width:1.5px',
+  'classDef data fill:#f5f3ff,stroke:#7c3aed,stroke-width:1.5px',
+  'classDef cloud fill:#fffbeb,stroke:#d97706,stroke-width:1.5px',
+  'classDef security fill:#fff1f2,stroke:#e11d48,stroke-width:1.5px',
 ].join('\n');
 
 /**
@@ -83,6 +90,13 @@ function ensureInitialized() {
     theme: 'neutral',
     securityLevel: 'strict',
     fontFamily: MONO_STACK,
+    // Render flowchart labels as pure SVG <text> instead of HTML inside
+    // <foreignObject>. DOMPurify's SVG profile strips foreignObject
+    // (correctly — it's an XSS vector), which was deleting every node
+    // and edge label. SVG-text labels survive sanitization untouched,
+    // keep <br/> multiline layout via <tspan>s, and are the stricter
+    // posture: no HTML parsing inside diagrams at all.
+    flowchart: { htmlLabels: false },
     themeVariables: {
       fontFamily: MONO_STACK,
       // Warm light theme: stone surfaces, slate edges, amber-tinted accents.
