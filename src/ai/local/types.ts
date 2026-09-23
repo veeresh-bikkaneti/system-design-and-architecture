@@ -22,7 +22,7 @@ export interface ChatTurn {
 }
 
 export interface ToolTrace {
-  name: "search_lessons" | "read_concept";
+  name: "search_lessons" | "read_concept" | "web_search";
   input: string;
   output: string;
 }

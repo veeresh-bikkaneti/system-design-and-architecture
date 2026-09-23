@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { prepareTurn } from '../../ai/local/agent';
+import { prepareTurn, needsWeb, buildQuery } from '../../ai/local/agent';
 import { OKF_CARDS } from '../../ai/local/cards';
+import { searchWeb, spokenWeb, webAside } from '../../ai/local/web';
 import {
   getModelStatus,
   MODEL_LABEL,
@@ -16,7 +17,6 @@ import {
   getQuota,
   streamChat,
   type QaQuota,
-  type QaSource,
   type QaStreamEvent,
 } from './qaApi';
 import { useQaSession } from './useQaSession';
@@ -29,12 +29,17 @@ const USE_LOCAL_TUTOR = (import.meta.env.VITE_QA_API_BASE ?? '') === '';
 
 const LESSON_IDS = new Set(OKF_CARDS.filter((card) => card.type === 'Lesson').map((card) => card.id));
 
+interface BubbleSource {
+  title: string;
+  href: string;
+}
+
 interface QaMessage {
   id: number;
   role: 'user' | 'assistant';
   content: string;
   isError?: boolean;
-  sources?: QaSource[];
+  sources?: BubbleSource[];
 }
 
 function ChatBubbleIcon({ className }: { className?: string }) {
@@ -167,7 +172,12 @@ export function QaWidget() {
         );
         break;
       case 'sources':
-        patchMessage(assistantId, { sources: event.lessons });
+        patchMessage(assistantId, {
+          sources: event.lessons.map((lesson) => ({
+            title: lesson.title,
+            href: `${import.meta.env.BASE_URL}lesson/${lesson.slug}`,
+          })),
+        });
         break;
       case 'done':
         break;
@@ -246,16 +256,34 @@ export function QaWidget() {
       .map((message) => ({ role: message.role, content: message.content }));
     addMessage('user', text);
     const turn = prepareTurn(text, history, focusId);
-    const assistantId = addMessage('assistant', turn.answer);
-    if (turn.inScope) {
-      const lessons = turn.sources
-        .filter((source) => LESSON_IDS.has(source.id))
-        .map((source) => ({ slug: source.id, title: source.title }));
-      if (lessons.length > 0) patchMessage(assistantId, { sources: lessons });
-    }
+    const lookup = needsWeb(text, turn.inScope);
+    const assistantId = addMessage('assistant', lookup && !turn.inScope ? '' : turn.answer);
+    const lessonSources = turn.inScope
+      ? turn.sources
+          .filter((source) => LESSON_IDS.has(source.id))
+          .map((source) => ({
+            title: source.title,
+            href: `${import.meta.env.BASE_URL}lesson/${source.id}`,
+          }))
+      : [];
 
     setStreaming(true);
     try {
+      let content = turn.answer;
+      const sources = [...lessonSources];
+      if (lookup) {
+        const hits = await searchWeb(buildQuery(text, history));
+        const hit = hits[0];
+        if (hit) {
+          content = turn.inScope ? `${turn.answer}${webAside(hit)}` : spokenWeb(hit);
+          sources.push({ title: hit.title, href: hit.url });
+        } else if (!turn.inScope) {
+          content = "I looked for a page I could cite and didn't find one. Try the topic in a few plain words.";
+        }
+      }
+      patchMessage(assistantId, { content, sources });
+      if (!turn.inScope || lookup) return;
+
       const prior = history
         .slice(-4)
         .map((item) => `${item.role === 'user' ? 'Learner' : 'Tutor'}: ${item.content.slice(0, 280)}`)
@@ -263,7 +291,11 @@ export function QaWidget() {
       const draft = await rewriteWithModel(text, turn.context, prior);
       if (draft) patchMessage(assistantId, { content: draft });
     } catch {
-      // The spoken reply is already on screen. A failed download must not wipe it.
+      if (lookup && !turn.inScope) {
+        patchMessage(assistantId, {
+          content: "I couldn't reach a source just now. Ask me about a lesson, like caching or the CAP theorem, and I can still explain that.",
+        });
+      }
     } finally {
       setStreaming(false);
     }
@@ -409,8 +441,11 @@ export function QaWidget() {
                     <div className="mt-2 flex flex-wrap gap-1.5 border-t border-stone-200/70 pt-2 dark:border-stone-700">
                       {message.sources.map((source) => (
                         <a
-                          key={source.slug}
-                          href={`${import.meta.env.BASE_URL}lesson/${source.slug}`}
+                          key={source.href}
+                          href={source.href}
+                          {...(source.href.startsWith('http')
+                            ? { target: '_blank', rel: 'noreferrer' }
+                            : {})}
                           className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70"
                         >
                           {source.title}

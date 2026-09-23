@@ -122,7 +122,16 @@ function simpler(card: OkfCard): string {
   return `${summary.replace(/\.$/, "")}. ${first}`.trim();
 }
 
-/** A reply shaped to the question. Not a paste of the lesson card. */
+/** Course notes first. The open web only when the notes miss, or the student asks for a source. */
+export function needsWeb(question: string, inScope: boolean): boolean {
+  if (isAboutMe(question)) return false;
+  const q = question.toLowerCase();
+  if (/\b(poem|joke|lyrics|song)\b/.test(q)) return false;
+  if (/\b(look up|look this up|search the web|wikipedia|cite|citation|source|reference|according to)\b/.test(q)) {
+    return true;
+  }
+  return !inScope;
+}
 export function spokenAnswer(question: string, cards: OkfCard[], history: ChatTurn[] = []): string {
   const [lead] = cards;
   if (!lead) return OUT_OF_SCOPE;
@@ -253,6 +262,15 @@ export const TOOL_SCHEMAS = [
         ids: { type: "array", items: { type: "string" }, description: "Card ids from search_lessons." },
       },
       required: ["ids"],
+    },
+  },
+  {
+    name: "web_search",
+    description: "Read the public Wikipedia intro for a topic the lessons do not cover. Cite the article URL.",
+    parameters: {
+      type: "object",
+      properties: { query: { type: "string", description: "The topic to look up, in the student's words." } },
+      required: ["query"],
     },
   },
 ] as const;
