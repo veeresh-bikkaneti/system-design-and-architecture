@@ -98,18 +98,41 @@ export function isAboutTutor(question: string): boolean {
   const asksMe = /\b(you|your|yourself|ben)\b/.test(q);
   if (!asksMe) return false;
   if (/\b(yourself|about you|about ben)\b/.test(q)) return true;
-  if (/\b(boss|creator|maker|age|human|robot|real|name|hometown|job)\b/.test(q)) return true;
-  if (/\b(who are you|what are you|who is your|what is your|whats your|where are you|how old|are you|do you do|can you do)\b/.test(q)) {
+  if (/\b(boss|creator|maker|age|human|robot|real|name|hometown|job|hired|hire|employer|employ|salary)\b/.test(q)) {
+    return true;
+  }
+  if (/\b(who are you|what are you|who is your|what is your|whats your|where are you|how old|are you|do you do|can you do|work for|report to)\b/.test(q)) {
     return true;
   }
   if (/^(can you|could you|would you|please|explain|what is|whats|tell me about)\b/.test(q)) return false;
   return /\b(who|what|where)\b.*\byour\b/.test(q);
 }
 
-export function socialAnswer(question: string): string {
+/** "Are you sure" and "why" refer to the previous reply. They are not a new search. */
+export function isFollowUp(question: string): boolean {
   const q = casual(question);
-  if (/\bboss\b/.test(q)) {
-    return "I don't have a boss. I'm Ben, the tutor on this page. Nobody manages me. Ask me about a lesson, or name something you want me to look up.";
+  return /^(are you sure|you sure|really|really sure|sure|why|why not|how come|what do you mean|go on|say that again|come again)( ben)?$/.test(q);
+}
+
+function previousAssistant(history: ChatTurn[]): string {
+  return [...history].reverse().find((turn) => turn.role === "assistant")?.content.trim() ?? "";
+}
+
+export function socialAnswer(question: string, history: ChatTurn[] = []): string {
+  const q = casual(question);
+  const prev = previousAssistant(history);
+  if (isFollowUp(question)) {
+    if (/I'm Ben|I am Ben|tutor for this course/i.test(prev)) {
+      return "Yes. I'm Ben, and I tutor this course. That doesn't change from one message to the next.";
+    }
+    if (prev) {
+      const lead = prev.split(/\n\n/)[0].trim();
+      return `Yes. I'm sticking with what I just said: ${lead}`;
+    }
+    return "Yes. I'm Ben, and I tutor this course.";
+  }
+  if (/\b(boss|hired|hire|employer|employ|salary|work for|report to)\b/.test(q)) {
+    return "Nobody hired me. I'm Ben, and I live on this course page. I don't have an employer or a boss.";
   }
   if (/\b(made|built|created|creator|maker)\b/.test(q)) {
     return "I'm Ben. I ship with this course and I run in your browser. I don't have a company or a manager.";
@@ -179,7 +202,7 @@ function simpler(card: OkfCard): string {
 /** Look up a published page for every factual question, so the reply can cite it. */
 export function needsWeb(question: string, inScope: boolean): boolean {
   void inScope;
-  if (isAboutTutor(question)) return false;
+  if (isAboutTutor(question) || isFollowUp(question)) return false;
   if (/\b(poem|joke|lyrics|song)\b/i.test(question)) return false;
   return true;
 }
@@ -204,10 +227,10 @@ export function spokenAnswer(question: string, cards: OkfCard[], history: ChatTu
  * A single title or tag ("MVC") is enough — students do not quote lesson titles.
  */
 export function prepareTurn(question: string, history: ChatTurn[] = [], focusId?: string): TutorTurn {
-  if (isAboutTutor(question)) {
+  if (isAboutTutor(question) || isFollowUp(question)) {
     return {
       inScope: true,
-      answer: socialAnswer(question),
+      answer: socialAnswer(question, history),
       sources: [],
       traces: [
         {

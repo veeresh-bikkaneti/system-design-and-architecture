@@ -47,9 +47,28 @@ describe('local OKF tutor', () => {
     const turn = prepareTurn('what is the CAP theorem', [], 'mvc-to-react');
     expect(turn.sources[0]?.id).toBe('cap-theorem');
   });
+  it('keeps a short follow-up on the previous reply', () => {
+    const first = prepareTurn('Who are you');
+    const second = prepareTurn('Are you sure', [
+      { role: 'user', content: 'Who are you' },
+      { role: 'assistant', content: first.answer },
+    ]);
+    expect(second.answer).toMatch(/Yes/);
+    expect(second.answer).toMatch(/tutor/i);
+    expect(second.answer).not.toMatch(/life off this page/);
+    expect(needsWeb('Are you sure', false)).toBe(false);
+  });
+
+  it('does not search Doctor Who when asked who hired Ben', () => {
+    const turn = prepareTurn('Who hired you');
+    expect(turn.answer).toMatch(/Nobody hired/);
+    expect(turn.answer).not.toMatch(/Doctor Who|BBC/i);
+    expect(needsWeb('Who hired you', false)).toBe(false);
+  });
+
   it('does not search the web for a question about Ben', () => {
     const turn = prepareTurn("Hello Ben who's your boss");
-    expect(turn.answer).toMatch(/don't have a boss/);
+    expect(turn.answer).toMatch(/boss/);
     expect(turn.answer).not.toMatch(/Sketch|Sousa|HBO/i);
     expect(needsWeb("Who is your boss", turn.inScope)).toBe(false);
     expect(needsWeb('what is amazon', false)).toBe(true);
