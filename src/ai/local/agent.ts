@@ -60,8 +60,7 @@ export function formatContext(cards: OkfCard[]): string {
     .join("\n\n");
 }
 
-const INTRO =
-  "Hi, I'm Ben. Good to meet you. I'm your tutor for this course, and I run right here in your browser — no account and no API key. Ask me what MVC is, or for an analogy or a small example.";
+const INTRO = "Hi, I'm Ben. Good to meet you. I'm your tutor for this course.";
 
 function casual(question: string): string {
   return question

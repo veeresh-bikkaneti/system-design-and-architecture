@@ -8,30 +8,13 @@ interface WikiSearch {
   query?: { search?: { title: string; pageid: number }[] };
 }
 
-interface WikiExtract {
-  query?: { pages?: Record<string, { title?: string; extract?: string }> };
-}
-
 /** Wikipedia's public API allows browser calls. No key, and the URL is citable. */
 export function wikiSearchUrl(query: string): string {
   return `https://en.wikipedia.org/w/api.php?${new URLSearchParams({
     action: "query",
     list: "search",
     srsearch: query,
-    srlimit: "1",
-    format: "json",
-    origin: "*",
-    utf8: "1",
-  })}`;
-}
-
-export function wikiExtractUrl(pageId: number): string {
-  return `https://en.wikipedia.org/w/api.php?${new URLSearchParams({
-    action: "query",
-    prop: "extracts",
-    exintro: "1",
-    explaintext: "1",
-    pageids: String(pageId),
+    srlimit: "4",
     format: "json",
     origin: "*",
     utf8: "1",
@@ -46,6 +29,7 @@ const LANGUAGE_QUERIES: { pattern: RegExp; query: string }[] = [
   { pattern: /\bpython\b/i, query: "Python (programming language)" },
   { pattern: /\bgolang\b|\bgo lang\b/i, query: "Go (programming language)" },
   { pattern: /\brust\b/i, query: "Rust (programming language)" },
+  { pattern: /\bplaywright\b/i, query: "Playwright (software)" },
   { pattern: /\bkotlin\b/i, query: "Kotlin (programming language)" },
 ];
 
@@ -105,18 +89,50 @@ export function webAside(hit: WebHit): string {
   return lead ? `\n\nA published page adds this: ${lead}` : "";
 }
 
+function isDisambiguation(extract: string): boolean {
+  return /may refer to/i.test(extract);
+}
+
+interface WikiSummary {
+  title?: string;
+  extract?: string;
+  type?: string;
+  content_urls?: { desktop?: { page?: string } };
+}
+
+async function summaryByTitle(title: string, fetchImpl: typeof fetch): Promise<WebHit | null> {
+  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`;
+  const response = await fetchImpl(url);
+  if (!response.ok) return null;
+  const data = (await response.json()) as WikiSummary;
+  if (data.type === "disambiguation") return null;
+  const extract = data.extract?.replace(/\s+/g, " ").trim() ?? "";
+  if (!extract || isDisambiguation(extract)) return null;
+  return {
+    title: data.title || title,
+    url: data.content_urls?.desktop?.page || wikiPageUrl(data.title || title),
+    extract,
+  };
+}
+
 /**
- * Look up one Wikipedia intro. Throws if the network fails.
- * Returns [] when Wikipedia has no page. The caller cites `url`.
+ * Look up one Wikipedia intro. Never throws.
+ * Skips disambiguation pages such as "Playwright" the person-or-tool list.
  */
 export async function searchWeb(query: string, fetchImpl: typeof fetch = fetch): Promise<WebHit[]> {
   const trimmed = query.trim().slice(0, 180);
   if (!trimmed) return [];
-  const found = (await (await fetchImpl(wikiSearchUrl(trimmed))).json()) as WikiSearch;
-  const top = found.query?.search?.[0];
-  if (!top?.title || !top.pageid) return [];
-  const page = (await (await fetchImpl(wikiExtractUrl(top.pageid))).json()) as WikiExtract;
-  const extract = page.query?.pages?.[String(top.pageid)]?.extract?.replace(/\s+/g, " ").trim() ?? "";
-  if (!extract) return [];
-  return [{ title: top.title, url: wikiPageUrl(top.title), extract }];
+  try {
+    const direct = await summaryByTitle(trimmed, fetchImpl);
+    if (direct) return [direct];
+    const found = (await (await fetchImpl(wikiSearchUrl(trimmed))).json()) as WikiSearch;
+    const titles = (found.query?.search ?? []).map((hit) => hit.title).filter(Boolean).slice(0, 4);
+    for (const title of titles) {
+      const hit = await summaryByTitle(title, fetchImpl);
+      if (hit) return [hit];
+    }
+  } catch {
+    return [];
+  }
+  return [];
 }

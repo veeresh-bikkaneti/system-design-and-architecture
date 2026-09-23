@@ -20,6 +20,7 @@ describe('web tool', () => {
   it('sends java and C# to the programming-language pages', () => {
     expect(webQuery('what is java')).toBe('Java (programming language)');
     expect(webQuery('what is C#')).toBe('C Sharp (programming language)');
+    expect(webQuery('what is playwright')).toBe('Playwright (software)');
     expect(grounding({ aboutMe: false, inScope: false, citedWeb: true }).level).toBe('medium');
     expect(grounding({ aboutMe: false, inScope: false, citedWeb: false }).level).toBe('low');
     expect(grounding({ aboutMe: false, inScope: true, citedWeb: true }).level).toBe('high');
@@ -39,12 +40,16 @@ describe('web tool', () => {
   it('reads the extract the tool returns', async () => {
     const fetchImpl = (async (url: string | URL | Request) => {
       const href = String(url);
-      if (href.includes('list=search')) {
-        return new Response(JSON.stringify({ query: { search: [{ title: 'CAP theorem', pageid: 1 }] } }));
+      if (href.includes('/page/summary/')) {
+        return new Response(
+          JSON.stringify({
+            title: 'CAP theorem',
+            extract: 'CAP is a theorem. It is about partitions.',
+            content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/CAP_theorem' } },
+          }),
+        );
       }
-      return new Response(
-        JSON.stringify({ query: { pages: { '1': { extract: 'CAP is a theorem. It is about partitions.' } } } }),
-      );
+      return new Response(JSON.stringify({ query: { search: [] } }));
     }) as typeof fetch;
     const hits = await searchWeb('CAP theorem', fetchImpl);
     expect(hits[0]?.title).toBe('CAP theorem');

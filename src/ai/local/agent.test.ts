@@ -66,6 +66,7 @@ describe('local OKF tutor', () => {
     expect(turn.inScope).toBe(true);
     expect(turn.answer).toMatch(/Ben/);
     expect(turn.answer).toMatch(/tutor/i);
+    expect(turn.answer).not.toMatch(/API key/);
     expect(turn.answer).not.toMatch(/don't have a lesson/i);
   });
 
