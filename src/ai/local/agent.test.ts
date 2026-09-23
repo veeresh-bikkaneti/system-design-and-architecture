@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { OKF_CARDS } from './cards.ts';
-import { prepareTurn } from './agent.ts';
+import { needsWeb, prepareTurn } from './agent.ts';
 import { searchCards } from './retrieve.ts';
 
 describe('local OKF tutor', () => {
@@ -47,6 +47,13 @@ describe('local OKF tutor', () => {
     const turn = prepareTurn('what is the CAP theorem', [], 'mvc-to-react');
     expect(turn.sources[0]?.id).toBe('cap-theorem');
   });
+  it('treats hello Ben as a greeting, not a search', () => {
+    const turn = prepareTurn('hello Ben');
+    expect(turn.answer).toMatch(/I'm Ben/);
+    expect(turn.answer).not.toMatch(/album|Jackson/i);
+    expect(needsWeb('hello Ben', turn.inScope)).toBe(false);
+  });
+
   it('introduces itself when the greeting is misspelled', () => {
     const turn = prepareTurn('who ar eyou');
     expect(turn.inScope).toBe(true);

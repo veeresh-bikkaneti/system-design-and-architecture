@@ -61,13 +61,17 @@ export function formatContext(cards: OkfCard[]): string {
 }
 
 const INTRO =
-  "Hi, I'm Ben. I'm your tutor for this course, and I run right here in your browser — no account and no API key. Ask me the way you'd ask a person. What MVC is, an analogy for a cache, or a small example are all fine.";
+  "Hi, I'm Ben. Good to meet you. I'm your tutor for this course, and I run right here in your browser — no account and no API key. Ask me what MVC is, or for an analogy or a small example.";
 
-/** "who ar eyou" and "who are you?" are the same question. */
+/** A greeting to Ben, including "hello Ben". Not a topic to look up. */
 export function isAboutMe(question: string): boolean {
-  const squashed = question.toLowerCase().replace(/[^a-z]/g, "");
-  if (/^(whoareyou|whatareyou|whoru|whoaryou)/.test(squashed) && squashed.length < 28) return true;
-  return /^(hi|hello|hey)\b[!.?\s]*$/.test(question.toLowerCase().trim());
+  const q = question.toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+  const squashed = q.replace(/ /g, "");
+  if (/^(whoareyou|whatareyou|whoru|whoaryou|whoisben|whatisben)$/.test(squashed)) return true;
+  if (/^(hi|hello|hey|hiya|howdy)( there)?( ben)?$/.test(q)) return true;
+  if (/^good (morning|afternoon|evening)( ben)?$/.test(q)) return true;
+  if (/^(thanks|thank you)( ben)?$/.test(q)) return true;
+  return q === "ben";
 }
 
 function sentences(body: string): string[] {
