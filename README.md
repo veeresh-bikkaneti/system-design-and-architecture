@@ -10,15 +10,15 @@
 4. **Track progress and earn badges** — your progress and quiz scores are saved in your own browser. Finish lesson groups to earn badges you can show on LinkedIn.
 5. **Go deeper (optional)** — each lesson ends with hand-picked conference talks and tutorials when you want more than the lesson covers.
 
-The lessons, quizzes, and badges are a static site, so your progress never leaves your machine. (Only the optional AI assistant above talks to a backend API.)
+The lessons, quizzes, and badges are a static site, so your progress never leaves your machine. Ben, the chat button, also runs on your machine unless a build sets `VITE_QA_API_BASE`.
 
 ## AI assistant (free, no key, no cloud model)
 
-Stuck on a lesson? The floating chat button opens a course Q&A assistant. On GitHub Pages it does **not** call an AI provider:
+Stuck on a lesson? The floating chat button opens Ben. On GitHub Pages he does **not** call an AI provider. Setup, the tool loop, and the diagram are in [docs/ai-tutor.md](docs/ai-tutor.md).
 
-- **Small model, in your browser.** SmolLM2-135M (ONNX, via Transformers.js) runs on your device. Weights download once from Hugging Face and stay in the browser cache. No API key, no subscription.
+- **Small model, in your browser.** Qwen2.5-0.5B-Instruct (ONNX q4, via Transformers.js) runs on your device. Weights download once from Hugging Face, about 750MB, and stay in the browser cache. No API key, no subscription.
 - **Clean context.** The course is an [Open Knowledge Format](https://github.com/GoogleCloudPlatform/open-knowledge-format) bundle: one short card per lesson, plus guides for OKF itself and for LangChain tool calling. Each question retrieves two or three cards. The model only sees that slice.
-- **Tool calling, LangChain-shaped.** The page — not the model — runs `search_lessons` and `read_concept`, the same contract as LangChain `bind_tools` / the Worker’s LangGraph (`triage → retrieve → reason → answer`). Tool output is treated as data, not as new instructions. If the small model’s draft is unusable, the OKF notes stand on their own.
+- **Tool calling, LangChain-shaped.** The page, not the model, runs `search_lessons`, `read_concept`, and `web_search`. Same shape as LangChain `bind_tools` and the Worker's LangGraph (`triage → retrieve → reason → answer`). Tool output is data, not new instructions. If Qwen's draft is unusable, the grounded reply stays.
 - **Optional Worker.** Set `VITE_QA_API_BASE` at build time to send chat to the Cloudflare Worker instead. The lessons, quizzes, and badges never depend on either path.
 
 The assistant is strictly additive: every lesson, quiz, badge, and progress feature works without it.
