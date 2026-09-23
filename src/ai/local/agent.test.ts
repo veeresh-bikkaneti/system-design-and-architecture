@@ -50,6 +50,7 @@ describe('local OKF tutor', () => {
   it('introduces itself when the greeting is misspelled', () => {
     const turn = prepareTurn('who ar eyou');
     expect(turn.inScope).toBe(true);
+    expect(turn.answer).toMatch(/Ben/);
     expect(turn.answer).toMatch(/tutor/i);
     expect(turn.answer).not.toMatch(/don't have a lesson/i);
   });

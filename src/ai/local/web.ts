@@ -70,7 +70,7 @@ export function grounding(options: {
   inScope: boolean;
   citedWeb: boolean;
 }): { level: ConfidenceLevel; label: string } {
-  if (options.aboutMe) return { level: "high", label: "High confidence · this is who I am" };
+  if (options.aboutMe) return { level: "high", label: "High confidence · I'm Ben" };
   if (options.inScope && options.citedWeb) {
     return { level: "high", label: "High confidence · course lesson, checked against a published page" };
   }

@@ -60,10 +60,9 @@ async function loadGenerator(): Promise<Generator> {
         env: { allowLocalModels: boolean };
       };
       runtime.env.allowLocalModels = false;
-      const hasGpu = 'gpu' in navigator;
-      const pipe = await runtime.pipeline('text-generation', MODEL_ID, {
+      const hasGpu = typeof navigator !== 'undefined' && 'gpu' in navigator;
+      const options = {
         dtype: 'q4',
-        device: hasGpu ? 'webgpu' : 'wasm',
         progress_callback: (update: { status?: string; progress?: number; file?: string }) => {
           if (update.status === 'progress' && typeof update.progress === 'number') {
             publish({
@@ -73,7 +72,17 @@ async function loadGenerator(): Promise<Generator> {
             });
           }
         },
-      });
+      };
+      let pipe: Generator;
+      try {
+        pipe = await runtime.pipeline('text-generation', MODEL_ID, {
+          ...options,
+          device: hasGpu ? 'webgpu' : 'wasm',
+        });
+      } catch (error) {
+        if (!hasGpu) throw error;
+        pipe = await runtime.pipeline('text-generation', MODEL_ID, { ...options, device: 'wasm' });
+      }
       publish({ phase: 'ready', progress: 100, detail: 'Running on this device' });
       return pipe;
     })().catch((error: unknown) => {
@@ -104,39 +113,43 @@ function readDraft(raw: unknown): string {
   return '';
 }
 
-/** Returns null when the draft fails the sanity check. Caller keeps a spoken fallback. */
+/** Returns null when the model is unavailable or the draft fails the sanity check. */
 export async function rewriteWithModel(
   question: string,
   context: string,
   prior: string,
 ): Promise<string | null> {
-  const generator = await loadGenerator();
-  const history = prior ? `What you already said:\n${prior}\n\n` : '';
-  const material = context.trim()
-    ? context
-    : 'None. This question is not covered by a lesson.';
-  const output = await generator(
-    [
-      {
-        role: 'system',
-        content:
-          'You are a patient tutor talking with a beginner. Stay in that role. Sound like a person: warm, short sentences, everyday words. Two to five sentences. No bullet list of rules. Never say "I only answer from", "scope", "search_lessons", "OKF", or "notes". When lesson material is present, explain that idea as if you are sitting next to them, and a simple analogy is welcome. When the material says the question is not covered, say so kindly in your own words and invite them to ask about scaling a website, caching, queues, or CAP. Do not invent a lesson that is not in the material. If the material names a source, keep that source.',
-      },
-      {
-        role: 'user',
-        content: `${history}Lesson material:\n${material}\n\nStudent: ${question}`,
-      },
-    ],
-    { max_new_tokens: 180, temperature: 0.5, do_sample: true, top_p: 0.9, repetition_penalty: 1.12 },
-  );
-  const draft = readDraft(output).replace(/^answer:\s*/i, '').trim();
-  if (!acceptDraft(draft, question)) return null;
-  if (/\bi don't have a lesson\b/i.test(draft) && context.trim().length > 0) return null;
-  const sourceTokens = tokenize(context);
-  if (sourceTokens.length > 12) {
-    const draftTokens = new Set(tokenize(draft));
-    const shared = sourceTokens.filter((token) => draftTokens.has(token)).length / sourceTokens.length;
-    if (shared > 0.82) return null;
+  try {
+    const generator = await loadGenerator();
+    const history = prior ? `What you already said:\n${prior}\n\n` : '';
+    const material = context.trim()
+      ? context
+      : 'None. This question is not covered by a lesson.';
+    const output = await generator(
+      [
+        {
+          role: 'system',
+          content:
+            'You are Ben, a patient tutor talking with a beginner. Stay in that role. Sound like a person: warm, short sentences, everyday words. Two to five sentences. You do not call tools yourself. The page already looked up the lesson or the published page in the material. Explain that material. Never say "I only answer from", "scope", "search_lessons", "OKF", or "notes". If the material names a source, keep that source. Do not invent a lesson that is not in the material.',
+        },
+        {
+          role: 'user',
+          content: `${history}Lesson material:\n${material}\n\nStudent: ${question}`,
+        },
+      ],
+      { max_new_tokens: 180, temperature: 0.5, do_sample: true, top_p: 0.9, repetition_penalty: 1.12 },
+    );
+    const draft = readDraft(output).replace(/^answer:\s*/i, '').trim();
+    if (!acceptDraft(draft, question)) return null;
+    if (/\bi don't have a lesson\b/i.test(draft) && context.trim().length > 0) return null;
+    const sourceTokens = tokenize(context);
+    if (sourceTokens.length > 12) {
+      const draftTokens = new Set(tokenize(draft));
+      const shared = sourceTokens.filter((token) => draftTokens.has(token)).length / sourceTokens.length;
+      if (shared > 0.82) return null;
+    }
+    return draft;
+  } catch {
+    return null;
   }
-  return draft;
 }

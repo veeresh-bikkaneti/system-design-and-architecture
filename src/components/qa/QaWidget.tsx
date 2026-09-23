@@ -302,21 +302,14 @@ export function QaWidget() {
       ]
         .filter(Boolean)
         .join('\n\n');
+      // The lookup already answered. A model failure must not replace that with a source error.
       const draft = await rewriteWithModel(text, context, prior);
       if (draft) patchMessage(assistantId, { content: draft });
     } catch {
-      if (turn.inScope) {
-        patchMessage(assistantId, {
-          content: turn.answer,
-          sources: lessonSources,
-          confidence: { level: 'high', label: 'High confidence · from the course lesson' },
-        });
-      } else {
-        patchMessage(assistantId, {
-          content: 'I could not reach a source just now, so I will not guess.',
-          confidence: { level: 'low', label: 'Low confidence · the source check failed' },
-        });
-      }
+      patchMessage(assistantId, {
+        content: 'I could not reach a source just now, so I will not guess.',
+        confidence: { level: 'low', label: 'Low confidence · the source check failed' },
+      });
     } finally {
       setStreaming(false);
     }
@@ -374,7 +367,7 @@ export function QaWidget() {
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                Ask the course
+                Ask Ben
               </h2>
               <p className="truncate text-xs text-stone-500 dark:text-stone-400">
                 {USE_LOCAL_TUTOR
@@ -417,10 +410,9 @@ export function QaWidget() {
             {messages.length === 0 && (
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
                 <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                  Ask anything about the course — I'll explain it in plain words, the way I'd
-                  talk it through with a beginner. {USE_LOCAL_TUTOR
-                    ? 'The tutor runs on this device. No account and no API key. The first answer takes a moment while it wakes up.'
-                    : 'It remembers this conversation until you start a new topic.'}
+                  Hi, I'm Ben. Ask me the way you'd ask a person. I check the lesson first, and if it isn't there I look it up and show the source. {USE_LOCAL_TUTOR
+                    ? 'I run on this device. No account and no API key.'
+                    : 'I remember this conversation until you start a new topic.'}
                 </p>
               </div>
             )}

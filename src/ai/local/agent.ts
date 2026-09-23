@@ -61,7 +61,7 @@ export function formatContext(cards: OkfCard[]): string {
 }
 
 const INTRO =
-  "I'm the tutor for this course. I run in your browser, so you don't need an account or an API key. Ask me the way you'd ask a person — what MVC is, an analogy for a cache, or a small example — and I'll walk through it.";
+  "Hi, I'm Ben. I'm your tutor for this course, and I run right here in your browser — no account and no API key. Ask me the way you'd ask a person. What MVC is, an analogy for a cache, or a small example are all fine.";
 
 /** "who ar eyou" and "who are you?" are the same question. */
 export function isAboutMe(question: string): boolean {
