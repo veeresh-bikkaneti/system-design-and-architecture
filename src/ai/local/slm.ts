@@ -1,4 +1,5 @@
 import { acceptDraft } from './agent.ts';
+import { tokenize } from './retrieve.ts';
 
 export const MODEL_ID = 'onnx-community/SmolLM2-135M-Instruct';
 export const MODEL_LABEL = 'SmolLM2-135M';
@@ -129,5 +130,13 @@ export async function rewriteWithModel(
     { max_new_tokens: 180, temperature: 0.5, do_sample: true, top_p: 0.9, repetition_penalty: 1.12 },
   );
   const draft = readDraft(output).replace(/^answer:\s*/i, '').trim();
-  return acceptDraft(draft, question) ? draft : null;
+  if (!acceptDraft(draft, question)) return null;
+  if (/\bi don't have a lesson\b/i.test(draft) && context.trim().length > 0) return null;
+  const sourceTokens = tokenize(context);
+  if (sourceTokens.length > 12) {
+    const draftTokens = new Set(tokenize(draft));
+    const shared = sourceTokens.filter((token) => draftTokens.has(token)).length / sourceTokens.length;
+    if (shared > 0.82) return null;
+  }
+  return draft;
 }

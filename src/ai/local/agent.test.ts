@@ -47,6 +47,31 @@ describe('local OKF tutor', () => {
     const turn = prepareTurn('what is the CAP theorem', [], 'mvc-to-react');
     expect(turn.sources[0]?.id).toBe('cap-theorem');
   });
+  it('introduces itself when the greeting is misspelled', () => {
+    const turn = prepareTurn('who ar eyou');
+    expect(turn.inScope).toBe(true);
+    expect(turn.answer).toMatch(/tutor/i);
+    expect(turn.answer).not.toMatch(/don't have a lesson/i);
+  });
+
+  it('answers an analogy with the picture, not the whole lesson', () => {
+    const turn = prepareTurn('analogy for MVC');
+    expect(turn.sources[0]?.id).toBe('mvc-to-react');
+    expect(turn.answer).toMatch(/diner/i);
+    expect(turn.answer).not.toMatch(/MVP and MVVM/);
+  });
+
+  it('a follow-up asking for examples is not a repeat of the analogy', () => {
+    const first = prepareTurn('analogy for MVC');
+    const second = prepareTurn('explain with examples', [
+      { role: 'user', content: 'analogy for MVC' },
+      { role: 'assistant', content: first.answer },
+    ]);
+    expect(second.sources[0]?.id).toBe('mvc-to-react');
+    expect(second.answer).toMatch(/Buy milk/);
+    expect(second.answer).not.toBe(first.answer);
+  });
+
   it('declines off-topic questions', () => {
     const turn = prepareTurn('Write a poem about my cat named Miso');
     expect(turn.inScope).toBe(false);

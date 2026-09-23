@@ -246,7 +246,7 @@ export function QaWidget() {
       .map((message) => ({ role: message.role, content: message.content }));
     addMessage('user', text);
     const turn = prepareTurn(text, history, focusId);
-    const assistantId = addMessage('assistant', '');
+    const assistantId = addMessage('assistant', turn.answer);
     if (turn.inScope) {
       const lessons = turn.sources
         .filter((source) => LESSON_IDS.has(source.id))
@@ -261,9 +261,9 @@ export function QaWidget() {
         .map((item) => `${item.role === 'user' ? 'Learner' : 'Tutor'}: ${item.content.slice(0, 280)}`)
         .join('\n');
       const draft = await rewriteWithModel(text, turn.context, prior);
-      patchMessage(assistantId, { content: draft ?? turn.answer });
+      if (draft) patchMessage(assistantId, { content: draft });
     } catch {
-      patchMessage(assistantId, { content: turn.answer });
+      // The spoken reply is already on screen. A failed download must not wipe it.
     } finally {
       setStreaming(false);
     }

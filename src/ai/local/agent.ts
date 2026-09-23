@@ -60,13 +60,79 @@ export function formatContext(cards: OkfCard[]): string {
     .join("\n\n");
 }
 
-export function notesAnswer(cards: OkfCard[]): string {
-  const [lead, ...rest] = cards;
+const INTRO =
+  "I'm the tutor for this course. I run in your browser, so you don't need an account or an API key. Ask me the way you'd ask a person — what MVC is, an analogy for a cache, or a small example — and I'll walk through it.";
+
+/** "who ar eyou" and "who are you?" are the same question. */
+export function isAboutMe(question: string): boolean {
+  const squashed = question.toLowerCase().replace(/[^a-z]/g, "");
+  if (/^(whoareyou|whatareyou|whoru|whoaryou)/.test(squashed) && squashed.length < 28) return true;
+  return /^(hi|hello|hey)\b[!.?\s]*$/.test(question.toLowerCase().trim());
+}
+
+function sentences(body: string): string[] {
+  return body
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+}
+
+type AskShape = "analogy" | "example" | "simpler" | "plain";
+
+export function askShape(question: string): AskShape {
+  const q = question.toLowerCase();
+  if (/\b(analog\w*|metaphor|real life|everyday life)\b/.test(q)) return "analogy";
+  if (/\b(example|examples|instance|walkthrough)\b/.test(q)) return "example";
+  if (/\b(simpler|easier|eli5|confused|beginner)\b/.test(q)) return "simpler";
+  return "plain";
+}
+
+function plain(card: OkfCard): string {
+  const parts = sentences(card.body).filter((sentence) => !/\banalog/i.test(sentence));
+  if (parts.length <= 2) return parts.join(" ");
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+}
+
+function analogy(card: OkfCard): string {
+  if (card.id === "mvc-to-react") {
+    return "Think of a diner. The menu is the model: the dishes and the prices, the real data. The plate is the view: what you look at. The waiter is the controller: you say what you want, they tell the kitchen, and they bring the plate back. React changes that picture. Each booth keeps its own order, so one component holds the data and draws the plate itself. You update the order, and the plate changes. You don't reach over and rebuild the plate by hand.";
+  }
+  const found = sentences(card.body).find((sentence) => /analog|like a |like an |told as a /i.test(sentence));
+  if (found) {
+    return `Here's a picture for ${card.title}. ${found} Underneath that: ${card.summary.charAt(0).toLowerCase()}${card.summary.slice(1)}`;
+  }
+  return `Picture one everyday case of ${card.title}. ${plain(card)}`;
+}
+
+function example(card: OkfCard): string {
+  if (card.id === "mvc-to-react") {
+    return "Here's a to-do list, as three jobs.\n\nThe model is the data: one task, \"Buy milk\", not done yet.\nThe view is the checkbox and the words on the screen.\nThe controller is the click. It marks the task done and asks the screen to draw again.\n\nIn React those sit in one component. State is the model, the JSX is the view, and onClick is the controller. Change the state, and React draws the list again. You don't open the page and edit the checkbox yourself.";
+  }
+  if (card.id === "cap-theorem") {
+    return "Two coffee shops share one order book, then the phone line between them dies.\n\nIf they refuse new orders until the line is back, every shop that answers agrees on the book. That's choosing consistency.\nIf each shop keeps selling and they sort the book out later, customers aren't turned away. That's choosing availability.\n\nThey can't do both while the line is down. That's the CAP choice during a partition.";
+  }
+  const parts = sentences(card.body).filter((sentence) => !/\banalog/i.test(sentence));
+  const steps = parts.slice(0, 2).join(" ");
+  return `Let's make ${card.title} concrete.\n\n${steps}\n\nWalk one user through it once, then check what they see at the end. The part to keep: ${card.summary.charAt(0).toLowerCase()}${card.summary.slice(1)}`;
+}
+
+function simpler(card: OkfCard): string {
+  const first = sentences(card.body)[0] ?? "";
+  const summary = card.summary.charAt(0).toLowerCase() + card.summary.slice(1);
+  return `${summary.replace(/\.$/, "")}. ${first}`.trim();
+}
+
+/** A reply shaped to the question. Not a paste of the lesson card. */
+export function spokenAnswer(question: string, cards: OkfCard[], history: ChatTurn[] = []): string {
+  const [lead] = cards;
   if (!lead) return OUT_OF_SCOPE;
-  const related = rest
-    .map((card) => `${card.title}: ${card.summary}`)
-    .join(" ");
-  return related ? `${lead.body}\n\nAlso nearby — ${related}` : lead.body;
+  let shape = askShape(question);
+  let text = shape === "analogy" ? analogy(lead) : shape === "example" ? example(lead) : shape === "simpler" ? simpler(lead) : plain(lead);
+  const previous = [...history].reverse().find((turn) => turn.role === "assistant")?.content.trim();
+  if (previous && text.trim() === previous) {
+    text = shape === "example" ? simpler(lead) : example(lead);
+  }
+  return text;
 }
 
 /**
@@ -78,6 +144,23 @@ export function notesAnswer(cards: OkfCard[]): string {
  * A single title or tag ("MVC") is enough — students do not quote lesson titles.
  */
 export function prepareTurn(question: string, history: ChatTurn[] = [], focusId?: string): TutorTurn {
+  if (isAboutMe(question)) {
+    return {
+      inScope: true,
+      answer: INTRO,
+      sources: [],
+      traces: [
+        {
+          name: "search_lessons",
+          input: JSON.stringify({ query: question, lesson: focusId ?? null }),
+          output: "intro",
+        },
+      ],
+      context:
+        "The student is asking who the tutor is. Answer as the course tutor in two or three friendly sentences. You run in their browser, you explain the lessons in plain words, and you can use an analogy or an example. Invite a question. Do not say the question is off topic.",
+    };
+  }
+
   const expanded = expandQuestion(question);
   const query = buildQuery(expanded, history);
   let hits = searchCards(query, OKF_CARDS, 4);
@@ -144,7 +227,7 @@ export function prepareTurn(question: string, history: ChatTurn[] = [], focusId?
 
   return {
     inScope: true,
-    answer: notesAnswer(chosen),
+    answer: spokenAnswer(question, chosen, history),
     sources: chosen.map((card) => ({ id: card.id, title: card.title })),
     traces,
     context: formatContext(chosen),
