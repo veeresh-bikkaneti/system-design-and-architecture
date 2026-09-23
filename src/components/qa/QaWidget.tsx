@@ -35,7 +35,6 @@ interface QaMessage {
   content: string;
   isError?: boolean;
   sources?: QaSource[];
-  traces?: { name: string; output: string }[];
 }
 
 function ChatBubbleIcon({ className }: { className?: string }) {
@@ -247,17 +246,13 @@ export function QaWidget() {
       .map((message) => ({ role: message.role, content: message.content }));
     addMessage('user', text);
     const turn = prepareTurn(text, history, focusId);
-    const assistantId = addMessage('assistant', turn.answer);
-    const lessons = turn.sources
-      .filter((source) => LESSON_IDS.has(source.id))
-      .map((source) => ({ slug: source.id, title: source.title }));
-    if (lessons.length > 0) patchMessage(assistantId, { sources: lessons });
-    if (turn.traces.length > 0) {
-      patchMessage(assistantId, {
-        traces: turn.traces.map((trace) => ({ name: trace.name, output: trace.output })),
-      });
+    const assistantId = addMessage('assistant', '');
+    if (turn.inScope) {
+      const lessons = turn.sources
+        .filter((source) => LESSON_IDS.has(source.id))
+        .map((source) => ({ slug: source.id, title: source.title }));
+      if (lessons.length > 0) patchMessage(assistantId, { sources: lessons });
     }
-    if (!turn.inScope) return;
 
     setStreaming(true);
     try {
@@ -266,9 +261,9 @@ export function QaWidget() {
         .map((item) => `${item.role === 'user' ? 'Learner' : 'Tutor'}: ${item.content.slice(0, 280)}`)
         .join('\n');
       const draft = await rewriteWithModel(text, turn.context, prior);
-      if (draft) patchMessage(assistantId, { content: draft });
+      patchMessage(assistantId, { content: draft ?? turn.answer });
     } catch {
-      // The OKF notes are already on screen. A failed download must not wipe them.
+      patchMessage(assistantId, { content: turn.answer });
     } finally {
       setStreaming(false);
     }
@@ -369,9 +364,9 @@ export function QaWidget() {
             {messages.length === 0 && (
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
                 <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                  Ask anything about the course — the assistant answers from the lessons and
-                  cites its sources. {USE_LOCAL_TUTOR
-                    ? 'It runs a small model in this browser, with OKF notes and LangChain-style tool calls. No account and no API key.'
+                  Ask anything about the course — I'll explain it in plain words, the way I'd
+                  talk it through with a beginner. {USE_LOCAL_TUTOR
+                    ? 'The tutor runs on this device. No account and no API key. The first answer takes a moment while it wakes up.'
                     : 'It remembers this conversation until you start a new topic.'}
                 </p>
               </div>
@@ -409,17 +404,6 @@ export function QaWidget() {
                       </span>
                       Thinking
                     </span>
-                  )}
-                  {message.traces && message.traces.length > 0 && (
-                    <ol className="mt-2 space-y-1 border-t border-stone-200/70 pt-2 dark:border-stone-700">
-                      {message.traces.map((trace) => (
-                        <li key={trace.name} className="text-[11px] leading-snug text-stone-500 dark:text-stone-400">
-                          <span className="font-semibold text-stone-700 dark:text-stone-200">{trace.name}</span>
-                          {' · '}
-                          {trace.output}
-                        </li>
-                      ))}
-                    </ol>
                   )}
                   {message.sources && message.sources.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5 border-t border-stone-200/70 pt-2 dark:border-stone-700">

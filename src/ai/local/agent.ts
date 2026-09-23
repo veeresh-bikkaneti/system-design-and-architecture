@@ -15,7 +15,7 @@ const PINNED: { id: string; terms: string[] }[] = [
 ];
 
 const OUT_OF_SCOPE =
-  "I only answer from the System Design Mastery course: the lessons, the OKF notes, and how this tutor calls tools. Ask about something on the syllabus — the CAP theorem, a queue, RAG, or tool calling.";
+  "I don't have a lesson on that. Ask me about something we do cover — how a website grows, caching, queues, or the CAP theorem — and I'll explain it in plain words.";
 
 export function buildQuery(question: string, history: ChatTurn[]): string {
   const tokens = tokenize(question);
@@ -174,13 +174,21 @@ export const TOOL_SCHEMAS = [
   },
 ] as const;
 
-/** Reject drafts that echo the prompt or collapse into noise. */
+/** Reject drafts that echo the prompt, the old policy line, or collapse into noise. */
 export function acceptDraft(draft: string, question: string): boolean {
   const text = draft.trim();
-  if (text.length < 80) return false;
+  if (text.length < 40) return false;
   const lowered = text.toLowerCase();
-  if (lowered.includes("notes:") || lowered.includes("[1]") || lowered.includes("question:")) return false;
-  const asked = question.trim().toLowerCase();
-  if (lowered === asked) return false;
+  if (
+    lowered.includes("notes:") ||
+    lowered.includes("[1]") ||
+    lowered.includes("question:") ||
+    lowered.includes("search_lessons") ||
+    lowered.includes("scope floor") ||
+    lowered.includes("i only answer from")
+  ) {
+    return false;
+  }
+  if (lowered === question.trim().toLowerCase()) return false;
   return true;
 }
