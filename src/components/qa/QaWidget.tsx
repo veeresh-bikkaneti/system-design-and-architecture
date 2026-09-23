@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { prepareTurn } from '../../ai/local/agent';
 import { OKF_CARDS } from '../../ai/local/cards';
 import {
@@ -34,6 +35,7 @@ interface QaMessage {
   content: string;
   isError?: boolean;
   sources?: QaSource[];
+  traces?: { name: string; output: string }[];
 }
 
 function ChatBubbleIcon({ className }: { className?: string }) {
@@ -108,6 +110,15 @@ export function QaWidget() {
   const nextId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { pathname } = useLocation();
+  const focusId = useMemo(() => {
+    const parts = pathname.split('/').filter(Boolean);
+    const index = parts.lastIndexOf('lesson');
+    const slug = index >= 0 ? parts[index + 1] : undefined;
+    return slug && OKF_CARDS.some((card) => card.id === slug) ? slug : undefined;
+  }, [pathname]);
+  const focusTitle = OKF_CARDS.find((card) => card.id === focusId)?.title;
 
   const { sessionId, ensureSession, newTopic } = useQaSession();
 
@@ -235,12 +246,17 @@ export function QaWidget() {
       .filter((message) => !message.isError && message.content.length > 0)
       .map((message) => ({ role: message.role, content: message.content }));
     addMessage('user', text);
-    const turn = prepareTurn(text, history);
+    const turn = prepareTurn(text, history, focusId);
     const assistantId = addMessage('assistant', turn.answer);
     const lessons = turn.sources
       .filter((source) => LESSON_IDS.has(source.id))
       .map((source) => ({ slug: source.id, title: source.title }));
     if (lessons.length > 0) patchMessage(assistantId, { sources: lessons });
+    if (turn.traces.length > 0) {
+      patchMessage(assistantId, {
+        traces: turn.traces.map((trace) => ({ name: trace.name, output: trace.output })),
+      });
+    }
     if (!turn.inScope) return;
 
     setStreaming(true);
@@ -343,6 +359,11 @@ export function QaWidget() {
               </button>
             </div>
           </div>
+          {focusTitle && (
+            <p className="border-b border-stone-200/80 bg-amber-50/40 px-4 py-1.5 text-[11px] text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300">
+              This page: {focusTitle}
+            </p>
+          )}
 
           <div ref={scrollRef} className="flex-1 space-y-3.5 overflow-y-auto px-4 py-4">
             {messages.length === 0 && (
@@ -388,6 +409,17 @@ export function QaWidget() {
                       </span>
                       Thinking
                     </span>
+                  )}
+                  {message.traces && message.traces.length > 0 && (
+                    <ol className="mt-2 space-y-1 border-t border-stone-200/70 pt-2 dark:border-stone-700">
+                      {message.traces.map((trace) => (
+                        <li key={trace.name} className="text-[11px] leading-snug text-stone-500 dark:text-stone-400">
+                          <span className="font-semibold text-stone-700 dark:text-stone-200">{trace.name}</span>
+                          {' · '}
+                          {trace.output}
+                        </li>
+                      ))}
+                    </ol>
                   )}
                   {message.sources && message.sources.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5 border-t border-stone-200/70 pt-2 dark:border-stone-700">

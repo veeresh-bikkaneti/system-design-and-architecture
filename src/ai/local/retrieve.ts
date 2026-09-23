@@ -69,7 +69,16 @@ export function searchCards(query: string, cards: OkfCard[], limit = 3): ScoredC
     .slice(0, limit);
 }
 
-/** How many query terms are both in the card and uncommon across the bundle. */
+/** Tokens that name the card: id, title, and tags. Not the body. */
+export function nameTokens(card: OkfCard): Set<string> {
+  return new Set(tokenize(`${card.id} ${card.title} ${card.tags.join(" ")}`));
+}
+
+/** True when the student named this card, even with a single word like "MVC". */
+export function aliasHit(query: string, card: OkfCard): boolean {
+  const names = nameTokens(card);
+  return tokenize(query).some((token) => names.has(token));
+}
 export function distinctiveOverlap(query: string, card: OkfCard, cards: OkfCard[]): number {
   const queryTokens = new Set(tokenize(query));
   const cardTokens = new Set(tokenize(`${card.title} ${card.tags.join(" ")} ${card.summary} ${card.body}`));

@@ -1,6 +1,6 @@
 import { OKF_CARDS } from './cards.ts';
-import { distinctiveOverlap, SCOPE_FLOOR, searchCards, tokenize } from './retrieve.ts';
-import type { ChatTurn, OkfCard, ToolTrace, TutorTurn } from './types.ts';
+import { aliasHit, distinctiveOverlap, SCOPE_FLOOR, searchCards, tokenize } from './retrieve.ts';
+import type { ChatTurn, OkfCard, ScoredCard, ToolTrace, TutorTurn } from './types.ts';
 
 const PINNED: { id: string; terms: string[] }[] = [
   { id: "okf", terms: ["okf", "open knowledge", "frontmatter", "knowledge format"] },
@@ -22,6 +22,29 @@ export function buildQuery(question: string, history: ChatTurn[]): string {
   if (tokens.length >= 4) return question;
   const previous = [...history].reverse().find((turn) => turn.role === "user");
   return previous ? `${previous.content} ${question}` : question;
+}
+
+const PLAIN_ENGLISH: { pattern: RegExp; extra: string }[] = [
+  { pattern: /model[\s-]*view[\s-]*controller/i, extra: "mvc" },
+  { pattern: /\bmvc\b/i, extra: "model view controller" },
+  { pattern: /\bcap\b/i, extra: "consistency availability partition" },
+  { pattern: /backend\s+for\s+frontend|\bbff\b/i, extra: "bff" },
+  { pattern: /\bcqrs\b|event[\s-]*sourcing/i, extra: "cqrs event sourcing" },
+  { pattern: /\brag\b|retrieval[\s-]*augmented/i, extra: "rag" },
+];
+
+/** Students say "MVC" or "model view controller". Search both. */
+export function expandQuestion(question: string): string {
+  const extra = PLAIN_ENGLISH.filter((rule) => rule.pattern.test(question)).map((rule) => rule.extra);
+  return extra.length > 0 ? `${question} ${extra.join(" ")}` : question;
+}
+
+function promote(hits: ScoredCard[], card: OkfCard): ScoredCard[] {
+  const prior = hits.find((hit) => hit.card.id === card.id)?.score ?? SCOPE_FLOOR;
+  return [
+    { card, score: Math.max(prior, SCOPE_FLOOR) },
+    ...hits.filter((hit) => hit.card.id !== card.id),
+  ];
 }
 
 function pinnedFor(question: string): OkfCard[] {
@@ -50,21 +73,44 @@ export function notesAnswer(cards: OkfCard[]): string {
  * LangGraph-shaped turn: triage → search_lessons → read_concept → notes.
  * The SLM rewrites `answer` later; this function is the tool loop and is
  * deterministic so it can be tested without a model.
+ *
+ * `focusId` is the lesson open on the page. "Explain this" reads that card.
+ * A single title or tag ("MVC") is enough — students do not quote lesson titles.
  */
-export function prepareTurn(question: string, history: ChatTurn[] = []): TutorTurn {
-  const query = buildQuery(question, history);
-  const hits = searchCards(query, OKF_CARDS, 4);
-  const pins = pinnedFor(question);
-  const top = hits[0];
+export function prepareTurn(question: string, history: ChatTurn[] = [], focusId?: string): TutorTurn {
+  const expanded = expandQuestion(question);
+  const query = buildQuery(expanded, history);
+  let hits = searchCards(query, OKF_CARDS, 4);
+  const pins = pinnedFor(expanded);
+  const focus = focusId ? OKF_CARDS.find((card) => card.id === focusId) : undefined;
+  const deictic = tokenize(question).length === 0;
+
+  if (focus && (deictic || aliasHit(expanded, focus))) {
+    const focusScore = hits.find((hit) => hit.card.id === focus.id)?.score ?? 0;
+    const rival = hits.find(
+      (hit) => hit.card.id !== focus.id && aliasHit(expanded, hit.card) && hit.score > focusScore,
+    );
+    if (!rival) hits = promote(hits, focus);
+  }
+
+  const named = hits.find((hit) => aliasHit(expanded, hit.card));
+  const best = hits[0];
+  const lead =
+    named && best && named.score >= best.score * 0.45 ? named : best;
+  const ordered = lead ? [lead, ...hits.filter((hit) => hit.card.id !== lead.card.id)] : hits;
+  const overlap = lead ? distinctiveOverlap(query, lead.card, OKF_CARDS) : 0;
   const inScope =
     pins.length > 0 ||
-    Boolean(top && top.score >= SCOPE_FLOOR && distinctiveOverlap(query, top.card, OKF_CARDS) >= 2);
+    Boolean(focus && deictic) ||
+    Boolean(lead && aliasHit(expanded, lead.card) && lead.score > 0) ||
+    Boolean(lead && lead.score >= SCOPE_FLOOR && overlap >= 2);
+
   const traces: ToolTrace[] = [
     {
       name: "search_lessons",
-      input: JSON.stringify({ query }),
+      input: JSON.stringify({ query, lesson: focusId ?? null }),
       output: inScope
-        ? hits
+        ? ordered
             .slice(0, 3)
             .map((hit) => `${hit.card.id} (${hit.score.toFixed(2)})`)
             .join(", ")
@@ -72,7 +118,7 @@ export function prepareTurn(question: string, history: ChatTurn[] = []): TutorTu
     },
   ];
 
-  if (!inScope) {
+  if (!inScope || !lead) {
     return {
       inScope: false,
       answer: OUT_OF_SCOPE,
@@ -82,8 +128,7 @@ export function prepareTurn(question: string, history: ChatTurn[] = []): TutorTu
     };
   }
 
-  const lead = hits[0]?.score ?? 0;
-  const strong = hits.filter((hit) => hit.score >= lead * 0.45).map((hit) => hit.card);
+  const strong = ordered.filter((hit) => hit.score >= lead.score * 0.45).map((hit) => hit.card);
   const chosen = (() => {
     const merged: OkfCard[] = [];
     for (const card of [...pins, ...strong]) {

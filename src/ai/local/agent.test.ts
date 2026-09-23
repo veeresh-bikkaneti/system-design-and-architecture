@@ -22,6 +22,31 @@ describe('local OKF tutor', () => {
     expect(turn.answer).toMatch(/Open Knowledge Format/);
   });
 
+  it('answers a one-word lesson name and runs both tools', () => {
+    const turn = prepareTurn('MVC');
+    expect(turn.inScope).toBe(true);
+    expect(turn.sources[0]?.id).toBe('mvc-to-react');
+    expect(turn.answer).toMatch(/Model/);
+    expect(turn.traces.map((trace) => trace.name)).toEqual(['search_lessons', 'read_concept']);
+  });
+
+  it('answers the plain-English name of MVC', () => {
+    const turn = prepareTurn('what is model view controller?');
+    expect(turn.inScope).toBe(true);
+    expect(turn.sources.some((source) => source.id === 'mvc-to-react')).toBe(true);
+  });
+
+  it('reads the lesson open on the page when the question is "explain this"', () => {
+    const turn = prepareTurn('explain this', [], 'mvc-to-react');
+    expect(turn.inScope).toBe(true);
+    expect(turn.sources[0]?.id).toBe('mvc-to-react');
+    expect(turn.traces.some((trace) => trace.name === 'read_concept')).toBe(true);
+  });
+
+  it('does not let the open lesson hide a different named topic', () => {
+    const turn = prepareTurn('what is the CAP theorem', [], 'mvc-to-react');
+    expect(turn.sources[0]?.id).toBe('cap-theorem');
+  });
   it('declines off-topic questions', () => {
     const turn = prepareTurn('Write a poem about my cat named Miso');
     expect(turn.inScope).toBe(false);
