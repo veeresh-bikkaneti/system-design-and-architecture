@@ -38,8 +38,8 @@ export const OKF_CARDS: OkfCard[] = [
     order: 0,
     title: "How this tutor runs",
     tags: ["smollm", "local", "browser", "langgraph", "github pages", "wasm"],
-    summary: "A LangGraph-shaped loop with a local SmolLM2 model and no API key.",
-    body: "The course site is static and can live on GitHub Pages. This tutor does not call OpenAI, Anthropic, or Workers AI. Each question runs the same shape as the course's LangGraph: triage, then retrieve, then reason, then answer. triage keeps the question on the course. retrieve calls search_lessons over the OKF bundle (BM25, on device). read_concept opens the top cards and wraps them as data. When the lessons miss, or the student asks for a source, web_search reads a Wikipedia intro in the browser and the reply cites that article URL. SmolLM2-135M does not choose tools and does not browse by itself. The page runs the tools, then the model may rephrase a lesson answer. Weights download once from Hugging Face and stay in the browser cache.",
+    summary: "A LangGraph-shaped loop with a local Qwen model and no API key.",
+    body: "The course site is static and can live on GitHub Pages. This tutor does not call OpenAI, Anthropic, or Workers AI. Each question runs the same shape as the course's LangGraph: triage, then retrieve, then reason, then answer. triage keeps the question on the course. retrieve calls search_lessons over the OKF bundle (BM25, on device). read_concept opens the top cards and wraps them as data. When the lessons miss, or the student asks for a source, web_search reads a Wikipedia intro in the browser and the reply cites that article URL. Qwen2.5-0.5B does not choose tools and does not browse by itself. The page runs the tools, then the model may rephrase a lesson answer. Weights download once from Hugging Face and stay in the browser cache.",
   },
   {
     id: "scaling-web-service",

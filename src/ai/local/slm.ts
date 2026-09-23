@@ -1,8 +1,8 @@
 import { acceptDraft } from './agent.ts';
 import { tokenize } from './retrieve.ts';
 
-export const MODEL_ID = 'onnx-community/SmolLM2-135M-Instruct';
-export const MODEL_LABEL = 'SmolLM2-135M';
+export const MODEL_ID = 'onnx-community/Qwen2.5-0.5B-Instruct';
+export const MODEL_LABEL = 'Qwen2.5-0.5B';
 
 /**
  * Loaded from a CDN only when the learner actually asks, so the static
@@ -50,7 +50,7 @@ async function loadGenerator(): Promise<Generator> {
   }
   if (!generatorPromise) {
     generatorPromise = (async () => {
-      publish({ phase: 'loading', progress: 0, detail: 'Fetching SmolLM2' });
+      publish({ phase: 'loading', progress: 0, detail: 'Fetching Qwen' });
       const runtime = (await import(/* @vite-ignore */ TRANSFORMERS_URL)) as {
         pipeline: (
           task: string,

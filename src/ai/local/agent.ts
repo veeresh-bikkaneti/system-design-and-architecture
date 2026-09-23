@@ -63,15 +63,41 @@ export function formatContext(cards: OkfCard[]): string {
 const INTRO =
   "Hi, I'm Ben. Good to meet you. I'm your tutor for this course, and I run right here in your browser — no account and no API key. Ask me what MVC is, or for an analogy or a small example.";
 
-/** A greeting to Ben, including "hello Ben". Not a topic to look up. */
-export function isAboutMe(question: string): boolean {
-  const q = question.toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+function casual(question: string): string {
+  return question
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b(tody|tday|toady)\b/g, "today")
+    .replace(/\b(u|ya)\b/g, "you")
+    .replace(/\br\b/g, "are");
+}
+
+/** A greeting or small talk, including "hello Ben" and "how are you tody". */
+export function isSocial(question: string): boolean {
+  const q = casual(question);
   const squashed = q.replace(/ /g, "");
   if (/^(whoareyou|whatareyou|whoru|whoaryou|whoisben|whatisben)$/.test(squashed)) return true;
   if (/^(hi|hello|hey|hiya|howdy)( there)?( ben)?$/.test(q)) return true;
   if (/^good (morning|afternoon|evening)( ben)?$/.test(q)) return true;
   if (/^(thanks|thank you)( ben)?$/.test(q)) return true;
+  if (/^(how are you|how is it going|hows it going|whats up|what is up|how do you do|how have you been)( today)?( ben)?$/.test(q)) {
+    return true;
+  }
   return q === "ben";
+}
+
+export function isAboutMe(question: string): boolean {
+  return isSocial(question);
+}
+
+export function socialAnswer(question: string): string {
+  const q = casual(question);
+  if (/^(how are you|how is it going|hows it going|whats up|what is up|how do you do|how have you been)/.test(q)) {
+    return "I'm good, thanks for asking. I'm Ben, and I'm ready when you are. Want a course idea, like MVC or caching, or something I should look up?";
+  }
+  return INTRO;
 }
 
 function sentences(body: string): string[] {
@@ -129,7 +155,7 @@ function simpler(card: OkfCard): string {
 /** Look up a published page for every factual question, so the reply can cite it. */
 export function needsWeb(question: string, inScope: boolean): boolean {
   void inScope;
-  if (isAboutMe(question)) return false;
+  if (isSocial(question)) return false;
   if (/\b(poem|joke|lyrics|song)\b/i.test(question)) return false;
   return true;
 }
@@ -154,10 +180,10 @@ export function spokenAnswer(question: string, cards: OkfCard[], history: ChatTu
  * A single title or tag ("MVC") is enough — students do not quote lesson titles.
  */
 export function prepareTurn(question: string, history: ChatTurn[] = [], focusId?: string): TutorTurn {
-  if (isAboutMe(question)) {
+  if (isSocial(question)) {
     return {
       inScope: true,
-      answer: INTRO,
+      answer: socialAnswer(question),
       sources: [],
       traces: [
         {
