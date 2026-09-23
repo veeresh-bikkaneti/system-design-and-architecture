@@ -1,4 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { prepareTurn } from '../../ai/local/agent';
+import { OKF_CARDS } from '../../ai/local/cards';
+import {
+  getModelStatus,
+  MODEL_LABEL,
+  rewriteWithModel,
+  subscribeModel,
+  type ModelStatus,
+} from '../../ai/local/slm';
 import { ChatMarkdown } from '../ChatMarkdown';
 import { quotaLabel } from './quota';
 import {
@@ -13,6 +22,11 @@ import { useQaSession } from './useQaSession';
 
 /** Backend input cap (architecture §4.2): never send more than the Worker accepts. */
 const MAX_MESSAGE_LENGTH = 2000;
+
+/** GitHub Pages has no model API. A base URL opts back into the Worker. */
+const USE_LOCAL_TUTOR = (import.meta.env.VITE_QA_API_BASE ?? '') === '';
+
+const LESSON_IDS = new Set(OKF_CARDS.filter((card) => card.type === 'Lesson').map((card) => card.id));
 
 interface QaMessage {
   id: number;
@@ -90,11 +104,14 @@ export function QaWidget() {
   const [streaming, setStreaming] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [quota, setQuota] = useState<QaQuota | null>(null);
+  const [modelStatus, setModelStatus] = useState<ModelStatus>(getModelStatus());
   const nextId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { sessionId, ensureSession, newTopic } = useQaSession();
+
+  useEffect(() => subscribeModel(setModelStatus), []);
 
   const refreshQuota = useCallback(async (sid: string) => {
     try {
@@ -106,7 +123,7 @@ export function QaWidget() {
 
   // A stored session from a previous visit restores its quota on mount.
   useEffect(() => {
-    if (sessionId) void refreshQuota(sessionId);
+    if (!USE_LOCAL_TUTOR && sessionId) void refreshQuota(sessionId);
   }, [sessionId, refreshQuota]);
 
   useEffect(() => {
@@ -159,6 +176,10 @@ export function QaWidget() {
   async function handleSend() {
     const text = input.trim().slice(0, MAX_MESSAGE_LENGTH);
     if (!text || streaming) return;
+    if (USE_LOCAL_TUTOR) {
+      await handleLocalSend(text);
+      return;
+    }
 
     setInput('');
     addMessage('user', text);
@@ -208,7 +229,40 @@ export function QaWidget() {
     }
   }
 
+  async function handleLocalSend(text: string) {
+    setInput('');
+    const history = messages
+      .filter((message) => !message.isError && message.content.length > 0)
+      .map((message) => ({ role: message.role, content: message.content }));
+    addMessage('user', text);
+    const turn = prepareTurn(text, history);
+    const assistantId = addMessage('assistant', turn.answer);
+    const lessons = turn.sources
+      .filter((source) => LESSON_IDS.has(source.id))
+      .map((source) => ({ slug: source.id, title: source.title }));
+    if (lessons.length > 0) patchMessage(assistantId, { sources: lessons });
+    if (!turn.inScope) return;
+
+    setStreaming(true);
+    try {
+      const prior = history
+        .slice(-4)
+        .map((item) => `${item.role === 'user' ? 'Learner' : 'Tutor'}: ${item.content.slice(0, 280)}`)
+        .join('\n');
+      const draft = await rewriteWithModel(text, turn.context, prior);
+      if (draft) patchMessage(assistantId, { content: draft });
+    } catch {
+      // The OKF notes are already on screen. A failed download must not wipe them.
+    } finally {
+      setStreaming(false);
+    }
+  }
+
   async function handleNewTopic() {
+    if (USE_LOCAL_TUTOR) {
+      setMessages([]);
+      return;
+    }
     if (rotating || streaming) return;
     abortRef.current?.abort();
     setRotating(true);
@@ -259,7 +313,13 @@ export function QaWidget() {
                 Ask the course
               </h2>
               <p className="truncate text-xs text-stone-500 dark:text-stone-400">
-                {badge ?? 'Answers grounded in the lessons'}
+                {USE_LOCAL_TUTOR
+                  ? modelStatus.phase === 'loading'
+                    ? `Loading ${MODEL_LABEL} · ${modelStatus.progress}%`
+                    : modelStatus.phase === 'ready'
+                      ? `${MODEL_LABEL} on this device`
+                      : 'Runs in your browser · no API key'
+                  : (badge ?? 'Answers grounded in the lessons')}
               </p>
             </div>
             <div className="flex items-center gap-1">
@@ -289,8 +349,9 @@ export function QaWidget() {
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
                 <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
                   Ask anything about the course — the assistant answers from the lessons and
-                  cites its sources. It remembers this conversation until you start a new
-                  topic.
+                  cites its sources. {USE_LOCAL_TUTOR
+                    ? 'It runs a small model in this browser, with OKF notes and LangChain-style tool calls. No account and no API key.'
+                    : 'It remembers this conversation until you start a new topic.'}
                 </p>
               </div>
             )}
@@ -333,7 +394,7 @@ export function QaWidget() {
                       {message.sources.map((source) => (
                         <a
                           key={source.slug}
-                          href={`#/lesson/${source.slug}`}
+                          href={`${import.meta.env.BASE_URL}lesson/${source.slug}`}
                           className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70"
                         >
                           {source.title}

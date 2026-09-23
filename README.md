@@ -12,13 +12,14 @@
 
 The lessons, quizzes, and badges are a static site, so your progress never leaves your machine. (Only the optional AI assistant above talks to a backend API.)
 
-## AI assistant (free, no key needed)
+## AI assistant (free, no key, no cloud model)
 
-Stuck on a lesson? The floating chat button opens a course Q&A assistant that answers questions about the lessons, points you at the right diagrams and videos, and remembers the conversation while you explore. It runs on our backend (a small language model orchestrated with LangGraph) — anonymous, no login, no API key:
+Stuck on a lesson? The floating chat button opens a course Q&A assistant. On GitHub Pages it does **not** call an AI provider:
 
-- **No key, no account.** Just ask. Usage is rate-limited per session to keep it fair.
-- **Course-scoped.** It answers from the course content and politely declines off-topic questions.
-- **Short memory.** It remembers your current session's conversation so follow-ups make sense; starting a new topic wipes the slate.
+- **Small model, in your browser.** SmolLM2-135M (ONNX, via Transformers.js) runs on your device. Weights download once from Hugging Face and stay in the browser cache. No API key, no subscription.
+- **Clean context.** The course is an [Open Knowledge Format](https://github.com/GoogleCloudPlatform/open-knowledge-format) bundle: one short card per lesson, plus guides for OKF itself and for LangChain tool calling. Each question retrieves two or three cards. The model only sees that slice.
+- **Tool calling, LangChain-shaped.** The page — not the model — runs `search_lessons` and `read_concept`, the same contract as LangChain `bind_tools` / the Worker’s LangGraph (`triage → retrieve → reason → answer`). Tool output is treated as data, not as new instructions. If the small model’s draft is unusable, the OKF notes stand on their own.
+- **Optional Worker.** Set `VITE_QA_API_BASE` at build time to send chat to the Cloudflare Worker instead. The lessons, quizzes, and badges never depend on either path.
 
 The assistant is strictly additive: every lesson, quiz, badge, and progress feature works without it.
 
