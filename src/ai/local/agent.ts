@@ -15,7 +15,7 @@ const PINNED: { id: string; terms: string[] }[] = [
 ];
 
 const OUT_OF_SCOPE =
-  "I don't have a lesson on that. Ask me about something we do cover — how a website grows, caching, queues, or the CAP theorem — and I'll explain it in plain words.";
+  "I could not find a source for that, so I will not guess.";
 
 export function buildQuery(question: string, history: ChatTurn[]): string {
   const tokens = tokenize(question);
@@ -122,15 +122,12 @@ function simpler(card: OkfCard): string {
   return `${summary.replace(/\.$/, "")}. ${first}`.trim();
 }
 
-/** Course notes first. The open web only when the notes miss, or the student asks for a source. */
+/** Look up a published page for every factual question, so the reply can cite it. */
 export function needsWeb(question: string, inScope: boolean): boolean {
+  void inScope;
   if (isAboutMe(question)) return false;
-  const q = question.toLowerCase();
-  if (/\b(poem|joke|lyrics|song)\b/.test(q)) return false;
-  if (/\b(look up|look this up|search the web|wikipedia|cite|citation|source|reference|according to)\b/.test(q)) {
-    return true;
-  }
-  return !inScope;
+  if (/\b(poem|joke|lyrics|song)\b/i.test(question)) return false;
+  return true;
 }
 export function spokenAnswer(question: string, cards: OkfCard[], history: ChatTurn[] = []): string {
   const [lead] = cards;

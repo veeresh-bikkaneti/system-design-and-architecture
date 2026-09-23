@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { prepareTurn, needsWeb, buildQuery } from '../../ai/local/agent';
+import { prepareTurn, needsWeb, isAboutMe } from '../../ai/local/agent';
 import { OKF_CARDS } from '../../ai/local/cards';
-import { searchWeb, spokenWeb, webAside } from '../../ai/local/web';
+import { grounding, searchWeb, spokenWeb, webAside, webQuery, type ConfidenceLevel } from '../../ai/local/web';
 import {
   getModelStatus,
   MODEL_LABEL,
@@ -40,6 +40,7 @@ interface QaMessage {
   content: string;
   isError?: boolean;
   sources?: BubbleSource[];
+  confidence?: { level: ConfidenceLevel; label: string };
 }
 
 function ChatBubbleIcon({ className }: { className?: string }) {
@@ -257,7 +258,7 @@ export function QaWidget() {
     addMessage('user', text);
     const turn = prepareTurn(text, history, focusId);
     const lookup = needsWeb(text, turn.inScope);
-    const assistantId = addMessage('assistant', lookup && !turn.inScope ? '' : turn.answer);
+    const assistantId = addMessage('assistant', '');
     const lessonSources = turn.inScope
       ? turn.sources
           .filter((source) => LESSON_IDS.has(source.id))
@@ -269,31 +270,51 @@ export function QaWidget() {
 
     setStreaming(true);
     try {
-      let content = turn.answer;
       const sources = [...lessonSources];
+      let hit: Awaited<ReturnType<typeof searchWeb>>[number] | undefined;
       if (lookup) {
-        const hits = await searchWeb(buildQuery(text, history));
-        const hit = hits[0];
-        if (hit) {
-          content = turn.inScope ? `${turn.answer}${webAside(hit)}` : spokenWeb(hit);
-          sources.push({ title: hit.title, href: hit.url });
-        } else if (!turn.inScope) {
-          content = "I looked for a page I could cite and didn't find one. Try the topic in a few plain words.";
-        }
+        const query = webQuery(text, turn.inScope ? turn.sources[0]?.title : undefined);
+        const hits = await searchWeb(query);
+        hit = hits[0];
+        if (hit) sources.push({ title: hit.title, href: hit.url });
       }
-      patchMessage(assistantId, { content, sources });
-      if (!turn.inScope || lookup) return;
+      const aboutMe = isAboutMe(text);
+      const confidence = grounding({ aboutMe, inScope: turn.inScope, citedWeb: Boolean(hit) });
+      let content = aboutMe
+        ? turn.answer
+        : turn.inScope
+          ? `${turn.answer}${hit ? webAside(hit) : ''}`
+          : hit
+            ? spokenWeb(hit)
+            : confidence.label.startsWith('Low')
+              ? 'I could not find a source for that, so I will not guess.'
+              : turn.answer;
+      patchMessage(assistantId, { content, sources, confidence });
 
+      if (aboutMe || (!turn.inScope && !hit)) return;
       const prior = history
         .slice(-4)
         .map((item) => `${item.role === 'user' ? 'Learner' : 'Tutor'}: ${item.content.slice(0, 280)}`)
         .join('\n');
-      const draft = await rewriteWithModel(text, turn.context, prior);
+      const context = [
+        turn.context,
+        hit ? `Published page: ${hit.title}\n${hit.extract.slice(0, 700)}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+      const draft = await rewriteWithModel(text, context, prior);
       if (draft) patchMessage(assistantId, { content: draft });
     } catch {
-      if (lookup && !turn.inScope) {
+      if (turn.inScope) {
         patchMessage(assistantId, {
-          content: "I couldn't reach a source just now. Ask me about a lesson, like caching or the CAP theorem, and I can still explain that.",
+          content: turn.answer,
+          sources: lessonSources,
+          confidence: { level: 'high', label: 'High confidence · from the course lesson' },
+        });
+      } else {
+        patchMessage(assistantId, {
+          content: 'I could not reach a source just now, so I will not guess.',
+          confidence: { level: 'low', label: 'Low confidence · the source check failed' },
         });
       }
     } finally {
@@ -436,6 +457,11 @@ export function QaWidget() {
                       </span>
                       Thinking
                     </span>
+                  )}
+                  {message.confidence && (
+                    <p className="mt-2 text-[11px] font-medium text-stone-500 dark:text-stone-400">
+                      {message.confidence.label}
+                    </p>
                   )}
                   {message.sources && message.sources.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5 border-t border-stone-200/70 pt-2 dark:border-stone-700">

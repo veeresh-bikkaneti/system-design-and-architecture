@@ -38,6 +38,49 @@ export function wikiExtractUrl(pageId: number): string {
   })}`;
 }
 
+const LANGUAGE_QUERIES: { pattern: RegExp; query: string }[] = [
+  { pattern: /\bjavascript\b|\bjs\b/i, query: "JavaScript" },
+  { pattern: /\btypescript\b/i, query: "TypeScript" },
+  { pattern: /\bc\s*#|c\s*sharp|csharp\b/i, query: "C Sharp (programming language)" },
+  { pattern: /\bjava\b/i, query: "Java (programming language)" },
+  { pattern: /\bpython\b/i, query: "Python (programming language)" },
+  { pattern: /\bgolang\b|\bgo lang\b/i, query: "Go (programming language)" },
+  { pattern: /\brust\b/i, query: "Rust (programming language)" },
+  { pattern: /\bkotlin\b/i, query: "Kotlin (programming language)" },
+];
+
+/** Turn a beginner question into a Wikipedia search that does not land on the wrong page. */
+export function webQuery(question: string, lessonTitle?: string): string {
+  for (const rule of LANGUAGE_QUERIES) {
+    if (rule.pattern.test(question)) return rule.query;
+  }
+  if (lessonTitle) return lessonTitle;
+  const stripped = question
+    .replace(/^(what is|what's|whats|who is|explain|define|tell me about)\s+/i, "")
+    .replace(/[?#]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return stripped || question.trim();
+}
+
+export type ConfidenceLevel = "high" | "medium" | "low";
+
+export function grounding(options: {
+  aboutMe: boolean;
+  inScope: boolean;
+  citedWeb: boolean;
+}): { level: ConfidenceLevel; label: string } {
+  if (options.aboutMe) return { level: "high", label: "High confidence · this is who I am" };
+  if (options.inScope && options.citedWeb) {
+    return { level: "high", label: "High confidence · course lesson, checked against a published page" };
+  }
+  if (options.inScope) return { level: "high", label: "High confidence · from the course lesson" };
+  if (options.citedWeb) {
+    return { level: "medium", label: "Medium confidence · not a lesson here. Checked a published page just now" };
+  }
+  return { level: "low", label: "Low confidence · I could not find a source, so I will not guess" };
+}
+
 export function wikiPageUrl(title: string): string {
   return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
 }

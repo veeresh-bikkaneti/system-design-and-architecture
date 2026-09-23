@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { needsWeb, prepareTurn } from './agent.ts';
-import { spokenWeb, webAside, wikiPageUrl, wikiSearchUrl, searchWeb, type WebHit } from './web.ts';
+import { grounding, spokenWeb, webAside, webQuery, wikiPageUrl, wikiSearchUrl, searchWeb, type WebHit } from './web.ts';
 
 const java: WebHit = {
   title: 'Java (programming language)',
@@ -9,12 +9,20 @@ const java: WebHit = {
 };
 
 describe('web tool', () => {
-  it('searches the web only when the lessons miss or a source is requested', () => {
+  it('searches the web for factual questions, including ones the lessons already cover', () => {
     expect(needsWeb('what is java', false)).toBe(true);
-    expect(needsWeb('analogy for MVC', true)).toBe(false);
-    expect(needsWeb('cite a source for the CAP theorem', true)).toBe(true);
+    expect(needsWeb('what is C#', false)).toBe(true);
+    expect(needsWeb('analogy for MVC', true)).toBe(true);
     expect(needsWeb('Write a poem about my cat', false)).toBe(false);
     expect(needsWeb('who are you', false)).toBe(false);
+  });
+
+  it('sends java and C# to the programming-language pages', () => {
+    expect(webQuery('what is java')).toBe('Java (programming language)');
+    expect(webQuery('what is C#')).toBe('C Sharp (programming language)');
+    expect(grounding({ aboutMe: false, inScope: false, citedWeb: true }).level).toBe('medium');
+    expect(grounding({ aboutMe: false, inScope: false, citedWeb: false }).level).toBe('low');
+    expect(grounding({ aboutMe: false, inScope: true, citedWeb: true }).level).toBe('high');
   });
 
   it('cites a wikipedia article instead of guessing', () => {
@@ -46,7 +54,7 @@ describe('web tool', () => {
 
   it('still answers MVC from the lesson when no web lookup is needed', () => {
     const turn = prepareTurn('analogy for MVC');
-    expect(needsWeb('analogy for MVC', turn.inScope)).toBe(false);
+    expect(needsWeb('analogy for MVC', turn.inScope)).toBe(true);
     expect(turn.sources[0]?.id).toBe('mvc-to-react');
   });
 });
