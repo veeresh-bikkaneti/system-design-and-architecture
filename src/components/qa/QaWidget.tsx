@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { prepareTurn, needsWeb, isSocial } from '../../ai/local/agent';
+import { prepareTurn, needsWeb, isAboutTutor } from '../../ai/local/agent';
 import { OKF_CARDS } from '../../ai/local/cards';
 import { grounding, searchWeb, spokenWeb, webAside, webQuery, type ConfidenceLevel } from '../../ai/local/web';
 import {
@@ -278,7 +278,7 @@ export function QaWidget() {
         hit = hits[0];
         if (hit) sources.push({ title: hit.title, href: hit.url });
       }
-      const aboutMe = isSocial(text);
+      const aboutMe = isAboutTutor(text);
       const confidence = grounding({ aboutMe, inScope: turn.inScope, citedWeb: Boolean(hit) });
       let content = aboutMe
         ? turn.answer

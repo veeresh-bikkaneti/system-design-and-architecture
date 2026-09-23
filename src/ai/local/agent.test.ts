@@ -47,6 +47,15 @@ describe('local OKF tutor', () => {
     const turn = prepareTurn('what is the CAP theorem', [], 'mvc-to-react');
     expect(turn.sources[0]?.id).toBe('cap-theorem');
   });
+  it('does not search the web for a question about Ben', () => {
+    const turn = prepareTurn("Hello Ben who's your boss");
+    expect(turn.answer).toMatch(/don't have a boss/);
+    expect(turn.answer).not.toMatch(/Sketch|Sousa|HBO/i);
+    expect(needsWeb("Who is your boss", turn.inScope)).toBe(false);
+    expect(needsWeb('what is amazon', false)).toBe(true);
+    expect(needsWeb('can you explain caching', true)).toBe(true);
+  });
+
   it('does not search the web for small talk with a typo', () => {
     const turn = prepareTurn('how are you tody');
     expect(turn.answer).toMatch(/I'm good/);

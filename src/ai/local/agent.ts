@@ -88,15 +88,40 @@ export function isSocial(question: string): boolean {
 }
 
 export function isAboutMe(question: string): boolean {
-  return isSocial(question);
+  return isAboutTutor(question);
+}
+
+/** A question aimed at Ben, not at a subject to look up. */
+export function isAboutTutor(question: string): boolean {
+  if (isSocial(question)) return true;
+  const q = casual(question);
+  const asksMe = /\b(you|your|yourself|ben)\b/.test(q);
+  if (!asksMe) return false;
+  if (/\b(yourself|about you|about ben)\b/.test(q)) return true;
+  if (/\b(boss|creator|maker|age|human|robot|real|name|hometown|job)\b/.test(q)) return true;
+  if (/\b(who are you|what are you|who is your|what is your|whats your|where are you|how old|are you|do you do|can you do)\b/.test(q)) {
+    return true;
+  }
+  if (/^(can you|could you|would you|please|explain|what is|whats|tell me about)\b/.test(q)) return false;
+  return /\b(who|what|where)\b.*\byour\b/.test(q);
 }
 
 export function socialAnswer(question: string): string {
   const q = casual(question);
+  if (/\bboss\b/.test(q)) {
+    return "I don't have a boss. I'm Ben, the tutor on this page. Nobody manages me. Ask me about a lesson, or name something you want me to look up.";
+  }
+  if (/\b(made|built|created|creator|maker)\b/.test(q)) {
+    return "I'm Ben. I ship with this course and I run in your browser. I don't have a company or a manager.";
+  }
+  if (/\b(how old|your age|bot|robot|human|real)\b/.test(q)) {
+    return "I'm a tutor that runs in your browser. Not a person. I read the lesson first, and I only quote a published page when the lesson doesn't cover it.";
+  }
   if (/^(how are you|how is it going|hows it going|whats up|what is up|how do you do|how have you been)/.test(q)) {
     return "I'm good, thanks for asking. I'm Ben, and I'm ready when you are. Want a course idea, like MVC or caching, or something I should look up?";
   }
-  return INTRO;
+  if (isSocial(question)) return INTRO;
+  return "I'm Ben. I tutor this course. I don't have a life off this page, so I can't look myself up the way I look up a company or a tool.";
 }
 
 function sentences(body: string): string[] {
@@ -154,7 +179,7 @@ function simpler(card: OkfCard): string {
 /** Look up a published page for every factual question, so the reply can cite it. */
 export function needsWeb(question: string, inScope: boolean): boolean {
   void inScope;
-  if (isSocial(question)) return false;
+  if (isAboutTutor(question)) return false;
   if (/\b(poem|joke|lyrics|song)\b/i.test(question)) return false;
   return true;
 }
@@ -179,7 +204,7 @@ export function spokenAnswer(question: string, cards: OkfCard[], history: ChatTu
  * A single title or tag ("MVC") is enough — students do not quote lesson titles.
  */
 export function prepareTurn(question: string, history: ChatTurn[] = [], focusId?: string): TutorTurn {
-  if (isSocial(question)) {
+  if (isAboutTutor(question)) {
     return {
       inScope: true,
       answer: socialAnswer(question),

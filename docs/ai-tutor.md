@@ -48,7 +48,7 @@ flowchart TD
   qwen --> keep
 ```
 
-Small talk never reaches Wikipedia. "hello Ben" and "how are you tody" stay with Ben. A poem is declined. Anything else factual is looked up.
+Small talk, and questions about Ben himself, never reach Wikipedia. "hello Ben", "how are you tody", and "who is your boss" stay with Ben. A poem is declined. A real subject, such as "what is amazon", is looked up and cited.
 
 `search_lessons` is BM25 over card title, tags, summary, and body. One word is enough when it is a lesson name or tag, such as MVC. The lesson open on the page is used for "explain this".
 
