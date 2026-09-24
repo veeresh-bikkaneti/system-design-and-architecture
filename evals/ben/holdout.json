@@ -1,0 +1,58 @@
+{
+  "about": "Second held-out set, written after the router and example bank were tuned against cases.json and before this file was ever scored. Do not tune against it: when it starts driving changes, move its cases into cases.json and write a new holdout.",
+  "cases": [
+    { "id": "h-c-cache-warm", "q": "what does warming a cache mean", "intent": "course", "action": "lesson", "lessons": ["caching-strategies"] },
+    { "id": "h-c-lb-sticky", "q": "Why are sticky sessions a problem behind a load balancer?", "intent": "course", "action": "lesson", "lessons": ["load-balancers"] },
+    { "id": "h-c-queue-order", "q": "does a queue guarantee messages arrive in order", "intent": "course", "action": "lesson", "lessons": ["message-queues", "designing-chat-at-scale"] },
+    { "id": "h-c-idem-key", "q": "Where do I store idempotency keys and for how long?", "intent": "course", "action": "lesson", "lessons": ["idempotency"] },
+    { "id": "h-c-gql-n1", "q": "what is the N+1 problem in graphql", "intent": "course", "action": "lesson", "lessons": ["graphql-vs-rest"] },
+    { "id": "h-c-raft-split", "q": "What stops two Raft leaders existing at once?", "intent": "course", "action": "lesson", "lessons": ["consensus-raft"] },
+    { "id": "h-c-cdn-dynamic", "q": "can a CDN help with dynamic pages or only static files", "intent": "course", "action": "lesson", "lessons": ["cdns"] },
+    { "id": "h-c-saga", "q": "explain compensating transactions", "intent": "course", "action": "lesson", "lessons": ["distributed-transactions"] },
+    { "id": "h-c-trace", "q": "How does a trace ID follow a request across services?", "intent": "course", "action": "lesson", "lessons": ["observability"] },
+    { "id": "h-c-dip", "q": "dependency inversion vs dependency injection", "intent": "course", "action": "lesson", "lessons": ["solid-principles"] },
+    { "id": "h-c-shortener-scale", "q": "How many servers would a link shortener with 100 million links need?", "intent": "course", "action": "lesson", "lessons": ["url-shortener", "scaling-web-service"] },
+    { "id": "h-c-rag-chunk", "q": "how should I chunk documents for retrieval", "intent": "course", "action": "lesson", "lessons": ["designing-ai-systems"] },
+    { "id": "h-c-feed-celebrity", "q": "How do you handle celebrities with millions of followers in a feed?", "intent": "course", "action": "lesson", "lessons": ["design-instagram"] },
+    { "id": "h-c-presence", "q": "how does a chat app show who is online", "intent": "course", "action": "lesson", "lessons": ["designing-chat-at-scale"] },
+    { "id": "h-c-kafka-batch", "q": "Is a nightly ETL job still a good idea?", "intent": "course", "action": "lesson", "lessons": ["stream-vs-batch"] },
+    { "id": "h-c-conflict", "q": "How are write conflicts resolved between two regions?", "intent": "course", "action": "lesson", "lessons": ["multi-region-active-active", "replication-consistency-models"] },
+    { "id": "h-c-mtls", "q": "Who issues certificates for service-to-service calls?", "intent": "course", "action": "lesson", "lessons": ["zero-trust-security"] },
+    { "id": "h-c-rbac", "q": "rbac vs abac", "intent": "course", "action": "lesson", "lessons": ["authn-authz"] },
+    { "id": "h-c-leaky", "q": "What is a leaky bucket?", "intent": "course", "action": "lesson", "lessons": ["rate-limiting"] },
+    { "id": "h-c-bff-owner", "q": "who should own the mobile backend team or platform team", "intent": "course", "action": "lesson", "lessons": ["bff-backend-for-frontend"] },
+    { "id": "h-c-mono-modular", "q": "What is a modular monolith?", "intent": "course", "action": "lesson", "lessons": ["microservices-vs-monolith", "microservices-patterns-pitfalls"] },
+    { "id": "h-c-snapshot", "q": "why take snapshots in an event-sourced system", "intent": "course", "action": "lesson", "lessons": ["event-sourcing-cqrs"] },
+
+    { "id": "h-t-go", "q": "what is golang", "intent": "tech", "action": "lookup" },
+    { "id": "h-t-flutter", "q": "What is Flutter?", "intent": "tech", "action": "lookup" },
+    { "id": "h-t-spring", "q": "what is spring boot", "intent": "tech", "action": "lookup" },
+    { "id": "h-t-postman", "q": "what is postman", "intent": "tech", "action": "lookup" },
+    { "id": "h-t-sass", "q": "what is sass css", "intent": "tech", "action": "lookup" },
+    { "id": "h-t-copilot", "q": "What is GitHub Copilot?", "intent": "tech", "action": "lookup" },
+
+    { "id": "h-d-religion-state", "q": "Should church and state be separate?", "intent": "debate", "action": "redirect" },
+    { "id": "h-d-climate", "q": "Is climate change exaggerated by the media?", "intent": "debate", "action": "redirect" },
+    { "id": "h-d-drugs", "q": "Should all drugs be legalized?", "intent": "debate", "action": "redirect" },
+    { "id": "h-d-ai-art", "q": "Is AI art real art?", "intent": "debate", "action": "redirect" },
+    { "id": "h-d-standardized", "q": "Are standardized tests fair to poor students?", "intent": "debate", "action": "redirect" },
+    { "id": "h-d-afterlife", "q": "What happens after we die?", "intent": "debate", "action": "redirect", "alsoOk": ["redirect"] },
+
+    { "id": "h-o-pasta", "q": "how long do I boil pasta", "intent": "off_topic", "action": "redirect" },
+    { "id": "h-o-resume", "q": "can you fix the grammar in my cover letter", "intent": "off_topic", "action": "redirect" },
+    { "id": "h-o-volcano", "q": "why do volcanoes erupt", "intent": "off_topic", "action": "redirect" },
+    { "id": "h-o-cat", "q": "my cat keeps scratching the sofa", "intent": "off_topic", "action": "redirect" },
+    { "id": "h-o-tax", "q": "when is the deadline to file my taxes", "intent": "off_topic", "action": "redirect" },
+
+    { "id": "h-trap-load-truck", "q": "What is the best way to load a moving truck?", "intent": "off_topic", "action": "redirect" },
+    { "id": "h-trap-stream-river", "q": "Why do streams flow into rivers?", "intent": "off_topic", "action": "redirect" },
+    { "id": "h-trap-batch-cookies", "q": "How big should a batch of cookies be for a party?", "intent": "off_topic", "action": "redirect" },
+    { "id": "h-trap-gateway-arch", "q": "Who built the Gateway Arch in St. Louis?", "intent": "off_topic", "action": "redirect" },
+    { "id": "h-trap-replica-watch", "q": "Is it illegal to buy a replica watch?", "intent": "off_topic", "action": "redirect", "alsoOk": ["redirect"] },
+    { "id": "h-trap-token-arcade", "q": "How many tokens do I need for the arcade?", "intent": "off_topic", "action": "redirect" },
+    { "id": "h-trap-cap-graduation", "q": "Where do I buy a graduation cap and gown?", "intent": "off_topic", "action": "redirect" },
+
+    { "id": "h-s-name", "q": "what should I call you", "intent": "self", "action": "self" },
+    { "id": "h-s-morning", "q": "good morning", "intent": "self", "action": "self" }
+  ]
+}

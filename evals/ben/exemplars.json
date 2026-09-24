@@ -1,0 +1,797 @@
+{
+  "about": "Labelled example questions Ben's intent k-NN votes with. Shipped as vectors only. Must never share a question with cases.json (enforced by a test). course = system design or software architecture, including trade-off opinions about technology. tech = general software or computing outside the lessons. debate = non-technical opinion, values, religion, politics. off_topic = everyday non-technical requests. self = about Ben, greetings, small talk.",
+  "examples": [
+    {
+      "intent": "course",
+      "text": "How does a load balancer decide which server gets a request?"
+    },
+    {
+      "intent": "course",
+      "text": "What happens to my web app when traffic grows ten times?"
+    },
+    {
+      "intent": "course",
+      "text": "When should I add a read replica to my database?"
+    },
+    {
+      "intent": "course",
+      "text": "Explain vertical versus horizontal scaling"
+    },
+    {
+      "intent": "course",
+      "text": "What is the single responsibility principle?"
+    },
+    {
+      "intent": "course",
+      "text": "Why should classes depend on interfaces instead of concrete classes?"
+    },
+    {
+      "intent": "course",
+      "text": "How did frontend architecture change from MVC to components?"
+    },
+    {
+      "intent": "course",
+      "text": "What does the CAP theorem force me to choose during a network partition?"
+    },
+    {
+      "intent": "course",
+      "text": "Is my database CP or AP?"
+    },
+    {
+      "intent": "course",
+      "text": "Round robin or least connections, which balancing algorithm is better?"
+    },
+    {
+      "intent": "course",
+      "text": "Should I pick a document store or a relational database for user profiles?"
+    },
+    {
+      "intent": "course",
+      "text": "What is a wide-column store good for?"
+    },
+    {
+      "intent": "course",
+      "text": "How do I split a huge table across several machines?"
+    },
+    {
+      "intent": "course",
+      "text": "How would you design a service like bit.ly?"
+    },
+    {
+      "intent": "course",
+      "text": "How do I make a payment API safe to retry?"
+    },
+    {
+      "intent": "course",
+      "text": "What is the difference between authentication and authorization?"
+    },
+    {
+      "intent": "course",
+      "text": "How do OAuth tokens and sessions keep a user logged in?"
+    },
+    {
+      "intent": "course",
+      "text": "When should I invalidate the cache after a write?"
+    },
+    {
+      "intent": "course",
+      "text": "Write-through or cache-aside, which one should I use?"
+    },
+    {
+      "intent": "course",
+      "text": "How does a CDN make images load faster for users far away?"
+    },
+    {
+      "intent": "course",
+      "text": "What does cloud-native actually mean for how I build services?"
+    },
+    {
+      "intent": "course",
+      "text": "Why put a queue between two services?"
+    },
+    {
+      "intent": "course",
+      "text": "Kafka or RabbitMQ for background jobs?"
+    },
+    {
+      "intent": "course",
+      "text": "What does an API gateway do that a load balancer doesn't?"
+    },
+    {
+      "intent": "course",
+      "text": "Why would the mobile app get its own backend?"
+    },
+    {
+      "intent": "course",
+      "text": "What is eventual consistency and when is it acceptable?"
+    },
+    {
+      "intent": "course",
+      "text": "Leader-follower or multi-leader replication?"
+    },
+    {
+      "intent": "course",
+      "text": "How do I stop a single user from sending thousands of requests a second?"
+    },
+    {
+      "intent": "course",
+      "text": "Is a monolith really that bad for a small team?"
+    },
+    {
+      "intent": "course",
+      "text": "What is a distributed monolith and how do I avoid it?"
+    },
+    {
+      "intent": "course",
+      "text": "What does a circuit breaker protect against?"
+    },
+    {
+      "intent": "course",
+      "text": "Why add jitter to exponential backoff?"
+    },
+    {
+      "intent": "course",
+      "text": "When is batch processing better than streaming?"
+    },
+    {
+      "intent": "course",
+      "text": "How does Raft elect a new leader when one crashes?"
+    },
+    {
+      "intent": "course",
+      "text": "Hash sharding or range sharding for time-series data?"
+    },
+    {
+      "intent": "course",
+      "text": "How do sagas replace two-phase commit?"
+    },
+    {
+      "intent": "course",
+      "text": "What is the difference between logs, metrics and traces?"
+    },
+    {
+      "intent": "course",
+      "text": "What is a bounded context in domain-driven design?"
+    },
+    {
+      "intent": "course",
+      "text": "How do I keep a legacy system's data model out of my new service?"
+    },
+    {
+      "intent": "course",
+      "text": "How would you design the feed for a photo-sharing app?"
+    },
+    {
+      "intent": "course",
+      "text": "How does retrieval-augmented generation work in production?"
+    },
+    {
+      "intent": "course",
+      "text": "Why do multi-agent AI systems fail so often?"
+    },
+    {
+      "intent": "course",
+      "text": "What does it mean to store events instead of current state?"
+    },
+    {
+      "intent": "course",
+      "text": "How are messages delivered in order in a group chat at scale?"
+    },
+    {
+      "intent": "course",
+      "text": "When is GraphQL a better fit than REST?"
+    },
+    {
+      "intent": "course",
+      "text": "How can two data centers both accept writes safely?"
+    },
+    {
+      "intent": "course",
+      "text": "Why is trusting everything inside the VPN a bad idea?"
+    },
+    {
+      "intent": "course",
+      "text": "What is mutual TLS between services?"
+    },
+    {
+      "intent": "course",
+      "text": "Which is better for my startup, SQL or NoSQL?"
+    },
+    {
+      "intent": "course",
+      "text": "What would you do first if the database becomes the bottleneck?"
+    },
+    {
+      "intent": "course",
+      "text": "Explain back of the envelope estimates for a system design interview"
+    },
+    {
+      "intent": "course",
+      "text": "how does consistent hashing work"
+    },
+    {
+      "intent": "course",
+      "text": "wat is a cache stampede"
+    },
+    {
+      "intent": "course",
+      "text": "can u explain sharding simply"
+    },
+    {
+      "intent": "course",
+      "text": "what is RPO and RTO"
+    },
+    {
+      "intent": "course",
+      "text": "why do we need idempotency keys"
+    },
+    {
+      "intent": "course",
+      "text": "difference between a message queue and a pub sub topic"
+    },
+    {
+      "intent": "course",
+      "text": "What are the trade-offs of microservices?"
+    },
+    {
+      "intent": "course",
+      "text": "How should services find each other in a cluster?"
+    },
+    {
+      "intent": "course",
+      "text": "How do I design for failure in a distributed system?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is the Go programming language used for?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Terraform?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is WebAssembly?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is a blockchain?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is machine learning?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Linux?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Git used for?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Python?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Rust the programming language?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Selenium?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Visual Studio Code?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Jenkins?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Ansible?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is a compiler?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is an operating system kernel?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is object-oriented programming?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is functional programming?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is a linked list?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is recursion in programming?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Big O notation?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Node.js?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Angular?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Swift used for?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is a virtual machine?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is an IDE?"
+    },
+    {
+      "intent": "tech",
+      "text": "Who makes the Ruby on Rails framework?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Scala?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Elixir?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Cypress testing?"
+    },
+    {
+      "intent": "tech",
+      "text": "What is Jira?"
+    },
+    {
+      "intent": "tech",
+      "text": "what is haskell"
+    },
+    {
+      "intent": "tech",
+      "text": "what is a regex"
+    },
+    {
+      "intent": "tech",
+      "text": "what is unit testing"
+    },
+    {
+      "intent": "tech",
+      "text": "what is agile software development"
+    },
+    {
+      "intent": "debate",
+      "text": "Is it wrong to eat meat?"
+    },
+    {
+      "intent": "debate",
+      "text": "Should religion be taught in public schools?"
+    },
+    {
+      "intent": "debate",
+      "text": "Does God exist?"
+    },
+    {
+      "intent": "debate",
+      "text": "Which political party is right about taxes?"
+    },
+    {
+      "intent": "debate",
+      "text": "Should the death penalty be abolished?"
+    },
+    {
+      "intent": "debate",
+      "text": "Is capitalism better than socialism?"
+    },
+    {
+      "intent": "debate",
+      "text": "Should guns be banned?"
+    },
+    {
+      "intent": "debate",
+      "text": "Is it moral to have children in a world like this?"
+    },
+    {
+      "intent": "debate",
+      "text": "Should schools teach creationism alongside evolution?"
+    },
+    {
+      "intent": "debate",
+      "text": "Who should I vote for in the next election?"
+    },
+    {
+      "intent": "debate",
+      "text": "Is immigration good or bad for a country?"
+    },
+    {
+      "intent": "debate",
+      "text": "Are vaccines a personal choice or a public duty?"
+    },
+    {
+      "intent": "debate",
+      "text": "Is social media ruining teenagers?"
+    },
+    {
+      "intent": "debate",
+      "text": "Should rich people pay more taxes?"
+    },
+    {
+      "intent": "debate",
+      "text": "Is war ever justified?"
+    },
+    {
+      "intent": "debate",
+      "text": "Which religion is the true one?"
+    },
+    {
+      "intent": "debate",
+      "text": "Should parents be allowed to homeschool for religious reasons?"
+    },
+    {
+      "intent": "debate",
+      "text": "Is prayer effective?"
+    },
+    {
+      "intent": "debate",
+      "text": "I think science and faith can never agree, do you?"
+    },
+    {
+      "intent": "debate",
+      "text": "Should zoos be closed?"
+    },
+    {
+      "intent": "debate",
+      "text": "Is it ethical to test on animals?"
+    },
+    {
+      "intent": "debate",
+      "text": "Do you think the government is lying to us?"
+    },
+    {
+      "intent": "debate",
+      "text": "Should the voting age be lowered to sixteen?"
+    },
+    {
+      "intent": "debate",
+      "text": "Is homework harmful to kids?"
+    },
+    {
+      "intent": "debate",
+      "text": "Should uniforms be mandatory in schools?"
+    },
+    {
+      "intent": "debate",
+      "text": "Is patriotism a good thing?"
+    },
+    {
+      "intent": "debate",
+      "text": "What is the moral thing to do when a friend lies?"
+    },
+    {
+      "intent": "debate",
+      "text": "Should euthanasia be legal?"
+    },
+    {
+      "intent": "debate",
+      "text": "Is the church still relevant today?"
+    },
+    {
+      "intent": "debate",
+      "text": "Should Catholic schools teach sex education?"
+    },
+    {
+      "intent": "debate",
+      "text": "Is it controversial to mix politics with education?"
+    },
+    {
+      "intent": "debate",
+      "text": "Everything is political now, isn't it?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Give me a recipe for banana bread"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Who won the World Cup in 2018?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "What should I name my puppy?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I lose weight fast?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Write me a love poem"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Tell me a joke"
+    },
+    {
+      "intent": "off_topic",
+      "text": "What's the weather like tomorrow?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I fix a leaking tap?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "What is the capital of Australia?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Solve this quadratic equation for me"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Help me write an essay about the French Revolution"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Which movie should I watch tonight?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I get my ex back?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "What are the symptoms of the flu?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Plan a three-day trip to Paris"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How many calories are in an apple?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "What's a good gift for my mom?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Translate good morning into Spanish"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Who is the richest person in the world?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I train for a marathon?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "What is photosynthesis?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Explain the theory of relativity"
+    },
+    {
+      "intent": "off_topic",
+      "text": "When did World War Two end?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I grow tomatoes on a balcony?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I find my purpose in life?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Recommend a good fantasy novel"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I ask for a raise?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Is coffee bad for you?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Summarize the plot of Hamlet"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I get rid of acne?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "What time is it in Tokyo?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Teach me to play guitar chords"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I load the dishwasher properly?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "My partner and I need to balance our chores, any tips?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I scale a cake recipe for twenty people?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Should I study biology or chemistry at school?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "What are good study habits for exams?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do black holes form?"
+    },
+    {
+      "intent": "self",
+      "text": "Who are you?"
+    },
+    {
+      "intent": "self",
+      "text": "What's your name?"
+    },
+    {
+      "intent": "self",
+      "text": "Are you a real person?"
+    },
+    {
+      "intent": "self",
+      "text": "Who made you?"
+    },
+    {
+      "intent": "self",
+      "text": "What can you help me with?"
+    },
+    {
+      "intent": "self",
+      "text": "Hi there"
+    },
+    {
+      "intent": "self",
+      "text": "Good morning Ben"
+    },
+    {
+      "intent": "self",
+      "text": "How are you doing today?"
+    },
+    {
+      "intent": "self",
+      "text": "Thanks, that helped"
+    },
+    {
+      "intent": "self",
+      "text": "Do you remember what I asked before?"
+    },
+    {
+      "intent": "self",
+      "text": "Are you an AI?"
+    },
+    {
+      "intent": "self",
+      "text": "Where do you run?"
+    },
+    {
+      "intent": "self",
+      "text": "Do you send my questions anywhere?"
+    },
+    {
+      "intent": "self",
+      "text": "Nice to meet you"
+    },
+    {
+      "intent": "self",
+      "text": "What do you know about?"
+    },
+    {
+      "intent": "self",
+      "text": "Can you see my screen?"
+    },
+    {
+      "intent": "self",
+      "text": "bye ben"
+    },
+    {
+      "intent": "self",
+      "text": "you are awesome"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Why do I always wait so long at the doctor's office?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I organize my messy garage?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I stop overthinking every decision?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Why does traffic always jam on the highway after work?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I balance my monthly budget?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How can my roommates split the rent fairly?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I get over a painful memory?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I handle a disagreement with my neighbour?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How can I fit more groceries into my small car?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I preserve vegetables for the winter?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I split a pizza evenly among nine people?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "Why did the Soviet Union collapse?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I copy my grandmother's soup recipe exactly?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I deal with a broken heart?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I keep my houseplants alive while I travel?"
+    },
+    {
+      "intent": "off_topic",
+      "text": "How do I sync my sleep schedule after a long flight?"
+    }
+  ]
+}

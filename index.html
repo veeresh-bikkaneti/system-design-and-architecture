@@ -11,6 +11,9 @@
       - style-src keeps 'unsafe-inline': motion/react and several components
         set styles via the style attribute; CSS injection is low-risk while
         script-src stays locked down.
+      - 'wasm-unsafe-eval' lets Ben's local models compile WebAssembly. It
+        allows WASM compilation only, not eval() of JavaScript; the runtime
+        and the .wasm files are served by this site (src/ai/local/runtime.ts).
       - connect-src allows any https: because the AI tutor is provider-
         agnostic by design (user-configured endpoints). Narrow per-provider
         if you ever drop custom endpoints.
@@ -19,7 +22,7 @@
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'sha256-4YWKEnBPEY4KQC/Wysp30Oe7tbyGO3p48I87C3noELI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-4YWKEnBPEY4KQC/Wysp30Oe7tbyGO3p48I87C3noELI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"
     />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

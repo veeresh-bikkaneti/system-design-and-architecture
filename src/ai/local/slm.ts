@@ -1,15 +1,9 @@
 import { acceptDraft } from './agent.ts';
 import { tokenize } from './retrieve.ts';
+import { HAS_WEBGPU, loadPipeline } from './runtime.ts';
 
 export const MODEL_ID = 'onnx-community/Qwen2.5-0.5B-Instruct';
 export const MODEL_LABEL = 'Qwen2.5-0.5B';
-
-/**
- * Loaded from a CDN only when the learner actually asks, so the static
- * GitHub Pages bundle does not contain ONNX. Inference still runs in the
- * browser. There is no model-provider API key.
- */
-const TRANSFORMERS_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/+esm';
 
 export type ModelPhase = 'idle' | 'loading' | 'ready' | 'failed';
 
@@ -51,16 +45,7 @@ async function loadGenerator(): Promise<Generator> {
   if (!generatorPromise) {
     generatorPromise = (async () => {
       publish({ phase: 'loading', progress: 0, detail: 'Fetching Qwen' });
-      const runtime = (await import(/* @vite-ignore */ TRANSFORMERS_URL)) as {
-        pipeline: (
-          task: string,
-          model: string,
-          options: Record<string, unknown>,
-        ) => Promise<Generator>;
-        env: { allowLocalModels: boolean };
-      };
-      runtime.env.allowLocalModels = false;
-      const hasGpu = typeof navigator !== 'undefined' && 'gpu' in navigator;
+      const hasGpu = HAS_WEBGPU;
       const options = {
         dtype: 'q4',
         progress_callback: (update: { status?: string; progress?: number; file?: string }) => {
@@ -75,13 +60,13 @@ async function loadGenerator(): Promise<Generator> {
       };
       let pipe: Generator;
       try {
-        pipe = await runtime.pipeline('text-generation', MODEL_ID, {
+        pipe = await loadPipeline<Generator>('hub', 'text-generation', MODEL_ID, {
           ...options,
           device: hasGpu ? 'webgpu' : 'wasm',
         });
       } catch (error) {
         if (!hasGpu) throw error;
-        pipe = await runtime.pipeline('text-generation', MODEL_ID, { ...options, device: 'wasm' });
+        pipe = await loadPipeline<Generator>('hub', 'text-generation', MODEL_ID, { ...options, device: 'wasm' });
       }
       publish({ phase: 'ready', progress: 100, detail: 'Running on this device' });
       return pipe;

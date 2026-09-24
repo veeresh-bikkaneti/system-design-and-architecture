@@ -10,6 +10,11 @@ import {
   subscribeModel,
   type ModelStatus,
 } from '../../ai/local/slm';
+import { loadSemantic, semanticWithin, subscribeSemantic, type Semantic, type SemanticPhase } from '../../ai/local/semantic/embedder';
+import { dot } from '../../ai/local/semantic/codec';
+import { queryText, route, THRESHOLDS } from '../../ai/local/semantic/router';
+import { buildTurn, NO_SOURCE } from '../../ai/local/semantic/turn';
+import type { ChatTurn } from '../../ai/local/types';
 import { ChatMarkdown } from '../ChatMarkdown';
 import { quotaLabel } from './quota';
 import {
@@ -28,6 +33,23 @@ const MAX_MESSAGE_LENGTH = 2000;
 const USE_LOCAL_TUTOR = (import.meta.env.VITE_QA_API_BASE ?? '') === '';
 
 const LESSON_IDS = new Set(OKF_CARDS.filter((card) => card.type === 'Lesson').map((card) => card.id));
+
+/**
+ * How long a question waits for the understanding layer (23 MB, cached after the
+ * first visit) before Ben answers with the keyword pipeline instead.
+ */
+const SEMANTIC_WAIT_MS = 12_000;
+
+function lessonHref(id: string): string {
+  return `${import.meta.env.BASE_URL}lesson/${id}`;
+}
+
+function priorTurns(history: ChatTurn[]): string {
+  return history
+    .slice(-4)
+    .map((item) => `${item.role === 'user' ? 'Learner' : 'Tutor'}: ${item.content.slice(0, 280)}`)
+    .join('\n');
+}
 
 interface BubbleSource {
   title: string;
@@ -112,6 +134,7 @@ export function QaWidget() {
   const [rotating, setRotating] = useState(false);
   const [quota, setQuota] = useState<QaQuota | null>(null);
   const [modelStatus, setModelStatus] = useState<ModelStatus>(getModelStatus());
+  const [semanticPhase, setSemanticPhase] = useState<SemanticPhase>('idle');
   const nextId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -128,6 +151,12 @@ export function QaWidget() {
   const { sessionId, ensureSession, newTopic } = useQaSession();
 
   useEffect(() => subscribeModel(setModelStatus), []);
+  useEffect(() => subscribeSemantic(setSemanticPhase), []);
+
+  // Start the understanding layer as soon as the chat opens, not on the first question.
+  useEffect(() => {
+    if (open && USE_LOCAL_TUTOR) void loadSemantic();
+  }, [open]);
 
   const refreshQuota = useCallback(async (sid: string) => {
     try {
@@ -252,60 +281,17 @@ export function QaWidget() {
 
   async function handleLocalSend(text: string) {
     setInput('');
-    const history = messages
+    const history: ChatTurn[] = messages
       .filter((message) => !message.isError && message.content.length > 0)
       .map((message) => ({ role: message.role, content: message.content }));
     addMessage('user', text);
-    const turn = prepareTurn(text, history, focusId);
-    const lookup = needsWeb(text, turn.inScope);
     const assistantId = addMessage('assistant', '');
-    const lessonSources = turn.inScope
-      ? turn.sources
-          .filter((source) => LESSON_IDS.has(source.id))
-          .map((source) => ({
-            title: source.title,
-            href: `${import.meta.env.BASE_URL}lesson/${source.id}`,
-          }))
-      : [];
 
     setStreaming(true);
     try {
-      const sources = [...lessonSources];
-      let hit: Awaited<ReturnType<typeof searchWeb>>[number] | undefined;
-      if (lookup) {
-        const query = webQuery(text, turn.inScope ? turn.sources[0]?.title : undefined);
-        const hits = await searchWeb(query);
-        hit = hits[0];
-        if (hit) sources.push({ title: hit.title, href: hit.url });
-      }
-      const aboutMe = isAboutTutor(text) || isFollowUp(text);
-      const offCourse = !aboutMe && !turn.inScope && !lookup;
-      const confidence = grounding({ aboutMe, inScope: turn.inScope, citedWeb: Boolean(hit), offCourse });
-      let content = aboutMe
-        ? turn.answer
-        : turn.inScope
-          ? `${turn.answer}${hit ? webAside(hit) : ''}`
-          : hit
-            ? spokenWeb(hit)
-            : offCourse
-              ? OFF_COURSE
-              : 'I could not find a source for that, so I will not guess.';
-      patchMessage(assistantId, { content, sources, confidence });
-
-      if (aboutMe || (!turn.inScope && !hit)) return;
-      const prior = history
-        .slice(-4)
-        .map((item) => `${item.role === 'user' ? 'Learner' : 'Tutor'}: ${item.content.slice(0, 280)}`)
-        .join('\n');
-      const context = [
-        turn.context,
-        hit ? `Published page: ${hit.title}\n${hit.extract.slice(0, 700)}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n\n');
-      // The lookup already answered. A model failure must not replace that with a source error.
-      const draft = await rewriteWithModel(text, context, prior);
-      if (draft) patchMessage(assistantId, { content: draft });
+      const semantic = await semanticWithin(SEMANTIC_WAIT_MS);
+      if (semantic) await answerByMeaning(semantic, text, history, assistantId);
+      else await answerByKeywords(text, history, assistantId);
     } catch {
       patchMessage(assistantId, {
         content: 'I could not reach a source just now, so I will not guess.',
@@ -314,6 +300,87 @@ export function QaWidget() {
     } finally {
       setStreaming(false);
     }
+  }
+
+  /** The understanding layer decides; tools run only when the decision needs them. */
+  async function answerByMeaning(semantic: Semantic, text: string, history: ChatTurn[], assistantId: number) {
+    const vector = await semantic.embed(queryText(text, history));
+    const decision = route({ question: text, focusId, vector, index: semantic.index });
+    const turn = buildTurn(text, history, decision);
+    const sources: BubbleSource[] = turn.sources
+      .filter((source) => LESSON_IDS.has(source.id))
+      .map((source) => ({ title: source.title, href: lessonHref(source.id) }));
+    let { answer, confidence, context } = turn;
+
+    if (turn.action === 'lookup') {
+      const hit = (await searchWeb(webQuery(text)))[0];
+      // Check the tool's result before using it: a page about something else is dropped.
+      const fits = hit ? dot(vector, await semantic.embed(`${hit.title}. ${hit.extract}`)) >= THRESHOLDS.webFit : false;
+      if (hit && fits) {
+        answer = spokenWeb(hit);
+        sources.push({ title: hit.title, href: hit.url });
+        confidence = grounding({ aboutMe: false, inScope: false, citedWeb: true });
+        context = `Published page: ${hit.title}\n${hit.extract.slice(0, 700)}`;
+      } else {
+        answer = NO_SOURCE;
+        confidence = {
+          level: 'low',
+          label: hit
+            ? 'Low confidence · the page I found was about something else'
+            : 'Low confidence · I could not find a source, so I will not guess',
+        };
+      }
+    }
+
+    patchMessage(assistantId, { content: answer, sources, confidence });
+    if (!context) return;
+
+    // Qwen only rewords. A draft that wanders from the grounded answer is dropped.
+    const draft = await rewriteWithModel(text, context, priorTurns(history));
+    if (!draft) return;
+    const [draftVector, answerVector] = await Promise.all([semantic.embed(draft), semantic.embed(answer)]);
+    if (dot(draftVector, answerVector) >= THRESHOLDS.draftFit) patchMessage(assistantId, { content: draft });
+  }
+
+  /** Fallback when the understanding layer cannot load: keyword routing with guard rails. */
+  async function answerByKeywords(text: string, history: ChatTurn[], assistantId: number) {
+    const turn = prepareTurn(text, history, focusId);
+    const lookup = needsWeb(text, turn.inScope);
+    const sources: BubbleSource[] = turn.inScope
+      ? turn.sources
+          .filter((source) => LESSON_IDS.has(source.id))
+          .map((source) => ({ title: source.title, href: lessonHref(source.id) }))
+      : [];
+    let hit: Awaited<ReturnType<typeof searchWeb>>[number] | undefined;
+    if (lookup) {
+      const query = webQuery(text, turn.inScope ? turn.sources[0]?.title : undefined);
+      hit = (await searchWeb(query))[0];
+      if (hit) sources.push({ title: hit.title, href: hit.url });
+    }
+    const aboutMe = isAboutTutor(text) || isFollowUp(text);
+    const offCourse = !aboutMe && !turn.inScope && !lookup;
+    const confidence = grounding({ aboutMe, inScope: turn.inScope, citedWeb: Boolean(hit), offCourse });
+    const content = aboutMe
+      ? turn.answer
+      : turn.inScope
+        ? `${turn.answer}${hit ? webAside(hit) : ''}`
+        : hit
+          ? spokenWeb(hit)
+          : offCourse
+            ? OFF_COURSE
+            : NO_SOURCE;
+    patchMessage(assistantId, {
+      content,
+      sources,
+      confidence: { ...confidence, label: `${confidence.label} · keyword match` },
+    });
+
+    if (aboutMe || (!turn.inScope && !hit)) return;
+    const context = [turn.context, hit ? `Published page: ${hit.title}\n${hit.extract.slice(0, 700)}` : '']
+      .filter(Boolean)
+      .join('\n\n');
+    const draft = await rewriteWithModel(text, context, priorTurns(history));
+    if (draft) patchMessage(assistantId, { content: draft });
   }
 
   async function handleNewTopic() {
@@ -372,7 +439,9 @@ export function QaWidget() {
               </h2>
               <p className="truncate text-xs text-stone-500 dark:text-stone-400">
                 {USE_LOCAL_TUTOR
-                  ? modelStatus.phase === 'loading'
+                  ? semanticPhase === 'loading'
+                    ? 'Getting ready · reading the lessons'
+                    : modelStatus.phase === 'loading'
                     ? `Loading ${MODEL_LABEL} · ${modelStatus.progress}%`
                     : modelStatus.phase === 'ready'
                       ? `${MODEL_LABEL} on this device`
