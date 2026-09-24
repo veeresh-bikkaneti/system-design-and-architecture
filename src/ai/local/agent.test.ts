@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { OKF_CARDS } from './cards.ts';
-import { needsWeb, prepareTurn } from './agent.ts';
+import { needsWeb, OFF_COURSE, prepareTurn } from './agent.ts';
 import { searchCards } from './retrieve.ts';
 
 describe('local OKF tutor', () => {
@@ -128,5 +128,28 @@ describe('local OKF tutor', () => {
       { role: 'assistant', content: 'Tokens drip in.' },
     ]);
     expect(turn.sources.some((source) => source.id === 'rate-limiting')).toBe(true);
+  });
+
+  it('keeps a religion debate off the Zero Trust lesson and off the web', () => {
+    const q =
+      'Should we be studying about science in Catholic schools? I think it is controversial because everything becomes religion and faith.';
+    const turn = prepareTurn(q);
+    expect(turn.inScope).toBe(false);
+    expect(turn.sources).toEqual([]);
+    expect(turn.answer).toBe(OFF_COURSE);
+    expect(needsWeb(q, turn.inScope)).toBe(false);
+  });
+
+  it('does not match a lesson on filler words alone', () => {
+    const turn = prepareTurn('I feel like everything becomes harder because of this, what do you think');
+    expect(turn.inScope).toBe(false);
+  });
+
+  it('does not look up opinion questions or long off-course questions', () => {
+    expect(needsWeb('Is abortion wrong?', false)).toBe(false);
+    expect(needsWeb('what do you think about the news', false)).toBe(false);
+    expect(needsWeb('recommend a pizza recipe for tonight', false)).toBe(false);
+    expect(needsWeb('what is amazon', false)).toBe(true);
+    expect(needsWeb('should I shard the database', true)).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { prepareTurn, needsWeb, isAboutTutor, isFollowUp } from '../../ai/local/agent';
+import { prepareTurn, needsWeb, isAboutTutor, isFollowUp, OFF_COURSE } from '../../ai/local/agent';
 import { OKF_CARDS } from '../../ai/local/cards';
 import { grounding, searchWeb, spokenWeb, webAside, webQuery, type ConfidenceLevel } from '../../ai/local/web';
 import {
@@ -279,16 +279,17 @@ export function QaWidget() {
         if (hit) sources.push({ title: hit.title, href: hit.url });
       }
       const aboutMe = isAboutTutor(text) || isFollowUp(text);
-      const confidence = grounding({ aboutMe, inScope: turn.inScope, citedWeb: Boolean(hit) });
+      const offCourse = !aboutMe && !turn.inScope && !lookup;
+      const confidence = grounding({ aboutMe, inScope: turn.inScope, citedWeb: Boolean(hit), offCourse });
       let content = aboutMe
         ? turn.answer
         : turn.inScope
           ? `${turn.answer}${hit ? webAside(hit) : ''}`
           : hit
             ? spokenWeb(hit)
-            : confidence.label.startsWith('Low')
-              ? 'I could not find a source for that, so I will not guess.'
-              : turn.answer;
+            : offCourse
+              ? OFF_COURSE
+              : 'I could not find a source for that, so I will not guess.';
       patchMessage(assistantId, { content, sources, confidence });
 
       if (aboutMe || (!turn.inScope && !hit)) return;

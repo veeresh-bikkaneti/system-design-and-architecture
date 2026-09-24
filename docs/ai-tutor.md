@@ -50,6 +50,8 @@ flowchart TD
 
 Small talk, follow-ups, and questions about Ben never reach Wikipedia. "Are you sure" stays on the previous reply. "Who hired you" stays with Ben. Qwen does not see those turns. It only rewrites a lesson or a cited page, and only after the weights have loaded. A real subject, such as "what is amazon", is looked up and cited.
 
+Off the course, only a short "what is X" question goes to Wikipedia. Opinion and debate questions ("should we…", "I think…") and topics such as religion or politics get no lesson match and no lookup. Ben says the question is outside the course and points back to it. Everyday filler ("because", "everything", "becomes") is a stopword, and a fuzzy lesson match must cover at least a quarter of the question's content words. Without both rules, a religion question once matched the Zero Trust lesson on "because" and "everything".
+
 `search_lessons` is BM25 over card title, tags, summary, and body. One word is enough when it is a lesson name or tag, such as MVC. The lesson open on the page is used for "explain this".
 
 `web_search` calls Wikipedia's summary API. A few names are forced onto the right page so "java" is not the island and "playwright" is not the disambiguation list: Java, C#, and Playwright (software) among them. The link under the bubble is the citation.
@@ -63,6 +65,7 @@ Small talk, follow-ups, and questions about Ben never reach Wikipedia. "Are you 
 | High · from the course lesson | A lesson matched and the web lookup did not |
 | Medium · not a lesson here. Checked a published page just now | No lesson. The reply is the article intro |
 | Low · no source, or the source check failed | Nothing to cite. Ben does not guess |
+| Off topic · outside this course | Not a course question. Ben redirects instead of looking it up |
 
 ## Why the model is not the tool caller
 

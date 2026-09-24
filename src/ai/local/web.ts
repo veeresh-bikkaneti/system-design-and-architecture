@@ -53,8 +53,10 @@ export function grounding(options: {
   aboutMe: boolean;
   inScope: boolean;
   citedWeb: boolean;
+  offCourse?: boolean;
 }): { level: ConfidenceLevel; label: string } {
   if (options.aboutMe) return { level: "high", label: "High confidence · I'm Ben" };
+  if (options.offCourse) return { level: "low", label: "Off topic · outside this course" };
   if (options.inScope && options.citedWeb) {
     return { level: "high", label: "High confidence · course lesson, checked against a published page" };
   }

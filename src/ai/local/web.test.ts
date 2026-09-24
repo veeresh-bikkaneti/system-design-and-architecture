@@ -9,10 +9,11 @@ const java: WebHit = {
 };
 
 describe('web tool', () => {
-  it('searches the web for factual questions, including ones the lessons already cover', () => {
+  it('searches the web for course questions and short definitions, not debates', () => {
     expect(needsWeb('what is java', false)).toBe(true);
     expect(needsWeb('what is C#', false)).toBe(true);
     expect(needsWeb('analogy for MVC', true)).toBe(true);
+    expect(needsWeb('Should we study science in Catholic schools?', false)).toBe(false);
     expect(needsWeb('Write a poem about my cat', false)).toBe(false);
     expect(needsWeb('who are you', false)).toBe(false);
   });
@@ -24,6 +25,7 @@ describe('web tool', () => {
     expect(grounding({ aboutMe: false, inScope: false, citedWeb: true }).level).toBe('medium');
     expect(grounding({ aboutMe: false, inScope: false, citedWeb: false }).level).toBe('low');
     expect(grounding({ aboutMe: false, inScope: true, citedWeb: true }).level).toBe('high');
+    expect(grounding({ aboutMe: false, inScope: false, citedWeb: false, offCourse: true }).label).toMatch(/Off topic/);
   });
 
   it('cites a wikipedia article instead of guessing', () => {

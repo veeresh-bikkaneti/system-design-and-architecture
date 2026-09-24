@@ -8,6 +8,12 @@ const STOP = new Set([
   "could", "into", "your", "our", "their", "its", "if", "we", "they", "just",
   "write", "give", "make", "show", "help", "want", "need", "like", "use",
   "using", "work", "mean", "means", "something", "anything", "really",
+  // Everyday filler. Left in, words like "because" and "everything" matched
+  // lesson prose and pulled off-course questions onto a lesson.
+  "because", "everything", "everyone", "nothing", "become", "becomes", "became",
+  "think", "thought", "believe", "feel", "thing", "things", "stuff", "maybe",
+  "actually", "basically", "also", "very", "lot", "lots", "someone", "these",
+  "those", "days",
 ]);
 
 const K1 = 1.2;

@@ -17,6 +17,36 @@ const PINNED: { id: string; terms: string[] }[] = [
 const OUT_OF_SCOPE =
   "I could not find a source for that, so I will not guess.";
 
+/** Ben's reply when a question is not about the course. It redirects rather than looks it up. */
+export const OFF_COURSE =
+  "That's outside this course, so I'll leave it there. I tutor system design and software: caching, load balancing, databases, APIs, and how to scale them. Ask me about one of those.";
+
+/** Topics Ben never takes up. They get no lesson match and no web lookup. */
+const OFF_COURSE_TOPIC =
+  /\b(relig\w*|faith|god|gods|church\w*|catholic\w*|christian\w*|islam\w*|muslim\w*|jewish|judaism|hindu\w*|buddhis\w*|bible|quran|pray\w*|politic\w*|president\w*|democrat\w*|republican\w*|abortion|immigration|gun control|sexuality)\b/i;
+
+/** Debate and opinion questions ("should we...", "I think...") are not look-ups. */
+const OPINION =
+  /\b(should (we|i|they|people|schools?)|do you think|what do you think|your (opinion|view|take)|i think|i believe|in my opinion|controversial|is it (right|wrong|ok|okay|moral|immoral|ethical|fair))\b/i;
+
+export function isOffCourseTopic(question: string): boolean {
+  return OFF_COURSE_TOPIC.test(question);
+}
+
+export function isOpinion(question: string): boolean {
+  return OPINION.test(question);
+}
+
+/** A short "what is X" question, the only off-lesson shape worth a web look-up. */
+function isDefinitionLookup(question: string): boolean {
+  const q = question.trim();
+  if (!/^(what is|what's|whats|what are|who is|who makes|define|tell me about)\b/i.test(q)) return false;
+  return tokenize(q).length <= 4;
+}
+
+/** Share of the question's content words that a lesson must match on the fuzzy path. */
+const COVERAGE_FLOOR = 0.25;
+
 export function buildQuery(question: string, history: ChatTurn[]): string {
   const tokens = tokenize(question);
   if (tokens.length >= 4) return question;
@@ -199,12 +229,19 @@ function simpler(card: OkfCard): string {
   return `${summary.replace(/\.$/, "")}. ${first}`.trim();
 }
 
-/** Look up a published page for every factual question, so the reply can cite it. */
+/**
+ * Check a published page for course questions, so the reply can cite it.
+ * Off the course, only a short "what is X" definition gets looked up. A long
+ * or opinion question sent to the web comes back as a Wikipedia answer on any
+ * subject, and Ben stops being a course tutor.
+ */
 export function needsWeb(question: string, inScope: boolean): boolean {
-  void inScope;
   if (isAboutTutor(question) || isFollowUp(question)) return false;
   if (/\b(poem|joke|lyrics|song)\b/i.test(question)) return false;
-  return true;
+  if (isOffCourseTopic(question)) return false;
+  if (inScope) return true;
+  if (isOpinion(question)) return false;
+  return isDefinitionLookup(question);
 }
 export function spokenAnswer(question: string, cards: OkfCard[], history: ChatTurn[] = []): string {
   const [lead] = cards;
@@ -244,6 +281,22 @@ export function prepareTurn(question: string, history: ChatTurn[] = [], focusId?
     };
   }
 
+  if (isOffCourseTopic(question)) {
+    return {
+      inScope: false,
+      answer: OFF_COURSE,
+      sources: [],
+      traces: [
+        {
+          name: "search_lessons",
+          input: JSON.stringify({ query: question, lesson: focusId ?? null }),
+          output: "off-course topic, not searched",
+        },
+      ],
+      context: "",
+    };
+  }
+
   const expanded = expandQuestion(question);
   const query = buildQuery(expanded, history);
   let hits = searchCards(query, OKF_CARDS, 4);
@@ -265,11 +318,13 @@ export function prepareTurn(question: string, history: ChatTurn[] = [], focusId?
     named && best && named.score >= best.score * 0.45 ? named : best;
   const ordered = lead ? [lead, ...hits.filter((hit) => hit.card.id !== lead.card.id)] : hits;
   const overlap = lead ? distinctiveOverlap(query, lead.card, OKF_CARDS) : 0;
+  // Two shared words in a long question is chance, not a topic match.
+  const coverage = overlap / Math.max(1, tokenize(query).length);
   const inScope =
     pins.length > 0 ||
     Boolean(focus && deictic) ||
     Boolean(lead && aliasHit(expanded, lead.card) && lead.score > 0) ||
-    Boolean(lead && lead.score >= SCOPE_FLOOR && overlap >= 2);
+    Boolean(lead && lead.score >= SCOPE_FLOOR && overlap >= 2 && coverage >= COVERAGE_FLOOR);
 
   const traces: ToolTrace[] = [
     {
@@ -287,7 +342,7 @@ export function prepareTurn(question: string, history: ChatTurn[] = [], focusId?
   if (!inScope || !lead) {
     return {
       inScope: false,
-      answer: OUT_OF_SCOPE,
+      answer: needsWeb(question, false) ? OUT_OF_SCOPE : OFF_COURSE,
       sources: [],
       traces,
       context: "",
