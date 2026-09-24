@@ -3,8 +3,9 @@
 // Contract (the frontend widget implements against this -- do not deviate):
 //   POST   /api/qa/session  -> 200 {"sessionId":"<uuid>"}
 //   POST   /api/qa/chat     -> 200 text/event-stream; `message` deltas,
-//                               then `sources` {"lessons":[]}, then `done`.
-//                               Logical errors arrive as `error` events.
+//                               then `sources` {"lessons":[{"slug","title"}]},
+//                               then `done`. Logical errors arrive as
+//                               `error` events.
 //   DELETE /api/qa/session  -> 200 {"ok":true} (body: {"sessionId"})
 //   GET    /api/qa/quota?sessionId=... -> 200 {"limit":50,"remaining":N,"resetAt":"<iso>"}
 //
@@ -18,13 +19,14 @@ import { checkRateLimit, currentWindowHour } from '../auth';
 import { sha256Hex } from '../crypto';
 import { deleteCheckpoint } from './checkpointer';
 import { runQaTurn } from './graph';
+import { QA_DEFAULT_MODEL_ID, WorkersAiModel } from './model';
+import { QA_INDEX } from './qa-index';
+import { D1ChunkStore, titleForSlug } from './retrieval';
 import { chunkText, formatSseEvent, sseErrorResponse, sseResponse } from './sse';
 
 export const QA_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 export const QA_MAX_MESSAGE_CHARS = 2000;
 export const QA_DAILY_QUESTION_LIMIT = 50;
-// P0 stub copy -- P1/P2 replace the echo text in graph.ts's reasonActNode.
-export const QA_P0_ECHO_PREFIX = 'P0 stub \u2014 you said: ';
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -214,10 +216,24 @@ export async function handleQaChat(request: Request, env: Env): Promise<Response
 
   await insertMessage(env.DB, sessionId, 'user', message, now);
 
+  // P2: the agent loop needs the Workers AI binding. Under plain
+  // `wrangler dev` without AI support env.AI is unset -- fail with a clear
+  // error event instead of crashing mid-turn.
+  if (!env.AI || typeof env.AI.run !== 'function') {
+    return sseErrorResponse(
+      'AI_UNAVAILABLE',
+      'The course tutor is not available in this environment (Workers AI binding missing).',
+      cors,
+    );
+  }
+
   let finalAnswer: string;
   let sources: string[];
   try {
-    ({ finalAnswer, sources } = await runQaTurn(env.DB, sessionId, message));
+    ({ finalAnswer, sources } = await runQaTurn(env.DB, sessionId, message, {
+      model: new WorkersAiModel(env.AI, env.QA_MODEL_ID ?? QA_DEFAULT_MODEL_ID),
+      chunkStore: new D1ChunkStore(env.DB),
+    }));
   } catch {
     return sseErrorResponse('INTERNAL_ERROR', 'Something went wrong. Try again.', cors);
   }
@@ -227,7 +243,10 @@ export async function handleQaChat(request: Request, env: Env): Promise<Response
   const chunks: string[] = chunkText(finalAnswer).map((delta) =>
     formatSseEvent('message', { delta }),
   );
-  chunks.push(formatSseEvent('sources', { lessons: sources }));
+  // P1: sources are lesson slugs from retrieval; the frontend renders
+  // citation chips from {slug, title} pairs (see QaSource in qaApi.ts).
+  const lessons = sources.map((slug) => ({ slug, title: titleForSlug(QA_INDEX, slug) ?? slug }));
+  chunks.push(formatSseEvent('sources', { lessons }));
   chunks.push(formatSseEvent('done', {}));
   return sseResponse(chunks, 200, cors);
 }

@@ -21,6 +21,13 @@ import {
 
 export interface Env {
   DB: D1Database;
+  // Course Q&A agent (P2): Workers AI binding (see [ai] in wrangler.toml).
+  // Absent under plain `wrangler dev` without AI support -- routes guard on
+  // this and return a clear error rather than crashing (see routes.ts).
+  AI: Ai;
+  // Optional model-id override; defaults to QA_DEFAULT_MODEL_ID in
+  // worker/src/qa/model.ts. Set via [vars] in wrangler.toml.
+  QA_MODEL_ID?: string;
   // Unset in local dev -- see auth.ts's sendMagicLinkEmail for what these
   // control. DEV_MODE must be set alongside RESEND_API_KEY being absent
   // for local testing to echo a magic link back instead of emailing it;
