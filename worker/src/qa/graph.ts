@@ -1,10 +1,10 @@
-// P0 (course Q&A agent): the LangGraph.js StateGraph.
+// Course Q&A agent: the LangGraph.js StateGraph.
 //
-// triage -> retrieve -> reasonAct -> answer. In P0 every node is a stub:
-// triage always passes, retrieve returns no chunks, reasonAct echoes the
-// user's message, answer formats the final text. P1 replaces retrieve with
-// the real lesson-chunk search, P2 replaces reasonAct with the Workers AI
-// tool-calling loop and triage with the real scope gate -- the graph shape
+// triage -> retrieve -> reasonAct -> answer. triage and retrieve are still
+// P0 stubs (triage always passes, retrieve returns no chunks); P1 replaces
+// retrieve with the real lesson-chunk search and triage with the real scope
+// gate. reasonAct is P2: it calls the cloud model (model.ts) with the tutor
+// persona (systemPrompt.ts) and the session transcript -- the graph shape
 // and the checkpointer contract below do NOT change.
 //
 // Memory: there is no separate "memory subsystem". runQaTurn() loads the
@@ -12,8 +12,11 @@
 // the new user turn into the graph, and saves the resulting state back.
 // The checkpointer IS the session memory.
 
+import type { LangGraphRunnableConfig } from '@langchain/langgraph';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
+import type { Env } from '../index';
 import { loadCheckpoint, saveCheckpoint } from './checkpointer';
+import { callAnthropic, type AnswerModel } from './model';
 
 export interface ChatTurn {
   role: 'user' | 'assistant';
@@ -70,11 +73,23 @@ async function retrieveNode(): Promise<Partial<QaGraphState>> {
   return { sources: [] };
 }
 
-// P0 stub: echo. P2 runs the Workers AI tool-calling loop here (max 4
-// tool rounds), with tool outputs wrapped as data-not-instructions.
-async function reasonActNode(state: typeof QaStateAnnotation.State): Promise<Partial<QaGraphState>> {
-  const lastUser = [...state.messages].reverse().find((m) => m.role === 'user');
-  return { draft: `P0 stub \u2014 you said: ${lastUser?.content ?? ''}` };
+// P2: calls the cloud model (model.ts) with the tutor persona and the
+// session transcript. env and callModel arrive via LangGraph's context
+// mechanism (see runQaTurn and QaContextAnnotation below) rather than a
+// closure, so the compiled qaGraph stays a stateless singleton and tests
+// can swap in a fake AnswerModel without a real network call.
+const QaContextAnnotation = Annotation.Root({
+  env: Annotation<Env>(),
+  callModel: Annotation<AnswerModel | undefined>(),
+});
+
+async function reasonActNode(
+  state: typeof QaStateAnnotation.State,
+  config: LangGraphRunnableConfig<typeof QaContextAnnotation.State>,
+): Promise<Partial<QaGraphState>> {
+  const { env, callModel = callAnthropic } = config.configurable ?? ({} as typeof QaContextAnnotation.State);
+  const draft = await callModel(env, state.messages);
+  return { draft };
 }
 
 // Formats the final answer and appends the assistant turn to the
@@ -89,7 +104,7 @@ async function answerNode(state: typeof QaStateAnnotation.State): Promise<Partia
   };
 }
 
-const qaGraph = new StateGraph(QaStateAnnotation)
+const qaGraph = new StateGraph(QaStateAnnotation, QaContextAnnotation)
   .addNode('triage', triageNode)
   .addNode('retrieve', retrieveNode)
   .addNode('reasonAct', reasonActNode)
@@ -110,18 +125,27 @@ export interface QaTurnResult {
  * Runs one conversational turn for a session: loads the D1 checkpoint,
  * invokes the graph with the previous state + the new user turn, trims the
  * transcript window, and saves the checkpoint back.
+ *
+ * callModel overrides reasonAct's cloud call -- tests pass a deterministic
+ * fake here instead of hitting the network; production omits it and gets
+ * model.ts's callAnthropic.
  */
 export async function runQaTurn(
-  db: D1Database,
+  env: Env,
   sessionId: string,
   userMessage: string,
+  callModel?: AnswerModel,
 ): Promise<QaTurnResult> {
+  const db = env.DB;
   const prev = await loadCheckpoint(db, sessionId);
   const previousMessages = prev?.state.messages ?? [];
-  const result = await qaGraph.invoke({
-    ...(prev?.state ?? {}),
-    messages: [...previousMessages, { role: 'user', content: userMessage }],
-  });
+  const result = await qaGraph.invoke(
+    {
+      ...(prev?.state ?? {}),
+      messages: [...previousMessages, { role: 'user', content: userMessage }],
+    },
+    { configurable: { env, callModel } },
+  );
   const state: QaGraphState = {
     messages: result.messages.slice(-MAX_TRANSCRIPT_TURNS),
     inScope: result.inScope,

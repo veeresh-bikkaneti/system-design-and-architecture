@@ -29,6 +29,13 @@ export interface Env {
   RESEND_API_KEY?: string;
   RESEND_FROM_ADDRESS?: string;
   DEV_MODE?: string;
+  // The course Q&A agent's cloud model (qa/model.ts). A wrangler secret --
+  // never in the committed wrangler.toml. Unset means the AI tutor is not
+  // configured: callAnthropic fails closed (throws) rather than silently
+  // serving a broken or unauthenticated request.
+  ANTHROPIC_API_KEY?: string;
+  // Overrides qa/model.ts's default model id without a redeploy.
+  ANTHROPIC_MODEL?: string;
 }
 
 interface CredentialRow {

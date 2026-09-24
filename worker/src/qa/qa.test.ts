@@ -9,11 +9,11 @@
 import { describe, expect, it } from 'vitest';
 import workerDefault, { type Env } from '../index';
 import { deleteCheckpoint, loadCheckpoint, saveCheckpoint } from './checkpointer';
-import { MAX_TRANSCRIPT_TURNS, runQaTurn } from './graph';
+import { MAX_TRANSCRIPT_TURNS, runQaTurn, type ChatTurn } from './graph';
+import type { AnswerModel } from './model';
 import {
   QA_DAILY_QUESTION_LIMIT,
   QA_MAX_MESSAGE_CHARS,
-  QA_P0_ECHO_PREFIX,
   handleQaChat,
   handleQaCreateSession,
   handleQaDeleteSession,
@@ -21,6 +21,13 @@ import {
   isValidUuid,
 } from './routes';
 import { chunkText, formatSseEvent, sseErrorResponse, sseResponse } from './sse';
+
+/** Deterministic stand-in for callAnthropic -- no test hits the real network. */
+const FAKE_ANSWER_PREFIX = 'fake answer to: ';
+const fakeModel: AnswerModel = async (_env, messages: ChatTurn[]) => {
+  const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+  return `${FAKE_ANSWER_PREFIX}${lastUser?.content ?? ''}`;
+};
 
 type Row = Record<string, string | number | null>;
 
@@ -172,8 +179,8 @@ async function createSession(env: Env): Promise<string> {
   return body.sessionId;
 }
 
-async function chat(env: Env, sessionId: string, message: string): Promise<Response> {
-  return handleQaChat(jsonRequest('/api/qa/chat', 'POST', { sessionId, message }), env);
+async function chat(env: Env, sessionId: string, message: string, callModel: AnswerModel = fakeModel): Promise<Response> {
+  return handleQaChat(jsonRequest('/api/qa/chat', 'POST', { sessionId, message }), env, callModel);
 }
 
 describe('sse helpers', () => {
@@ -251,15 +258,16 @@ describe('D1 checkpointer', () => {
 describe('graph two-turn memory', () => {
   it('persists the transcript across turns via the D1 checkpoint', async () => {
     const db = new FakeD1();
+    const env = makeEnv(db);
     const d1 = db as unknown as D1Database;
     const sessionId = '123e4567-e89b-12d3-a456-426614174000';
 
-    const turn1 = await runQaTurn(d1, sessionId, 'what is the CAP theorem?');
-    expect(turn1.finalAnswer).toBe(`${QA_P0_ECHO_PREFIX}what is the CAP theorem?`);
+    const turn1 = await runQaTurn(env, sessionId, 'what is the CAP theorem?', fakeModel);
+    expect(turn1.finalAnswer).toBe(`${FAKE_ANSWER_PREFIX}what is the CAP theorem?`);
     expect(turn1.sources).toEqual([]);
 
-    const turn2 = await runQaTurn(d1, sessionId, 'and how does it relate to consistency?');
-    expect(turn2.finalAnswer).toBe(`${QA_P0_ECHO_PREFIX}and how does it relate to consistency?`);
+    const turn2 = await runQaTurn(env, sessionId, 'and how does it relate to consistency?', fakeModel);
+    expect(turn2.finalAnswer).toBe(`${FAKE_ANSWER_PREFIX}and how does it relate to consistency?`);
 
     // The checkpointer -- not the caller -- carried the transcript.
     const checkpoint = await loadCheckpoint(d1, sessionId);
@@ -274,12 +282,13 @@ describe('graph two-turn memory', () => {
 
   it('trims the transcript window to a bounded size', async () => {
     const db = new FakeD1();
+    const env = makeEnv(db);
     const d1 = db as unknown as D1Database;
     const sessionId = '123e4567-e89b-12d3-a456-426614174000';
     // MAX_TRANSCRIPT_TURNS/2 turns + 1 more forces a trim.
     const turns = MAX_TRANSCRIPT_TURNS / 2 + 1;
     for (let i = 0; i < turns; i++) {
-      await runQaTurn(d1, sessionId, `question ${i}`);
+      await runQaTurn(env, sessionId, `question ${i}`, fakeModel);
     }
     const checkpoint = await loadCheckpoint(d1, sessionId);
     expect((checkpoint?.state.messages.length ?? 0)).toBeLessThanOrEqual(MAX_TRANSCRIPT_TURNS);
@@ -293,13 +302,19 @@ describe('worker fetch wiring', () => {
     expect(created.status).toBe(200);
     const { sessionId } = (await created.json()) as { sessionId: string };
 
+    // The default export has no way to inject a fake model, so this exercises
+    // the real (unconfigured, in tests) callAnthropic -- which fails closed.
+    // That's still useful signal: it proves routing reaches handleQaChat and
+    // that a thrown error becomes a well-formed SSE error event, not a crash.
     const chatRes = await workerDefault.fetch(
       jsonRequest('/api/qa/chat', 'POST', { sessionId, message: 'wired?' }),
       env,
     );
     expect(chatRes.status).toBe(200);
     const events = await readSseEvents(chatRes);
-    expect(events[events.length - 1]).toEqual({ event: 'done', data: {} });
+    expect(events).toEqual([
+      { event: 'error', data: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Try again.' } },
+    ]);
 
     const quota = await workerDefault.fetch(
       new Request(`http://localhost/api/qa/quota?sessionId=${sessionId}`),
@@ -332,7 +347,7 @@ describe('POST /api/qa/session', () => {
 });
 
 describe('POST /api/qa/chat', () => {
-  it('streams an echo: message deltas, then sources, then done', async () => {
+  it('streams the model answer: message deltas, then sources, then done', async () => {
     const env = makeEnv(new FakeD1());
     const sessionId = await createSession(env);
     const res = await chat(env, sessionId, 'hello course');
@@ -343,7 +358,7 @@ describe('POST /api/qa/chat', () => {
     const messageEvents = events.filter((e) => e.event === 'message');
     expect(messageEvents.length).toBeGreaterThanOrEqual(1);
     const joined = messageEvents.map((e) => (e.data as { delta: string }).delta).join('');
-    expect(joined).toBe(`${QA_P0_ECHO_PREFIX}hello course`);
+    expect(joined).toBe(`${FAKE_ANSWER_PREFIX}hello course`);
 
     expect(events).toContainEqual({ event: 'sources', data: { lessons: [] } });
     expect(events[events.length - 1]).toEqual({ event: 'done', data: {} });
@@ -358,7 +373,38 @@ describe('POST /api/qa/chat', () => {
     expect(db.messages[0]?.['role']).toBe('user');
     expect(db.messages[0]?.['content']).toBe('first question');
     expect(db.messages[1]?.['role']).toBe('assistant');
-    expect(db.messages[1]?.['content']).toBe(`${QA_P0_ECHO_PREFIX}first question`);
+    expect(db.messages[1]?.['content']).toBe(`${FAKE_ANSWER_PREFIX}first question`);
+  });
+
+  it('propagates a thrown model error (e.g. missing API key) as INTERNAL_ERROR', async () => {
+    const env = makeEnv(new FakeD1());
+    const sessionId = await createSession(env);
+    const throwingModel: AnswerModel = async () => {
+      throw new Error('AI tutor is not configured (no ANTHROPIC_API_KEY).');
+    };
+    const events = await readSseEvents(await chat(env, sessionId, 'hi', throwingModel));
+    expect(events).toEqual([
+      { event: 'error', data: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Try again.' } },
+    ]);
+  });
+
+  it('sends the full transcript to the model, not just the latest message', async () => {
+    const env = makeEnv(new FakeD1());
+    const sessionId = await createSession(env);
+    const seen: ChatTurn[][] = [];
+    const recordingModel: AnswerModel = async (_env, messages) => {
+      seen.push(messages);
+      return 'ok';
+    };
+    await chat(env, sessionId, 'first', recordingModel);
+    await chat(env, sessionId, 'second', recordingModel);
+    expect(seen).toHaveLength(2);
+    expect(seen[0]).toEqual([{ role: 'user', content: 'first' }]);
+    expect(seen[1]).toEqual([
+      { role: 'user', content: 'first' },
+      { role: 'assistant', content: 'ok' },
+      { role: 'user', content: 'second' },
+    ]);
   });
 
   it('rejects a malformed sessionId with INVALID_SESSION_ID', async () => {

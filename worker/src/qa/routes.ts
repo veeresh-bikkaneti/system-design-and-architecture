@@ -18,13 +18,12 @@ import { checkRateLimit, currentWindowHour } from '../auth';
 import { sha256Hex } from '../crypto';
 import { deleteCheckpoint } from './checkpointer';
 import { runQaTurn } from './graph';
+import type { AnswerModel } from './model';
 import { chunkText, formatSseEvent, sseErrorResponse, sseResponse } from './sse';
 
 export const QA_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 export const QA_MAX_MESSAGE_CHARS = 2000;
 export const QA_DAILY_QUESTION_LIMIT = 50;
-// P0 stub copy -- P1/P2 replace the echo text in graph.ts's reasonActNode.
-export const QA_P0_ECHO_PREFIX = 'P0 stub \u2014 you said: ';
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -162,8 +161,12 @@ export async function handleQaQuota(request: Request, env: Env): Promise<Respons
  * All logical failures (bad input, unknown/expired session, quota, rate
  * limit) are delivered as `error` events on a 200 stream, per the widget
  * contract. Only an unparseable body gets a plain HTTP 400.
+ *
+ * callModel is production's undocumented back door for tests: it overrides
+ * reasonAct's cloud call (see graph.ts's runQaTurn) so the qa.test.ts suite
+ * never makes a real network call. Production callers never pass it.
  */
-export async function handleQaChat(request: Request, env: Env): Promise<Response> {
+export async function handleQaChat(request: Request, env: Env, callModel?: AnswerModel): Promise<Response> {
   const cors = corsHeaders(request.headers.get('Origin'));
   const parsed = await parseJsonBody(request, cors);
   if ('errorResponse' in parsed) return parsed.errorResponse;
@@ -217,7 +220,7 @@ export async function handleQaChat(request: Request, env: Env): Promise<Response
   let finalAnswer: string;
   let sources: string[];
   try {
-    ({ finalAnswer, sources } = await runQaTurn(env.DB, sessionId, message));
+    ({ finalAnswer, sources } = await runQaTurn(env, sessionId, message, callModel));
   } catch {
     return sseErrorResponse('INTERNAL_ERROR', 'Something went wrong. Try again.', cors);
   }
