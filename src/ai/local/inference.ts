@@ -186,3 +186,27 @@ export async function rewriteWithModel(
     return null;
   }
 }
+
+const PARAMETRIC_SYSTEM_PROMPT =
+  'You are an expert system design tutor. The user has asked a general software architecture question that falls outside the specific coursework. Explain the concept concisely using your internal knowledge. Do not hallucinate external sources.';
+
+/**
+ * No lesson covers this question, and there is no web lookup: the model
+ * answers from its own trained knowledge instead. Unlike rewriteWithModel
+ * there is no grounded material to check the draft against, so this skips
+ * the context-overlap and embedding-drift checks entirely -- the caller
+ * (QaWidget) is responsible for labelling the reply as general knowledge,
+ * not lesson content.
+ */
+export async function answerParametrically(question: string, prior: string): Promise<string | null> {
+  try {
+    const engine = await loadEngine();
+    const history = prior ? `What you already said:\n${prior}\n\n` : '';
+    const output = await engine.generate(PARAMETRIC_SYSTEM_PROMPT, `${history}Student: ${question}`);
+    const draft = output.trim();
+    if (!acceptDraft(draft, question)) return null;
+    return draft;
+  } catch {
+    return null;
+  }
+}

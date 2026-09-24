@@ -24,12 +24,12 @@
     { "id": "h-c-mono-modular", "q": "What is a modular monolith?", "intent": "course", "action": "lesson", "lessons": ["microservices-vs-monolith", "microservices-patterns-pitfalls"] },
     { "id": "h-c-snapshot", "q": "why take snapshots in an event-sourced system", "intent": "course", "action": "lesson", "lessons": ["event-sourcing-cqrs"] },
 
-    { "id": "h-t-go", "q": "what is golang", "intent": "tech", "action": "lookup" },
-    { "id": "h-t-flutter", "q": "What is Flutter?", "intent": "tech", "action": "lookup" },
-    { "id": "h-t-spring", "q": "what is spring boot", "intent": "tech", "action": "lookup" },
-    { "id": "h-t-postman", "q": "what is postman", "intent": "tech", "action": "lookup" },
-    { "id": "h-t-sass", "q": "what is sass css", "intent": "tech", "action": "lookup" },
-    { "id": "h-t-copilot", "q": "What is GitHub Copilot?", "intent": "tech", "action": "lookup" },
+    { "id": "h-t-go", "q": "what is golang", "intent": "tech", "action": "parametric_fallback" },
+    { "id": "h-t-flutter", "q": "What is Flutter?", "intent": "tech", "action": "parametric_fallback" },
+    { "id": "h-t-spring", "q": "what is spring boot", "intent": "tech", "action": "parametric_fallback" },
+    { "id": "h-t-postman", "q": "what is postman", "intent": "tech", "action": "parametric_fallback" },
+    { "id": "h-t-sass", "q": "what is sass css", "intent": "tech", "action": "parametric_fallback" },
+    { "id": "h-t-copilot", "q": "What is GitHub Copilot?", "intent": "tech", "action": "parametric_fallback" },
 
     { "id": "h-d-religion-state", "q": "Should church and state be separate?", "intent": "debate", "action": "redirect" },
     { "id": "h-d-climate", "q": "Is climate change exaggerated by the media?", "intent": "debate", "action": "redirect" },

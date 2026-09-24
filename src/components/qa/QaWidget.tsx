@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { prepareTurn, needsWeb, isAboutTutor, isFollowUp, OFF_COURSE } from '../../ai/local/agent';
+import { prepareTurn, isAboutTutor, isFollowUp, OFF_COURSE } from '../../ai/local/agent';
 import { OKF_CARDS } from '../../ai/local/cards';
-import { grounding, searchWeb, spokenWeb, webAside, webQuery, type ConfidenceLevel } from '../../ai/local/web';
+import { GENERAL_KNOWLEDGE_CONFIDENCE, grounding, type ConfidenceLevel } from '../../ai/local/web';
 import {
+  answerParametrically,
   getModelStatus,
   MODEL_LABEL,
   rewriteWithModel,
@@ -191,6 +192,27 @@ export function QaWidget() {
     }
   }
 
+  /**
+   * No lesson and no web lookup: the question still deserves an answer, so
+   * Ben asks the model directly from its own trained knowledge, clearly
+   * labelled as such (GENERAL_KNOWLEDGE_CONFIDENCE). There is no grounded
+   * text to check the draft against, so unlike the lesson-rewrite path this
+   * either shows the model's answer or the honest "could not find a
+   * source" line -- never a half-grounded guess.
+   */
+  async function answerFromModelKnowledge(text: string, history: ChatTurn[], assistantId: number) {
+    const draft = await answerParametrically(text, priorTurns(history));
+    if (draft) {
+      patchMessage(assistantId, { content: draft, sources: [], confidence: GENERAL_KNOWLEDGE_CONFIDENCE });
+    } else {
+      patchMessage(assistantId, {
+        content: NO_SOURCE,
+        sources: [],
+        confidence: { level: 'low', label: 'Low confidence · I could not find a source, so I will not guess' },
+      });
+    }
+  }
+
   /** The understanding layer decides; tools run only when the decision needs them. */
   async function answerByMeaning(semantic: Semantic, text: string, history: ChatTurn[], assistantId: number) {
     const vector = await semantic.embed(queryText(text, history));
@@ -199,28 +221,13 @@ export function QaWidget() {
     const sources: BubbleSource[] = turn.sources
       .filter((source) => LESSON_IDS.has(source.id))
       .map((source) => ({ title: source.title, href: lessonHref(source.id) }));
-    let { answer, confidence, context } = turn;
 
-    if (turn.action === 'lookup') {
-      const hit = (await searchWeb(webQuery(text)))[0];
-      // Check the tool's result before using it: a page about something else is dropped.
-      const fits = hit ? dot(vector, await semantic.embed(`${hit.title}. ${hit.extract}`)) >= THRESHOLDS.webFit : false;
-      if (hit && fits) {
-        answer = spokenWeb(hit);
-        sources.push({ title: hit.title, href: hit.url });
-        confidence = grounding({ aboutMe: false, inScope: false, citedWeb: true });
-        context = `Published page: ${hit.title}\n${hit.extract.slice(0, 700)}`;
-      } else {
-        answer = NO_SOURCE;
-        confidence = {
-          level: 'low',
-          label: hit
-            ? 'Low confidence · the page I found was about something else'
-            : 'Low confidence · I could not find a source, so I will not guess',
-        };
-      }
+    if (turn.action === 'parametric_fallback') {
+      await answerFromModelKnowledge(text, history, assistantId);
+      return;
     }
 
+    const { answer, confidence, context } = turn;
     patchMessage(assistantId, { content: answer, sources, confidence });
     if (!context) return;
 
@@ -234,41 +241,29 @@ export function QaWidget() {
   /** Fallback when the understanding layer cannot load: keyword routing with guard rails. */
   async function answerByKeywords(text: string, history: ChatTurn[], assistantId: number) {
     const turn = prepareTurn(text, history, focusId);
-    const lookup = needsWeb(text, turn.inScope);
     const sources: BubbleSource[] = turn.inScope
       ? turn.sources
           .filter((source) => LESSON_IDS.has(source.id))
           .map((source) => ({ title: source.title, href: lessonHref(source.id) }))
       : [];
-    let hit: Awaited<ReturnType<typeof searchWeb>>[number] | undefined;
-    if (lookup) {
-      const query = webQuery(text, turn.inScope ? turn.sources[0]?.title : undefined);
-      hit = (await searchWeb(query))[0];
-      if (hit) sources.push({ title: hit.title, href: hit.url });
-    }
     const aboutMe = isAboutTutor(text) || isFollowUp(text);
-    const offCourse = !aboutMe && !turn.inScope && !lookup;
-    const confidence = grounding({ aboutMe, inScope: turn.inScope, citedWeb: Boolean(hit), offCourse });
-    const content = aboutMe
-      ? turn.answer
-      : turn.inScope
-        ? `${turn.answer}${hit ? webAside(hit) : ''}`
-        : hit
-          ? spokenWeb(hit)
-          : offCourse
-            ? OFF_COURSE
-            : NO_SOURCE;
+
+    if (!aboutMe && turn.parametric) {
+      await answerFromModelKnowledge(text, history, assistantId);
+      return;
+    }
+
+    const offCourse = !aboutMe && !turn.inScope;
+    const confidence = grounding({ aboutMe, inScope: turn.inScope, offCourse });
+    const content = aboutMe ? turn.answer : turn.inScope ? turn.answer : OFF_COURSE;
     patchMessage(assistantId, {
       content,
       sources,
       confidence: { ...confidence, label: `${confidence.label} · keyword match` },
     });
 
-    if (aboutMe || (!turn.inScope && !hit)) return;
-    const context = [turn.context, hit ? `Published page: ${hit.title}\n${hit.extract.slice(0, 700)}` : '']
-      .filter(Boolean)
-      .join('\n\n');
-    const draft = await rewriteWithModel(text, context, priorTurns(history));
+    if (aboutMe || !turn.inScope) return;
+    const draft = await rewriteWithModel(text, turn.context, priorTurns(history));
     if (draft) patchMessage(assistantId, { content: draft });
   }
 
@@ -390,9 +385,15 @@ export function QaWidget() {
                     </span>
                   )}
                   {message.confidence && (
-                    <p className="mt-2 text-[11px] font-medium text-stone-500 dark:text-stone-400">
-                      {message.confidence.label}
-                    </p>
+                    message.confidence.level === 'general' ? (
+                      <p className="mt-2 inline-flex w-fit items-center rounded-full border border-sky-300 bg-sky-50 px-2.5 py-0.5 text-[11px] font-medium text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300">
+                        {message.confidence.label}
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-[11px] font-medium text-stone-500 dark:text-stone-400">
+                        {message.confidence.label}
+                      </p>
+                    )
                   )}
                   {message.sources && message.sources.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5 border-t border-stone-200/70 pt-2 dark:border-stone-700">

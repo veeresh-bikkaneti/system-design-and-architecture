@@ -12,7 +12,7 @@ import { nameTokens, tokenize } from '../retrieve.ts';
 import type { ChatTurn } from '../types.ts';
 import { dot, INTENTS, type BenIndex, type Intent, type LessonChunk } from './codec.ts';
 
-export type Action = 'self' | 'lesson' | 'clarify' | 'lookup' | 'redirect';
+export type Action = 'self' | 'lesson' | 'clarify' | 'parametric_fallback' | 'redirect';
 
 export interface LessonHit {
   slug: string;
@@ -56,8 +56,6 @@ export const THRESHOLDS = {
    * embed well, and in a sentence a title word ("client") is not a name.
    */
   nameBoostMaxTokens: 3,
-  /** A Wikipedia extract must be this close to the question to be shown. */
-  webFit: 0.3,
   /** Qwen's draft must stay this close to the material it was given. */
   draftFit: 0.45,
 } as const;
@@ -213,7 +211,7 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
     return { ...base, action: 'lesson', reasons: ['a lesson covers this', ...reasons] };
   }
   if (vote.intent === 'tech') {
-    return { ...base, action: 'lookup', reasons: ['general tech, no lesson covers it', ...reasons] };
+    return { ...base, action: 'parametric_fallback', reasons: ['general tech, no lesson covers it', ...reasons] };
   }
   if (topScore >= THRESHOLDS.clarify) {
     return { ...base, action: 'clarify', reasons: ['course question, no lesson is a clear match', ...reasons] };

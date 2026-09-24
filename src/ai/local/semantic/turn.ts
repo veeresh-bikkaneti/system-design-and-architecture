@@ -5,7 +5,7 @@
 import { OKF_CARDS } from '../cards.ts';
 import { askShape, formatContext, OFF_COURSE, socialAnswer, spokenAnswer } from '../agent.ts';
 import type { ChatTurn, OkfCard, ToolTrace } from '../types.ts';
-import type { ConfidenceLevel } from '../web.ts';
+import { GENERAL_KNOWLEDGE_CONFIDENCE, type ConfidenceLevel } from '../web.ts';
 import { THRESHOLDS, type Action, type Decision, type LessonHit } from './router.ts';
 
 export interface SemanticTurn {
@@ -89,14 +89,17 @@ export function buildTurn(question: string, history: ChatTurn[], decision: Decis
     };
   }
 
-  if (decision.action === 'lookup') {
+  if (decision.action === 'parametric_fallback') {
+    // No grounded material exists for this question -- the caller (QaWidget)
+    // asks the model directly instead of using `answer`. NO_SOURCE is kept
+    // here only as the honest fallback if that also comes back empty.
     return {
-      action: 'lookup',
+      action: 'parametric_fallback',
       answer: NO_SOURCE,
       sources: [],
       traces,
       context: '',
-      confidence: { level: 'low', label: 'Low confidence · I could not find a source, so I will not guess' },
+      confidence: GENERAL_KNOWLEDGE_CONFIDENCE,
     };
   }
 

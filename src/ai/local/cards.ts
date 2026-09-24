@@ -37,9 +37,9 @@ export const OKF_CARDS: OkfCard[] = [
     type: "Guide",
     order: 0,
     title: "How this tutor runs",
-    tags: ["smollm", "local", "browser", "langgraph", "github pages", "wasm"],
-    summary: "A LangGraph-shaped loop with a local Qwen model and no API key.",
-    body: "The course site is static and can live on GitHub Pages. This tutor does not call OpenAI, Anthropic, or Workers AI. Each question runs the same shape as the course's LangGraph: triage, then retrieve, then reason, then answer. triage keeps the question on the course. retrieve calls search_lessons over the OKF bundle (BM25, on device). read_concept opens the top cards and wraps them as data. When the lessons miss, or the student asks for a source, web_search reads a Wikipedia intro in the browser and the reply cites that article URL. Qwen2.5-0.5B does not choose tools and does not browse by itself. The page runs the tools, then the model may rephrase a lesson answer. Weights download once from Hugging Face and stay in the browser cache.",
+    tags: ["local", "browser", "prompt api", "webllm", "github pages", "wasm"],
+    summary: "A local router with a two-tier on-device model, no server and no API key.",
+    body: "The course site is static and can live on GitHub Pages. This tutor does not call OpenAI, Anthropic, or any server of ours. A small embedding model ranks the question against the lesson index (on device) and a policy table picks lesson, clarify, redirect, self, or a general-knowledge fallback for tech questions no lesson covers. read_concept opens the top cards and wraps them as data. Wording, when it runs at all, tries the browser's own built-in AI first (Chrome's Prompt API), then falls back to a small model (WebLLM, on WebGPU) if that is not available; neither picks tools or browses by itself. The page runs the routing, then the model may rephrase a lesson answer, or, for the general-knowledge fallback, answer directly from what it already knows -- always labelled as that, never as a lesson citation.",
   },
   {
     id: "scaling-web-service",

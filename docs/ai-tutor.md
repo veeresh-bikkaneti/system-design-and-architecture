@@ -16,8 +16,7 @@ Ben has two layers:
 | Embedder + index (`semantic/embedder.ts`) | Browser | Loads `models/all-MiniLM-L6-v2/` and `ben/index.json` from the site |
 | Router (`semantic/router.ts`) | Browser | Intent by nearest labelled examples, lessons by nearest sections, then a policy table |
 | Turn (`semantic/turn.ts`) | Browser | Turns the decision into Ben's reply, sources, and confidence line |
-| `searchWeb` (`web.ts`) | Browser → Wikipedia | Reads one article intro, only for general tech no lesson covers |
-| Engine (`inference.ts`) | Browser, Prompt API or WebGPU | Rewords a grounded reply. Does not pick tools and does not browse |
+| Engine (`inference.ts`) | Browser, Prompt API or WebGPU | Rewords a grounded reply, or answers a general tech question from its own trained knowledge when no lesson covers it. Does not pick tools and never fetches anything itself |
 | Keyword pipeline (`agent.ts`, `retrieve.ts`) | Browser | Fallback when the embedder cannot load |
 
 Nothing executable comes from a third party: the page CSP is `script-src 'self'` plus `'wasm-unsafe-eval'`, which allows WebAssembly compilation only.
@@ -37,8 +36,7 @@ flowchart TD
   self[Ben answers as himself]
   lesson[Answer from the best lesson section]
   clarify[Offer the two closest lessons]
-  lookup[Wikipedia intro]
-  fit{Page is about the question?}
+  parametric[Prompt API, else WebLLM,<br/>answers from its own knowledge]
   redirect[Redirect to the course]
   engine[Prompt API, else WebLLM, rewords]
   keep{Draft still close<br/>to the grounded reply?}
@@ -51,11 +49,9 @@ flowchart TD
   rules -->|no| embed --> vote & rank --> policy
   policy -->|a lesson section is close| lesson
   policy -->|course, weak match| clarify
-  policy -->|general tech, no lesson| lookup --> fit
-  fit -->|no| redirect
+  policy -->|general tech, no lesson| parametric
   policy -->|debate or off topic| redirect
   lesson --> engine --> keep
-  fit -->|yes| engine
 ```
 
 The policy table and its thresholds are in `THRESHOLDS` in `src/ai/local/semantic/router.ts`. Change them only with `npm run eval:ben` open.
@@ -68,8 +64,7 @@ The policy table and its thresholds are in `THRESHOLDS` in `src/ai/local/semanti
 | High · from the lesson *X* | A lesson section is a strong match |
 | Medium · closest lesson is *X* | A lesson section matches, less strongly |
 | Not sure · closest lessons offered | Ben could not tell which lesson you mean, or whether it is about the course |
-| Medium · not a lesson here. Checked a published page just now | General tech. The reply is a Wikipedia intro that fits the question |
-| Low · the page I found was about something else | The lookup returned an unrelated page, so Ben does not use it |
+| General knowledge overview — not in current lesson plan | General tech no lesson covers. The reply comes from the model's own trained knowledge, not a lesson or a citable source |
 | Off topic · outside this course | Debate, opinion, or everyday topics. Ben redirects |
 | … · keyword match | The understanding layer was not ready, so the keyword fallback answered |
 
@@ -104,7 +99,7 @@ src/ai/local/semantic/codec.ts        index decoding, vector math
 src/ai/local/semantic/router.ts       intent vote, lesson ranking, policy table
 src/ai/local/semantic/turn.ts         decision → reply
 src/ai/local/agent.ts                 rule layer and keyword fallback
-src/ai/local/web.ts                   Wikipedia lookup and query aliases
+src/ai/local/web.ts                   confidence labelling (lesson-grounded vs. model's own knowledge)
 scripts/ben/embedder.mjs              hash-pinned model fetch, ONNX WASM copy
 scripts/ben/chunk-lessons.mjs         lesson MDX → prose sections
 scripts/ben/build-index.mjs           sections + examples → public/ben/index.json

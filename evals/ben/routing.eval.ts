@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { buildIndex } from '../../scripts/ben/build-index.mjs';
 import { loadNodeEmbedder } from '../../scripts/ben/embedder.mjs';
-import { needsWeb, prepareTurn, isAboutTutor, isFollowUp } from '../../src/ai/local/agent.ts';
+import { isGeneralTechQuestion, prepareTurn, isAboutTutor, isFollowUp } from '../../src/ai/local/agent.ts';
 import { decodeIndex, type BenIndex, type RawBenIndex } from '../../src/ai/local/semantic/codec.ts';
 import { queryText, route, type Action } from '../../src/ai/local/semantic/router.ts';
 import type { ChatTurn } from '../../src/ai/local/types.ts';
@@ -60,7 +60,7 @@ function judge(c: Case & { set: string }, got: Action, lesson?: string): Outcome
   let correct = okActions.has(got);
   if (correct && got === 'lesson' && c.lessons) correct = lesson !== undefined && c.lessons.includes(lesson);
   const offCourse = c.action === 'redirect' || c.action === 'self';
-  const answered = got === 'lesson' || got === 'lookup';
+  const answered = got === 'lesson' || got === 'parametric_fallback';
   return {
     id: c.id,
     set: c.set,
@@ -81,7 +81,7 @@ function legacy(c: Case): { action: Action; lesson?: string } {
   const turn = prepareTurn(c.q, c.history ?? [], c.focus);
   if (isAboutTutor(c.q) || isFollowUp(c.q)) return { action: 'self' };
   if (turn.inScope) return { action: 'lesson', lesson: turn.sources[0]?.id };
-  return { action: needsWeb(c.q, false) ? 'lookup' : 'redirect' };
+  return { action: isGeneralTechQuestion(c.q, false) ? 'parametric_fallback' : 'redirect' };
 }
 
 function summarize(name: string, outcomes: Outcome[]) {
@@ -98,7 +98,7 @@ function summarize(name: string, outcomes: Outcome[]) {
 }
 
 function confusion(outcomes: Outcome[]): string {
-  const actions: Action[] = ['lesson', 'clarify', 'lookup', 'redirect', 'self'];
+  const actions: Action[] = ['lesson', 'clarify', 'parametric_fallback', 'redirect', 'self'];
   const header = `| expected \\ got | ${actions.join(' | ')} |`;
   const rows = actions.map((expected) => {
     const cells = actions.map((got) => outcomes.filter((o) => o.expected === expected && o.got === got).length);

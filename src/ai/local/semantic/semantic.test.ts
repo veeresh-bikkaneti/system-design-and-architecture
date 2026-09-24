@@ -79,9 +79,9 @@ describe('router', () => {
     expect(decision.action).toBe('lesson');
   });
 
-  it('looks up general tech that no lesson covers', () => {
+  it('falls back to the model\'s own knowledge for general tech that no lesson covers', () => {
     const decision = route({ question: 'what is golang', vector: vec(1), index });
-    expect(decision.action).toBe('lookup');
+    expect(decision.action).toBe('parametric_fallback');
   });
 
   it('offers the closest lessons instead of guessing on a weak match', () => {

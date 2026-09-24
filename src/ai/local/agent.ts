@@ -230,12 +230,14 @@ function simpler(card: OkfCard): string {
 }
 
 /**
- * Check a published page for course questions, so the reply can cite it.
- * Off the course, only a short "what is X" definition gets looked up. A long
- * or opinion question sent to the web comes back as a Wikipedia answer on any
- * subject, and Ben stops being a course tutor.
+ * A question still worth an answer even though no lesson covers it: general
+ * tech, not a debate or an off-course topic. These go to the model's own
+ * trained knowledge (inference.ts's answerParametrically), never a web
+ * fetch. Off the course, only a short "what is X" definition qualifies. A
+ * long or opinion question would let the model answer on any subject, and
+ * Ben would stop being a course tutor.
  */
-export function needsWeb(question: string, inScope: boolean): boolean {
+export function isGeneralTechQuestion(question: string, inScope: boolean): boolean {
   if (isAboutTutor(question) || isFollowUp(question)) return false;
   if (/\b(poem|joke|lyrics|song)\b/i.test(question)) return false;
   if (isOffCourseTopic(question)) return false;
@@ -340,9 +342,14 @@ export function prepareTurn(question: string, history: ChatTurn[] = [], focusId?
   ];
 
   if (!inScope || !lead) {
+    const parametric = isGeneralTechQuestion(question, false);
     return {
       inScope: false,
-      answer: needsWeb(question, false) ? OUT_OF_SCOPE : OFF_COURSE,
+      // parametric: true means the caller should ask the model directly
+      // instead of using this text -- kept as the honest fallback if that
+      // also comes back empty.
+      answer: parametric ? OUT_OF_SCOPE : OFF_COURSE,
+      parametric,
       sources: [],
       traces,
       context: "",
@@ -391,15 +398,6 @@ export const TOOL_SCHEMAS = [
         ids: { type: "array", items: { type: "string" }, description: "Card ids from search_lessons." },
       },
       required: ["ids"],
-    },
-  },
-  {
-    name: "web_search",
-    description: "Read the public Wikipedia intro for a topic the lessons do not cover. Cite the article URL.",
-    parameters: {
-      type: "object",
-      properties: { query: { type: "string", description: "The topic to look up, in the student's words." } },
-      required: ["query"],
     },
   },
 ] as const;
