@@ -480,8 +480,8 @@ export function QaWidget() {
             {messages.length === 0 && (
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
                 <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                  Hi, I'm Ben. Ask me the way you'd ask a person. I check the lesson first, and if it isn't there I look it up and show the source. {USE_LOCAL_TUTOR
-                    ? 'I run on this device. No account and no API key.'
+                  Hi, I'm Ben. Ask me like you'd ask a person. I'll check the lesson first, and if it's not there, I'll look it up and show you the source. {USE_LOCAL_TUTOR
+                    ? 'I run right here on your device — no account, no API key.'
                     : 'I remember this conversation until you start a new topic.'}
                 </p>
               </div>
