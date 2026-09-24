@@ -10,16 +10,17 @@
 4. **Track progress and earn badges** — your progress and quiz scores are saved in your own browser. Finish lesson groups to earn badges you can show on LinkedIn.
 5. **Go deeper (optional)** — each lesson ends with hand-picked conference talks and tutorials when you want more than the lesson covers.
 
-The lessons, quizzes, and badges are a static site, so your progress never leaves your machine. Ben, the chat button, also runs on your machine unless a build sets `VITE_QA_API_BASE`.
+The lessons, quizzes, and badges are a static site, so your progress never leaves your machine. Ben, the chat button, also runs entirely on your machine — there is no backend and no server for chat.
 
-## AI assistant (free, no key, no cloud model)
+## AI assistant (100% client-side, no key, no cloud model)
 
-Stuck on a lesson? The floating chat button opens Ben. On GitHub Pages he does **not** call an AI provider. Setup, the tool loop, and the diagram are in [docs/ai-tutor.md](docs/ai-tutor.md).
+Stuck on a lesson? The floating chat button opens Ben. He never calls an AI provider or a server of ours. Setup, the tool loop, and the diagram are in [docs/ai-tutor.md](docs/ai-tutor.md).
 
-- **Small model, in your browser.** Qwen2.5-0.5B-Instruct (ONNX q4, via Transformers.js) runs on your device. Weights download once from Hugging Face, about 750MB, and stay in the browser cache. No API key, no subscription.
+- **On-device inference, two tiers.** Ben first tries the browser's own built-in AI (Chrome's Prompt API). If that's not available, he falls back to WebLLM, running a small model on your GPU via WebGPU, with weights cached in IndexedDB after the first download. Either way, inference runs on your device — no API key, no subscription, no Cloudflare Worker in the loop.
+- **Any browser.** The chat UI itself (retrieval, routing, transcript) uses only standard Web APIs (`fetch`, `localStorage`) and works everywhere; the on-device generation step degrades gracefully where neither engine is available, falling back to the grounded lesson text without a rewrite.
 - **Clean context.** The course is an [Open Knowledge Format](https://github.com/GoogleCloudPlatform/open-knowledge-format) bundle: one short card per lesson, plus guides for OKF itself and for LangChain tool calling. Each question retrieves two or three cards. The model only sees that slice.
-- **Tool calling, LangChain-shaped.** The page, not the model, runs `search_lessons`, `read_concept`, and `web_search`. Same shape as LangChain `bind_tools` and the Worker's LangGraph (`triage → retrieve → reason → answer`). Tool output is data, not new instructions. If Qwen's draft is unusable, the grounded reply stays.
-- **Optional Worker.** Set `VITE_QA_API_BASE` at build time to send chat to the Cloudflare Worker instead. The lessons, quizzes, and badges never depend on either path.
+- **Tool calling, LangChain-shaped.** The page, not the model, runs `search_lessons`, `read_concept`, and `web_search`. Tool output is data, not new instructions. If the model's draft is unusable, the grounded reply stays.
+- **Memory.** The conversation transcript is persisted to your browser's `localStorage`, so it survives a reload; "New topic" clears it explicitly.
 
 The assistant is strictly additive: every lesson, quiz, badge, and progress feature works without it.
 

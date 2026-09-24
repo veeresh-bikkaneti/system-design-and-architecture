@@ -12,12 +12,6 @@ import {
   validateSession,
 } from './auth';
 import { sha256Hex } from './crypto';
-import {
-  handleQaChat,
-  handleQaCreateSession,
-  handleQaDeleteSession,
-  handleQaQuota,
-} from './qa/routes';
 
 export interface Env {
   DB: D1Database;
@@ -29,13 +23,6 @@ export interface Env {
   RESEND_API_KEY?: string;
   RESEND_FROM_ADDRESS?: string;
   DEV_MODE?: string;
-  // The course Q&A agent's cloud model (qa/model.ts). A wrangler secret --
-  // never in the committed wrangler.toml. Unset means the AI tutor is not
-  // configured: callAnthropic fails closed (throws) rather than silently
-  // serving a broken or unauthenticated request.
-  ANTHROPIC_API_KEY?: string;
-  // Overrides qa/model.ts's default model id without a redeploy.
-  ANTHROPIC_MODEL?: string;
 }
 
 interface CredentialRow {
@@ -556,10 +543,10 @@ export default {
       return jsonResponse({ status: 'ok' });
     }
 
-    // Preflight for the /exam/*, /auth/* and /api/qa/* routes below -- a cross-origin
+    // Preflight for the /exam/* and /auth/* routes below -- a cross-origin
     // POST with a JSON content-type (or, for /auth/session, an Authorization
     // header) triggers a browser preflight before the real request.
-    if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/qa/'))) {
+    if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/'))) {
       return new Response(null, { status: 204, headers: corsHeaders(request.headers.get('Origin')) });
     }
 
@@ -592,23 +579,6 @@ export default {
 
     if (url.pathname === '/exam/submit' && request.method === 'POST') {
       return handleExamSubmit(request, env);
-    }
-
-    // P0 course Q&A agent. See worker/src/qa/routes.ts for the contract.
-    if (url.pathname === '/api/qa/session' && request.method === 'POST') {
-      return handleQaCreateSession(request, env);
-    }
-
-    if (url.pathname === '/api/qa/session' && request.method === 'DELETE') {
-      return handleQaDeleteSession(request, env);
-    }
-
-    if (url.pathname === '/api/qa/chat' && request.method === 'POST') {
-      return handleQaChat(request, env);
-    }
-
-    if (url.pathname === '/api/qa/quota' && request.method === 'GET') {
-      return handleQaQuota(request, env);
     }
 
     const verifyMatch = url.pathname.match(/^\/verify\/([A-Za-z0-9_-]+)$/);

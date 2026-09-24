@@ -5,7 +5,7 @@ Ben is the chat button on the course site. He runs in the student's browser. Git
 Ben has two layers:
 
 - **Understanding** decides what a question is and what to do about it. It uses a small embedding model, [all-MiniLM-L6-v2](https://huggingface.co/Xenova/all-MiniLM-L6-v2) (23 MB, quantized), served by the course site itself. It is ready a few seconds after the chat opens, and every routing decision comes from it.
-- **Wording** is optional. [Qwen2.5-0.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct) (q4, about 750 MB, from the Hugging Face Hub) rewrites a grounded reply to sound more natural. It never decides anything. If it does not load, the grounded reply stays.
+- **Wording** is optional and 100% on-device, two tiers (`inference.ts`). First choice is the browser's own built-in AI (Chrome's Prompt API, `window.LanguageModel`) — nothing to download from us. If that's unavailable, it falls back to [WebLLM](https://github.com/mlc-ai/web-llm) running a small Qwen2.5-0.5B model on WebGPU, weights cached to IndexedDB after the first download. Neither engine ever decides anything — they only reword a grounded reply. If neither loads, the grounded reply stays.
 
 ## What each piece does
 
@@ -17,7 +17,7 @@ Ben has two layers:
 | Router (`semantic/router.ts`) | Browser | Intent by nearest labelled examples, lessons by nearest sections, then a policy table |
 | Turn (`semantic/turn.ts`) | Browser | Turns the decision into Ben's reply, sources, and confidence line |
 | `searchWeb` (`web.ts`) | Browser → Wikipedia | Reads one article intro, only for general tech no lesson covers |
-| Qwen (`slm.ts`) | Browser, WebGPU or WASM | Rewords a grounded reply. Does not pick tools and does not browse |
+| Engine (`inference.ts`) | Browser, Prompt API or WebGPU | Rewords a grounded reply. Does not pick tools and does not browse |
 | Keyword pipeline (`agent.ts`, `retrieve.ts`) | Browser | Fallback when the embedder cannot load |
 
 Nothing executable comes from a third party: the page CSP is `script-src 'self'` plus `'wasm-unsafe-eval'`, which allows WebAssembly compilation only.
@@ -40,7 +40,7 @@ flowchart TD
   lookup[Wikipedia intro]
   fit{Page is about the question?}
   redirect[Redirect to the course]
-  qwen[Qwen rewords, if loaded]
+  engine[Prompt API, else WebLLM, rewords]
   keep{Draft still close<br/>to the grounded reply?}
 
   ask --> ready
@@ -54,8 +54,8 @@ flowchart TD
   policy -->|general tech, no lesson| lookup --> fit
   fit -->|no| redirect
   policy -->|debate or off topic| redirect
-  lesson --> qwen --> keep
-  fit -->|yes| qwen
+  lesson --> engine --> keep
+  fit -->|yes| engine
 ```
 
 The policy table and its thresholds are in `THRESHOLDS` in `src/ai/local/semantic/router.ts`. Change them only with `npm run eval:ben` open.
@@ -89,18 +89,20 @@ When Ben gets something wrong:
 3. Fix the cause. Usually that means more labelled examples of the right kind in `evals/ben/exemplars.json`, worded differently from the case. Sometimes it means a policy change. It never means a regex for that one phrasing.
 4. The eval must still pass, including the holdout.
 
-Chat memory is the last few turns in that tab. "New topic" clears it. It is not an account and it is not stored on a server.
+Chat memory is the conversation transcript, persisted to the browser's `localStorage` (`useQaHistory.ts`) so it survives a reload. "New topic" clears it. It is not an account and it is not stored on a server — there is no server.
 
 ## Files
 
 ```
 src/components/qa/QaWidget.tsx        chat UI
-src/ai/local/runtime.ts               Transformers.js runtime, serialized model loads
+src/components/qa/useQaHistory.ts     transcript persisted to localStorage
+src/ai/local/inference.ts             Prompt API + WebLLM fallback, load/rewrite
+src/ai/local/promptApi.d.ts           ambient types for window.LanguageModel
+src/ai/local/runtime.ts               Transformers.js runtime for the embedder (serialized model loads)
 src/ai/local/semantic/embedder.ts     embedder + index loading in the browser
 src/ai/local/semantic/codec.ts        index decoding, vector math
 src/ai/local/semantic/router.ts       intent vote, lesson ranking, policy table
 src/ai/local/semantic/turn.ts         decision → reply
-src/ai/local/slm.ts                   Qwen load and rewrite
 src/ai/local/agent.ts                 rule layer and keyword fallback
 src/ai/local/web.ts                   Wikipedia lookup and query aliases
 scripts/ben/embedder.mjs              hash-pinned model fetch, ONNX WASM copy
@@ -109,4 +111,4 @@ scripts/ben/build-index.mjs           sections + examples → public/ben/index.j
 evals/ben/                            labelled examples, held-out cases, eval, report
 ```
 
-To swap Qwen, change `MODEL_ID` in `slm.ts`. It has to be an ONNX instruct repo that Transformers.js can load with `dtype: 'q4'`. To swap the embedder, change the pins in `scripts/ben/embedder.mjs` and the path in `semantic/embedder.ts`, then rerun the eval: every threshold is tuned to this model.
+To swap the WebLLM fallback model, change the `startsWith('Qwen2.5-0.5B-Instruct')` match in `inference.ts`'s `loadWebLlm` to any model id in `@mlc-ai/web-llm`'s `prebuiltAppConfig.model_list`. To swap the embedder, change the pins in `scripts/ben/embedder.mjs` and the path in `semantic/embedder.ts`, then rerun the eval: every threshold is tuned to this model.

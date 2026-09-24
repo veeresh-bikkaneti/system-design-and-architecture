@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { prepareTurn, needsWeb, isAboutTutor, isFollowUp, OFF_COURSE } from '../../ai/local/agent';
 import { OKF_CARDS } from '../../ai/local/cards';
@@ -9,30 +9,26 @@ import {
   rewriteWithModel,
   subscribeModel,
   type ModelStatus,
-} from '../../ai/local/slm';
+} from '../../ai/local/inference';
 import { loadSemantic, semanticWithin, subscribeSemantic, type Semantic, type SemanticPhase } from '../../ai/local/semantic/embedder';
 import { dot } from '../../ai/local/semantic/codec';
 import { queryText, route, THRESHOLDS } from '../../ai/local/semantic/router';
 import { buildTurn, NO_SOURCE } from '../../ai/local/semantic/turn';
 import type { ChatTurn } from '../../ai/local/types';
 import { ChatMarkdown } from '../ChatMarkdown';
-import { quotaLabel } from './quota';
-import {
-  QaApiError,
-  getQuota,
-  streamChat,
-  type QaQuota,
-  type QaStreamEvent,
-} from './qaApi';
-import { useQaSession } from './useQaSession';
+import { useQaHistory } from './useQaHistory';
 
-/** Backend input cap (architecture §4.2): never send more than the Worker accepts. */
-const MAX_MESSAGE_LENGTH = 2000;
-
-/** GitHub Pages has no model API. A base URL opts back into the Worker. */
-const USE_LOCAL_TUTOR = (import.meta.env.VITE_QA_API_BASE ?? '') === '';
+/**
+ * There is no backend for the Q&A tutor: it runs entirely in the browser
+ * (see ../../ai/local/inference.ts), on any device, with no API key and no
+ * server. The transcript is the browser's own memory -- useQaHistory
+ * persists it to localStorage so it survives a reload.
+ */
 
 const LESSON_IDS = new Set(OKF_CARDS.filter((card) => card.type === 'Lesson').map((card) => card.id));
+
+/** Keeps one runaway paste from blowing up the on-device model's context window. */
+const MAX_MESSAGE_LENGTH = 2000;
 
 /**
  * How long a question waits for the understanding layer (23 MB, cached after the
@@ -128,15 +124,13 @@ function NewTopicIcon({ className }: { className?: string }) {
 
 export function QaWidget() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<QaMessage[]>([]);
+  const [messages, setMessages] = useQaHistory<QaMessage>();
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
-  const [rotating, setRotating] = useState(false);
-  const [quota, setQuota] = useState<QaQuota | null>(null);
   const [modelStatus, setModelStatus] = useState<ModelStatus>(getModelStatus());
   const [semanticPhase, setSemanticPhase] = useState<SemanticPhase>('idle');
-  const nextId = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
+  // A restored transcript may already contain ids; never hand out one that collides.
+  const nextId = useRef(messages.reduce((max, m) => Math.max(max, m.id + 1), 0));
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { pathname } = useLocation();
@@ -148,41 +142,19 @@ export function QaWidget() {
   }, [pathname]);
   const focusTitle = OKF_CARDS.find((card) => card.id === focusId)?.title;
 
-  const { sessionId, ensureSession, newTopic } = useQaSession();
-
   useEffect(() => subscribeModel(setModelStatus), []);
   useEffect(() => subscribeSemantic(setSemanticPhase), []);
 
   // Start the understanding layer as soon as the chat opens, not on the first question.
   useEffect(() => {
-    if (open && USE_LOCAL_TUTOR) void loadSemantic();
+    if (open) void loadSemantic();
   }, [open]);
-
-  const refreshQuota = useCallback(async (sid: string) => {
-    try {
-      setQuota(await getQuota(sid));
-    } catch {
-      // The badge is informational; a failed refresh must never break chat.
-    }
-  }, []);
-
-  // A stored session from a previous visit restores its quota on mount.
-  useEffect(() => {
-    if (!USE_LOCAL_TUTOR && sessionId) void refreshQuota(sessionId);
-  }, [sessionId, refreshQuota]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, streaming]);
-
-  // Cancel any in-flight stream if the widget unmounts.
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
-    };
-  }, []);
 
   function addMessage(role: QaMessage['role'], content: string, isError = false): number {
     const id = nextId.current++;
@@ -194,92 +166,9 @@ export function QaWidget() {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
   }
 
-  function handleStreamEvent(assistantId: number, event: QaStreamEvent) {
-    switch (event.type) {
-      case 'delta':
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + event.delta } : m)),
-        );
-        break;
-      case 'sources':
-        patchMessage(assistantId, {
-          sources: event.lessons.map((lesson) => ({
-            title: lesson.title,
-            href: `${import.meta.env.BASE_URL}lesson/${lesson.slug}`,
-          })),
-        });
-        break;
-      case 'done':
-        break;
-      case 'error':
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId
-              ? { ...m, content: m.content || event.message, isError: true }
-              : m,
-          ),
-        );
-        break;
-    }
-  }
-
   async function handleSend() {
     const text = input.trim().slice(0, MAX_MESSAGE_LENGTH);
     if (!text || streaming) return;
-    if (USE_LOCAL_TUTOR) {
-      await handleLocalSend(text);
-      return;
-    }
-
-    setInput('');
-    addMessage('user', text);
-    const assistantId = addMessage('assistant', '');
-    setStreaming(true);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      const sid = await ensureSession();
-      await streamChat({
-        sessionId: sid,
-        message: text,
-        signal: controller.signal,
-        onEvent: (event) => handleStreamEvent(assistantId, event),
-      });
-      // A well-behaved stream ends with `event: done`; if the backend closed
-      // the stream with no content and no error, say so instead of hanging.
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId && m.content === '' && !m.isError
-            ? { ...m, content: 'The assistant returned an empty response. Please try again.', isError: true }
-            : m,
-        ),
-      );
-      void refreshQuota(sid);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        // Aborted by "New topic" or unmount; the transcript was cleared.
-        return;
-      }
-      const message =
-        err instanceof QaApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : 'Something went wrong.';
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId ? { ...m, content: m.content || message, isError: true } : m,
-        ),
-      );
-    } finally {
-      setStreaming(false);
-      abortRef.current = null;
-    }
-  }
-
-  async function handleLocalSend(text: string) {
     setInput('');
     const history: ChatTurn[] = messages
       .filter((message) => !message.isError && message.content.length > 0)
@@ -383,23 +272,9 @@ export function QaWidget() {
     if (draft) patchMessage(assistantId, { content: draft });
   }
 
-  async function handleNewTopic() {
-    if (USE_LOCAL_TUTOR) {
-      setMessages([]);
-      return;
-    }
-    if (rotating || streaming) return;
-    abortRef.current?.abort();
-    setRotating(true);
-    try {
-      await newTopic();
-      setMessages([]);
-      setQuota(null);
-    } catch {
-      addMessage('assistant', 'Could not start a new topic. Please try again.', true);
-    } finally {
-      setRotating(false);
-    }
+  function handleNewTopic() {
+    if (streaming) return;
+    setMessages([]);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -408,8 +283,6 @@ export function QaWidget() {
       void handleSend();
     }
   }
-
-  const badge = quotaLabel(quota);
 
   return (
     <>
@@ -438,22 +311,20 @@ export function QaWidget() {
                 Ask Ben
               </h2>
               <p className="truncate text-xs text-stone-500 dark:text-stone-400">
-                {USE_LOCAL_TUTOR
-                  ? semanticPhase === 'loading'
-                    ? 'Getting ready · reading the lessons'
-                    : modelStatus.phase === 'loading'
+                {semanticPhase === 'loading'
+                  ? 'Getting ready · reading the lessons'
+                  : modelStatus.phase === 'loading'
                     ? `Loading ${MODEL_LABEL} · ${modelStatus.progress}%`
                     : modelStatus.phase === 'ready'
-                      ? `${MODEL_LABEL} on this device`
-                      : 'Runs in your browser · no API key'
-                  : (badge ?? 'Answers grounded in the lessons')}
+                      ? modelStatus.detail
+                      : 'Runs in your browser · no API key'}
               </p>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => void handleNewTopic()}
-                disabled={rotating || streaming}
+                onClick={handleNewTopic}
+                disabled={streaming}
                 aria-label="New topic (forget this conversation)"
                 title="New topic"
                 className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
@@ -480,8 +351,7 @@ export function QaWidget() {
             {messages.length === 0 && (
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
                 <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                  Hi, I'm Ben. Ask me like you'd ask a person. I'll check the lesson first, and if it's not there, I'll look it up and show you the source.
-                  {!USE_LOCAL_TUTOR && ' I remember this conversation until you start a new topic.'}
+                  Hi, I'm Ben. Ask me like you'd ask a person. I'll check the lesson first, and if it's not there, I'll look it up and show you the source. I remember this conversation until you start a new topic.
                 </p>
               </div>
             )}
