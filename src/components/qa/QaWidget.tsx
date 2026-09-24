@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { prepareTurn, needsWeb, isAboutTutor, isFollowUp } from '../../ai/local/agent';
 import { OKF_CARDS } from '../../ai/local/cards';
@@ -11,15 +11,8 @@ import {
   type ModelStatus,
 } from '../../ai/local/slm';
 import { ChatMarkdown } from '../ChatMarkdown';
-import { quotaLabel } from './quota';
-import {
-  QaApiError,
-  getQuota,
-  streamChat,
-  type QaQuota,
-  type QaStreamEvent,
-} from './qaApi';
-import { useQaSession } from './useQaSession';
+import { QaApiError, streamChat, type QaStreamEvent } from './qaApi';
+import { useQaHistory } from './useQaHistory';
 
 /** Backend input cap (architecture §4.2): never send more than the Worker accepts. */
 const MAX_MESSAGE_LENGTH = 2000;
@@ -106,13 +99,15 @@ function NewTopicIcon({ className }: { className?: string }) {
 
 export function QaWidget() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<QaMessage[]>([]);
+  // Anonymous Session architecture: this IS the session, persisted to
+  // localStorage by useQaHistory. There is no server-side session id.
+  const [messages, setMessages] = useQaHistory<QaMessage>();
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
-  const [rotating, setRotating] = useState(false);
-  const [quota, setQuota] = useState<QaQuota | null>(null);
   const [modelStatus, setModelStatus] = useState<ModelStatus>(getModelStatus());
-  const nextId = useRef(0);
+  // Restored history may already hold ids -- start past the highest one so
+  // a new message can never collide with a restored id.
+  const nextId = useRef(messages.reduce((max, m) => Math.max(max, m.id + 1), 0));
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -125,22 +120,7 @@ export function QaWidget() {
   }, [pathname]);
   const focusTitle = OKF_CARDS.find((card) => card.id === focusId)?.title;
 
-  const { sessionId, ensureSession, newTopic } = useQaSession();
-
   useEffect(() => subscribeModel(setModelStatus), []);
-
-  const refreshQuota = useCallback(async (sid: string) => {
-    try {
-      setQuota(await getQuota(sid));
-    } catch {
-      // The badge is informational; a failed refresh must never break chat.
-    }
-  }, []);
-
-  // A stored session from a previous visit restores its quota on mount.
-  useEffect(() => {
-    if (!USE_LOCAL_TUTOR && sessionId) void refreshQuota(sessionId);
-  }, [sessionId, refreshQuota]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -203,6 +183,12 @@ export function QaWidget() {
     }
 
     setInput('');
+    // The full transcript so far, plus this new turn -- the Worker is
+    // stateless, so this array IS the only memory it gets (Anonymous
+    // Session architecture; see worker/README.md).
+    const history = messages
+      .filter((message) => !message.isError && message.content.length > 0)
+      .map((message) => ({ role: message.role, content: message.content }));
     addMessage('user', text);
     const assistantId = addMessage('assistant', '');
     setStreaming(true);
@@ -211,10 +197,8 @@ export function QaWidget() {
     abortRef.current = controller;
 
     try {
-      const sid = await ensureSession();
       await streamChat({
-        sessionId: sid,
-        message: text,
+        messages: [...history, { role: 'user', content: text }],
         signal: controller.signal,
         onEvent: (event) => handleStreamEvent(assistantId, event),
       });
@@ -227,7 +211,6 @@ export function QaWidget() {
             : m,
         ),
       );
-      void refreshQuota(sid);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         // Aborted by "New topic" or unmount; the transcript was cleared.
@@ -315,23 +298,12 @@ export function QaWidget() {
     }
   }
 
-  async function handleNewTopic() {
-    if (USE_LOCAL_TUTOR) {
-      setMessages([]);
-      return;
-    }
-    if (rotating || streaming) return;
+  function handleNewTopic() {
+    if (streaming) return;
+    // Anonymous Session architecture: there's nothing server-side to wipe --
+    // the transcript only ever lived in this browser's localStorage.
     abortRef.current?.abort();
-    setRotating(true);
-    try {
-      await newTopic();
-      setMessages([]);
-      setQuota(null);
-    } catch {
-      addMessage('assistant', 'Could not start a new topic. Please try again.', true);
-    } finally {
-      setRotating(false);
-    }
+    setMessages([]);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -340,8 +312,6 @@ export function QaWidget() {
       void handleSend();
     }
   }
-
-  const badge = quotaLabel(quota);
 
   return (
     <>
@@ -376,14 +346,14 @@ export function QaWidget() {
                     : modelStatus.phase === 'ready'
                       ? `${MODEL_LABEL} on this device`
                       : 'Runs in your browser · no API key'
-                  : (badge ?? 'Answers grounded in the lessons')}
+                  : 'Answers grounded in the lessons'}
               </p>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => void handleNewTopic()}
-                disabled={rotating || streaming}
+                onClick={handleNewTopic}
+                disabled={streaming}
                 aria-label="New topic (forget this conversation)"
                 title="New topic"
                 className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"

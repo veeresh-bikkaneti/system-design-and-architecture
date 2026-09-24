@@ -7,17 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { runQaTurn } from './graph';
 import { QA_INDEX } from './qa-index';
-import {
-  D1ChunkStore,
-  readLessonText,
-  searchLessons,
-  titleForSlug,
-  tokenize,
-  uniqueSources,
-  type ChunkStore,
-  type D1Like,
-} from './retrieval';
-import { handleQaChat } from './routes';
+import { searchLessons, titleForSlug, tokenize, uniqueSources } from './retrieval';
 
 const indexJson = JSON.stringify(QA_INDEX);
 
@@ -127,122 +117,17 @@ describe('citation helpers', () => {
   });
 });
 
-describe('readLessonText', () => {
-  const store: ChunkStore = {
-    getLessonChunks: async (slug: string) => {
-      if (slug !== 'demo') return [];
-      // Deliberately out of order -- the helper must sort by ordinal.
-      return [
-        { ordinal: 1, text: 'second' },
-        { ordinal: 0, text: 'first' },
-      ];
-    },
-  };
-
-  it('concatenates chunks in ordinal order', async () => {
-    expect(await readLessonText(store, 'demo')).toBe('first\n\nsecond');
-  });
-
-  it('returns empty for unknown slugs', async () => {
-    expect(await readLessonText(store, 'missing')).toBe('');
-  });
-
-  it('caps length with a truncation marker', async () => {
-    const big: ChunkStore = {
-      getLessonChunks: async () => [{ ordinal: 0, text: 'x'.repeat(100) }],
-    };
-    const out = await readLessonText(big, 'demo', 10);
-    expect(out).toBe(`${'x'.repeat(10)}\n\n[…truncated]`);
-  });
-});
-
-describe('D1ChunkStore', () => {
-  /** Minimal D1 double covering only the qa_chunks SELECT shape. */
-  function fakeD1(rows: Array<{ slug: string; ordinal: number; text: string }>): D1Like {
-    return {
-      prepare: (sql: string) => ({
-        bind: (...params: unknown[]) => ({
-          all: async <T>() => {
-            expect(sql).toContain('FROM qa_chunks WHERE slug = ?');
-            const slug = params[0] as string;
-            const results = rows
-              .filter((r) => r.slug === slug)
-              .sort((a, b) => a.ordinal - b.ordinal)
-              .map((r) => ({ ordinal: r.ordinal, text: r.text }));
-            return { results: results as T[] };
-          },
-        }),
-      }),
-    };
-  }
-
-  it('reads a lesson in ordinal order from D1', async () => {
-    const store = new D1ChunkStore(
-      fakeD1([
-        { slug: 'cap-theorem', ordinal: 1, text: 'b' },
-        { slug: 'cap-theorem', ordinal: 0, text: 'a' },
-        { slug: 'other', ordinal: 0, text: 'zzz' },
-      ]),
-    );
-    expect(await readLessonText(store, 'cap-theorem')).toBe('a\n\nb');
-    expect(await readLessonText(store, 'missing')).toBe('');
-  });
-});
-
-/** Tiny D1 double for the checkpointer SQL shapes used by runQaTurn. */
-class CheckpointD1 {
-  rows = new Map<string, string>();
-
-  prepare(sql: string): {
-    bind(...params: unknown[]): {
-      first<T>(): Promise<T | null>;
-      run(): Promise<{ success: boolean }>;
-    };
-  } {
-    const normalized = sql.replace(/\s+/g, ' ').trim().toUpperCase();
-    return {
-      bind: (...params: unknown[]) => ({
-        first: async <T>(): Promise<T | null> => {
-          if (normalized.startsWith('SELECT STATE, UPDATED_AT FROM QA_CHECKPOINTS')) {
-            const state = this.rows.get(params[0] as string);
-            return (state ? { state, updated_at: 't' } : null) as T | null;
-          }
-          throw new Error(`unsupported: ${sql}`);
-        },
-        run: async () => {
-          if (normalized.startsWith('INSERT INTO QA_CHECKPOINTS')) {
-            this.rows.set(params[0] as string, params[1] as string);
-            return { success: true };
-          }
-          throw new Error(`unsupported: ${sql}`);
-        },
-      }),
-    };
-  }
-}
-
 describe('chat flow citations (P1)', () => {
   // Minimal model: never calls tools, returns a fixed answer. Triage still
   // runs (deterministic), so the CAP question reaches the model and the
   // gibberish is refused before any model spend.
-  const fakeModel = {
-    complete: async () => ({ text: 'fake answer', toolCalls: [] }),
-    summarize: async () => 'fake summary',
-  };
-  const emptyStore = { getLessonChunks: async () => [] };
+  const fakeModel = { complete: async () => ({ text: 'fake answer', toolCalls: [] }) };
 
   it('runQaTurn attaches real lesson slugs as sources', async () => {
-    const db = new CheckpointD1();
-    const turn = await runQaTurn(db as unknown as D1Database, 'sess-1', 'What is the CAP theorem?', {
-      model: fakeModel,
-      chunkStore: emptyStore,
-    });
+    const turn = await runQaTurn(fakeModel, [{ role: 'user', content: 'What is the CAP theorem?' }]);
     expect(turn.sources).toContain('cap-theorem');
     // Gibberish retrieves nothing -- sources stay empty, honestly.
-    const turn2 = await runQaTurn(db as unknown as D1Database, 'sess-2', 'zxqv wjbmpl kzx', {
-      model: fakeModel,
-      chunkStore: emptyStore,
-    });
+    const turn2 = await runQaTurn(fakeModel, [{ role: 'user', content: 'zxqv wjbmpl kzx' }]);
     expect(turn2.sources).toEqual([]);
   });
 });

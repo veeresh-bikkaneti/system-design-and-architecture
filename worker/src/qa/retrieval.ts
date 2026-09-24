@@ -10,10 +10,10 @@
 // The generator precomputes, per query term, the top-N chunks by BM25 score
 // (scores stored as integers, BM25 x 1000). At query time we tokenize the
 // query with the SAME tokenizer, look up each term's posting list, and sum
-// scores. No embeddings, no Vectorize, no D1 round-trip for ranking -- the
-// full chunk texts live in D1 (qa_chunks, seeded by a generated migration)
-// for P2's read_lesson tool, while ranking metadata + excerpts ship in the
-// Worker bundle.
+// scores. No embeddings, no Vectorize, no database of any kind -- ranking
+// metadata + excerpts ship in the Worker bundle (qa-index.ts) and that's the
+// entire retrieval surface. The Worker is a stateless proxy: no full lesson
+// text is served server-side (there is no read_lesson tool).
 
 /** Ranking metadata + excerpt for one retrievable chunk. Bundled. */
 export interface QaChunkMeta {
@@ -54,25 +54,6 @@ export interface QaSearchResult {
   excerpt: string;
   /** Summed integer BM25 score across matched query terms. */
   score: number;
-}
-
-/**
- * Minimal D1 surface the chunk store needs. Declared structurally (instead
- * of referencing the global D1Database type) so this module also compiles
- * under plain node typings for the build script.
- */
-export interface D1Like {
-  prepare(sql: string): {
-    bind(...params: unknown[]): {
-      all<T>(): Promise<{ results: T[] }>;
-    };
-  };
-}
-
-/** Source of full chunk texts (D1 in production, in-memory in tests). */
-export interface ChunkStore {
-  /** Full texts for a lesson slug, in any order (caller sorts by ordinal). */
-  getLessonChunks(slug: string): Promise<Array<{ ordinal: number; text: string }>>;
 }
 
 // Compact English stopword list. Kept small on purpose: dropping these
@@ -162,44 +143,4 @@ export function titleForSlug(index: QaIndexData, slug: string): string | undefin
     if (c.slug === slug) return c.title;
   }
   return undefined;
-}
-
-/**
- * `read_lesson({slug})` from the tool allowlist (P2 consumes this; P1 seeds
- * the table). Concatenates the lesson's full chunk texts in ordinal order,
- * capped so one tool call cannot blow the model's context budget.
- */
-export async function readLessonText(
-  store: ChunkStore,
-  slug: string,
-  maxChars = 12000,
-): Promise<string> {
-  const chunks = (await store.getLessonChunks(slug)).sort((a, b) => a.ordinal - b.ordinal);
-  if (chunks.length === 0) return '';
-  let out = '';
-  for (const c of chunks) {
-    if (out.length >= maxChars) break;
-    out += (out.length > 0 ? '\n\n' : '') + c.text;
-  }
-  if (out.length > maxChars) {
-    return out.slice(0, maxChars) + '\n\n[…truncated]';
-  }
-  return out;
-}
-
-/** Production ChunkStore backed by the D1 qa_chunks table (migration 0006). */
-export class D1ChunkStore implements ChunkStore {
-  private readonly db: D1Like;
-
-  constructor(db: D1Like) {
-    this.db = db;
-  }
-
-  async getLessonChunks(slug: string): Promise<Array<{ ordinal: number; text: string }>> {
-    const { results } = await this.db
-      .prepare('SELECT ordinal, text FROM qa_chunks WHERE slug = ? ORDER BY ordinal ASC')
-      .bind(slug)
-      .all<{ ordinal: number; text: string }>();
-    return results ?? [];
-  }
 }

@@ -53,8 +53,6 @@ export interface QaModelResult {
 export interface QaModel {
   /** One chat turn: may return text, tool calls, or both. */
   complete(request: QaCompleteRequest): Promise<QaModelResult>;
-  /** One-shot compression of old transcript turns for the rolling summary. */
-  summarize(request: { system: string; transcript: string }): Promise<string>;
 }
 
 /** Default model: Llama 3.1 8B instruct (fp8), tool-calling capable. */
@@ -159,15 +157,5 @@ export class WorkersAiModel implements QaModel {
       });
     }
     return { text, toolCalls };
-  }
-
-  async summarize(request: { system: string; transcript: string }): Promise<string> {
-    const { text } = await this.complete({
-      system: request.system,
-      messages: [{ role: 'user', content: request.transcript }],
-      tools: [],
-      maxTokens: 400,
-    });
-    return text.trim();
   }
 }

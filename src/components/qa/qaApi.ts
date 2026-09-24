@@ -1,13 +1,20 @@
 /**
- * Client for the course Q&A Worker API (`/api/qa/*`).
+ * Client for the course Q&A Worker API (`/api/qa/chat`).
  *
- * The browser is an untrusted client: it holds no secrets, only an anonymous
- * `sessionId` minted by the Worker. All model access, memory, and rate limits
- * live server-side. This module is DOM-free so the streaming parser and error
- * handling are unit-testable under plain vitest.
+ * Anonymous Session architecture: the Worker is a pure, stateless proxy.
+ * The browser holds the entire conversation (persisted to localStorage by
+ * useQaHistory) and sends the complete transcript on every request; the
+ * Worker has no session id, no database, and no memory of its own. This
+ * module is DOM-free so the streaming parser and error handling are
+ * unit-testable under plain vitest.
  */
 
 const API_BASE: string = import.meta.env.VITE_QA_API_BASE ?? '';
+
+export interface QaChatTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export interface QaSource {
   slug: string;
@@ -19,12 +26,6 @@ export type QaStreamEvent =
   | { type: 'sources'; lessons: QaSource[] }
   | { type: 'done' }
   | { type: 'error'; code: string; message: string };
-
-export interface QaQuota {
-  limit: number;
-  remaining: number;
-  resetAt: string;
-}
 
 export class QaApiError extends Error {
   readonly code: string;
@@ -59,49 +60,6 @@ async function throwIfNotOk(res: Response): Promise<void> {
   if (res.ok) return;
   const { code, message } = await readErrorBody(res);
   throw new QaApiError(code, message, res.status);
-}
-
-/** Mint an anonymous session id. The Worker owns session lifecycle. */
-export async function createSession(signal?: AbortSignal): Promise<string> {
-  const res = await fetch(apiUrl('/api/qa/session'), { method: 'POST', signal });
-  await throwIfNotOk(res);
-  const body = (await res.json()) as { sessionId?: unknown };
-  if (typeof body.sessionId !== 'string' || body.sessionId.length === 0) {
-    throw new QaApiError('bad_response', 'The server returned an invalid session.');
-  }
-  return body.sessionId;
-}
-
-/** Wipe the session's server-side memory (transcript + summary). Best-effort. */
-export async function deleteSession(sessionId: string, signal?: AbortSignal): Promise<void> {
-  const res = await fetch(apiUrl('/api/qa/session'), {
-    method: 'DELETE',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ sessionId }),
-    signal,
-  });
-  await throwIfNotOk(res);
-}
-
-/** Remaining questions for this session/IP. Drives the "N left today" badge. */
-export async function getQuota(sessionId: string, signal?: AbortSignal): Promise<QaQuota> {
-  const res = await fetch(apiUrl(`/api/qa/quota?sessionId=${encodeURIComponent(sessionId)}`), {
-    signal,
-  });
-  await throwIfNotOk(res);
-  const body = (await res.json()) as {
-    limit?: unknown;
-    remaining?: unknown;
-    resetAt?: unknown;
-  };
-  if (
-    typeof body.limit !== 'number' ||
-    typeof body.remaining !== 'number' ||
-    typeof body.resetAt !== 'string'
-  ) {
-    throw new QaApiError('bad_response', 'The server returned an invalid quota.');
-  }
-  return { limit: body.limit, remaining: body.remaining, resetAt: body.resetAt };
 }
 
 function isQaSource(value: unknown): value is QaSource {
@@ -231,23 +189,18 @@ export async function* readQaStream(response: Response): AsyncGenerator<QaStream
 }
 
 export interface StreamChatArgs {
-  sessionId: string;
-  message: string;
+  /** Full conversation so far, including the newest user turn last. */
+  messages: QaChatTurn[];
   signal?: AbortSignal;
   onEvent: (event: QaStreamEvent) => void;
 }
 
-/** POST a chat turn and stream the SSE events. Throws QaApiError on HTTP errors. */
-export async function streamChat({
-  sessionId,
-  message,
-  signal,
-  onEvent,
-}: StreamChatArgs): Promise<void> {
+/** POST the full transcript and stream the SSE events. Throws QaApiError on HTTP errors. */
+export async function streamChat({ messages, signal, onEvent }: StreamChatArgs): Promise<void> {
   const res = await fetch(apiUrl('/api/qa/chat'), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ sessionId, message }),
+    body: JSON.stringify({ messages }),
     signal,
   });
   await throwIfNotOk(res);

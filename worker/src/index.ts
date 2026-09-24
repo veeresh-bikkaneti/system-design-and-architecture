@@ -12,12 +12,7 @@ import {
   validateSession,
 } from './auth';
 import { sha256Hex } from './crypto';
-import {
-  handleQaChat,
-  handleQaCreateSession,
-  handleQaDeleteSession,
-  handleQaQuota,
-} from './qa/routes';
+import { handleQaChat } from './qa/routes';
 
 export interface Env {
   DB: D1Database;
@@ -594,21 +589,10 @@ export default {
       return handleExamSubmit(request, env);
     }
 
-    // P0 course Q&A agent. See worker/src/qa/routes.ts for the contract.
-    if (url.pathname === '/api/qa/session' && request.method === 'POST') {
-      return handleQaCreateSession(request, env);
-    }
-
-    if (url.pathname === '/api/qa/session' && request.method === 'DELETE') {
-      return handleQaDeleteSession(request, env);
-    }
-
+    // Course Q&A agent (Veer): a pure, stateless proxy. See
+    // worker/src/qa/routes.ts for the contract.
     if (url.pathname === '/api/qa/chat' && request.method === 'POST') {
       return handleQaChat(request, env);
-    }
-
-    if (url.pathname === '/api/qa/quota' && request.method === 'GET') {
-      return handleQaQuota(request, env);
     }
 
     const verifyMatch = url.pathname.match(/^\/verify\/([A-Za-z0-9_-]+)$/);

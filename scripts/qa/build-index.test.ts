@@ -110,24 +110,11 @@ describe('generated artifacts on disk', () => {
     }
   });
 
-  it('0006_qa_chunks.sql has no quiz material and valid INSERTs', () => {
-    const sql = readFileSync(
-      join(repoRoot, 'worker', 'migrations', '0006_qa_chunks.sql'),
-      'utf8',
-    );
-    for (const s of QUIZ_STRINGS) {
-      expect(sql, `leaked: ${s}`).not.toContain(s);
-    }
-    expect(sql).toContain('CREATE TABLE IF NOT EXISTS qa_chunks');
-    const inserts = sql.match(/^INSERT INTO qa_chunks/gm) ?? [];
-    // One INSERT per chunk; chunk count matches the bundled index.
-    expect(inserts.length).toBeGreaterThan(300);
-  });
 });
 
 describe('buildIndexFromLessons', () => {
   it('builds chunks + index with zero quiz leakage end to end', () => {
-    const { chunks, indexData, migrationSql } = buildIndexFromLessons(
+    const { chunks, indexData } = buildIndexFromLessons(
       [{ slug: 'demo-lesson', title: 'Demo Lesson', mdx: FIXTURE_MDX }],
       '2026-01-01T00:00:00.000Z',
     );
@@ -147,9 +134,6 @@ describe('buildIndexFromLessons', () => {
 
     const indexJson = JSON.stringify(indexData);
     expect(indexJson).not.toContain('correctIndex');
-    expect(migrationSql).not.toContain('correctIndex');
-    expect(migrationSql).toContain('CREATE TABLE IF NOT EXISTS qa_chunks');
-    expect(migrationSql).toContain("slug TEXT NOT NULL");
   });
 
   it('is deterministic for identical input', () => {
@@ -157,7 +141,6 @@ describe('buildIndexFromLessons', () => {
     const a = buildIndexFromLessons(input, '2026-01-01T00:00:00.000Z');
     const b = buildIndexFromLessons(input, '2026-01-01T00:00:00.000Z');
     expect(JSON.stringify(a.indexData)).toBe(JSON.stringify(b.indexData));
-    expect(a.migrationSql).toBe(b.migrationSql);
   });
 });
 
