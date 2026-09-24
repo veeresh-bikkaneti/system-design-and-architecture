@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "predev": "node scripts/seo/generate-manifest.mjs",
-    "prebuild": "node scripts/seo/generate-manifest.mjs && node scripts/seo/generate-sitemap.mjs && node scripts/seo/generate-llms-txt.mjs",
+    "prebuild": "node scripts/seo/generate-manifest.mjs && node scripts/seo/generate-sitemap.mjs && node scripts/seo/generate-llms-txt.mjs && node scripts/qa/build-index.ts",
+    "qa:index": "node scripts/qa/build-index.ts",
     "build": "tsc -b && vite build && node scripts/seo/prerender.mjs",
     "content:check": "python3 scripts/check_mdx_h1.py",
     "content:validate": "python3 scripts/validate_lessons.py",
