@@ -5,25 +5,25 @@
 | pipeline, set | accuracy | drift: off-course answered | off-course, lessons offered | course turned away |
 |---|---|---|---|---|
 | keyword pipeline, cases | 74.3% | 24.5% | 0.0% | 5.2% |
-| semantic router, cases | 86.8% | 2.0% | 2.0% | 3.9% |
+| semantic router, cases | 86.8% | 2.0% | 2.0% | 2.6% |
 | keyword pipeline, holdout | 70.8% | 30.0% | 0.0% | 13.6% |
-| semantic router, holdout | 89.6% | 5.0% | 5.0% | 0.0% |
+| semantic router, holdout | 89.6% | 0.0% | 5.0% | 0.0% |
 | keyword pipeline, all | 73.4% | 26.1% | 0.0% | 7.1% |
-| semantic router, all | 87.5% | 2.9% | 2.9% | 3.0% |
+| semantic router, all | 87.5% | 1.4% | 2.9% | 2.0% |
 
 Lesson ranking: top-1 92.9%, top-3 96.9% (98 course cases)
 
 Semantic router, expected vs got (all cases):
 | expected \ got | lesson | clarify | lookup | redirect | self |
 |---|---|---|---|---|---|
-| lesson | 86 | 8 | 2 | 3 | 0 |
+| lesson | 86 | 9 | 2 | 2 | 0 |
 | clarify | 0 | 0 | 0 | 0 | 0 |
 | lookup | 2 | 0 | 21 | 1 | 0 |
-| redirect | 1 | 2 | 1 | 55 | 0 |
+| redirect | 1 | 2 | 0 | 55 | 1 |
 | self | 0 | 0 | 0 | 0 | 10 |
 
 Misses:
-- [cases] c-part-2: expected lesson, got redirect (data-partitioning)
+- [cases] c-part-2: expected lesson, got clarify (data-partitioning)
 - [cases] c-cloud-2: expected lesson, got clarify (cloud-native-architecture)
 - [cases] c-bff-2: expected lesson, got clarify (bff-backend-for-frontend)
 - [cases] c-repl-1: expected lesson, got lesson (caching-strategies)
@@ -45,5 +45,5 @@ Misses:
 - [holdout] h-c-dip: expected lesson, got clarify (solid-principles)
 - [holdout] h-c-kafka-batch: expected lesson, got clarify (stream-vs-batch)
 - [holdout] h-t-postman: expected lookup, got redirect (designing-chat-at-scale)
-- [holdout] h-d-ai-art: expected redirect, got lookup (designing-ai-systems)
+- [holdout] h-d-ai-art: expected redirect, got self (designing-ai-systems)
 - [holdout] h-trap-stream-river: expected redirect, got clarify (stream-vs-batch)

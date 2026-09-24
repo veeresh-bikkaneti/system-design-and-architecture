@@ -157,12 +157,29 @@ blocks on a model download.
 | Pipeline | Accuracy | Drift | Course turned away |
 |---|---|---|---|
 | Keyword pipeline, all 192 cases | 73.4% | 26.1% | 7.1% |
-| Semantic router, all 192 cases | 87.5% | 2.9% | 3.0% |
+| Semantic router, all 192 cases | 87.5% | 1.4% | 2.0% |
 | Keyword pipeline, holdout only | 70.8% | 30.0% | 13.6% |
-| Semantic router, holdout only | 89.6% | 5.0% | 0.0% |
+| Semantic router, holdout only | 89.6% | 0.0% | 0.0% |
 
-The one holdout drift ("Is AI art real art?") routes to a Wikipedia lookup, where the page-fit
-check is the second line of defence. See `evals/ben/REPORT.md` for every miss.
+See `evals/ben/REPORT.md` for every current miss.
+
+**A real bug in the first version of this router, found after acceptance:** `voteIntent` summed
+raw cosine similarity across the `k` nearest labelled examples. Every question has *some*
+similarity to *something*, so `k=7` almost always pulls in a few weak, unrelated neighbours.
+Summed linearly, several weak `off_topic` echoes could outvote one clearly closer `course` match
+— "how do I pick a partition key" voted 48% off-topic against 42% course, because its two strong
+course neighbours (0.34, 0.27) were outweighed by four weaker off-topic ones (0.19, 0.18, 0.17,
+0.16), and got redirected. Squaring the weight (`score²` instead of `score`) lets the closest
+neighbour dominate instead of being outvoted by noise. That one change accounts for the drop in
+both drift and refusal above, confirmed against the *never-tuned-against* holdout set, not just
+the diagnosis set.
+
+A second attempt at that session — adding exemplars for phrasings the diagnosis set still missed
+("what is the strangler fig pattern", "Is AI art real art?") — improved the diagnosis set
+(86.8% → 87.5%) but **dropped holdout accuracy** (89.6% → 85.4%) and broke three previously-correct
+holdout cases. That is overfitting to the diagnosis set by definition, so it was reverted. It is
+recorded here because it is the concrete version of the rule stated below: a labelled-example fix
+is only real if the holdout set, which that fix was never shown, agrees.
 
 ## Consequences
 

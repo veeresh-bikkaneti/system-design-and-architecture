@@ -107,7 +107,11 @@ export function voteIntent(vector: Float32Array, index: BenIndex, k: number = TH
   const scores = Object.fromEntries(INTENTS.map((intent) => [intent, 0])) as Record<Intent, number>;
   let total = 0;
   for (const hit of nearest) {
-    const weight = Math.max(0, hit.score);
+    // Squared, not linear: every question has *some* similarity to *something*, so k=7
+    // almost always includes a few weak, unrelated neighbours. Summed linearly, several
+    // weak off-topic echoes can outvote one clearly closer course match. Squaring lets
+    // the closest neighbour(s) dominate instead of being outvoted by noise.
+    const weight = hit.score > 0 ? hit.score ** 2 : 0;
     scores[hit.intent] += weight;
     total += weight;
   }
