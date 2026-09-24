@@ -146,7 +146,15 @@ test.describe('production build smoke test', () => {
     // <text>, never as foreignObject content.
     expect(await diagram.locator('foreignObject').count()).toBe(0);
 
+    // Whitespace-normalized: mermaid 12 auto-wraps long multi-word labels
+    // across separate <tspan> lines with no literal space between them
+    // (e.g. "Master Recipe Book" -> "Master" / "Recipe Book"), which is a
+    // cosmetic line-wrap, not a sanitization regression. Stripping all
+    // whitespace before comparing still catches the real regression this
+    // test guards against (DOMPurify deleting a label outright) without
+    // being sensitive to mermaid's internal line-wrap placement.
     const text = (await diagram.locator('svg').textContent()) ?? '';
+    const normalizedText = text.replace(/\s+/g, '');
     for (const label of [
       'Photocopy',
       'Read Replica',
@@ -155,7 +163,7 @@ test.describe('production build smoke test', () => {
       'Master Recipe Book',
       'Writes',
     ]) {
-      expect(text).toContain(label);
+      expect(normalizedText).toContain(label.replace(/\s+/g, ''));
     }
 
     expect(errors).toEqual([]);
