@@ -1,33 +1,52 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { prepareTurn, needsWeb, isAboutTutor, isFollowUp } from '../../ai/local/agent';
+import { prepareTurn, isAboutTutor, isFollowUp, OFF_COURSE } from '../../ai/local/agent';
 import { OKF_CARDS } from '../../ai/local/cards';
-import { grounding, searchWeb, spokenWeb, webAside, webQuery, type ConfidenceLevel } from '../../ai/local/web';
+import { GENERAL_KNOWLEDGE_CONFIDENCE, grounding, type ConfidenceLevel } from '../../ai/local/web';
 import {
+  answerParametrically,
   getModelStatus,
   MODEL_LABEL,
   rewriteWithModel,
   subscribeModel,
   type ModelStatus,
-} from '../../ai/local/slm';
+} from '../../ai/local/inference';
+import { loadSemantic, semanticWithin, subscribeSemantic, type Semantic, type SemanticPhase } from '../../ai/local/semantic/embedder';
+import { dot } from '../../ai/local/semantic/codec';
+import { queryText, route, THRESHOLDS } from '../../ai/local/semantic/router';
+import { buildTurn, NO_SOURCE } from '../../ai/local/semantic/turn';
+import type { ChatTurn } from '../../ai/local/types';
 import { ChatMarkdown } from '../ChatMarkdown';
-import { quotaLabel } from './quota';
-import {
-  QaApiError,
-  getQuota,
-  streamChat,
-  type QaQuota,
-  type QaStreamEvent,
-} from './qaApi';
-import { useQaSession } from './useQaSession';
+import { useQaHistory } from './useQaHistory';
 
-/** Backend input cap (architecture §4.2): never send more than the Worker accepts. */
-const MAX_MESSAGE_LENGTH = 2000;
-
-/** GitHub Pages has no model API. A base URL opts back into the Worker. */
-const USE_LOCAL_TUTOR = (import.meta.env.VITE_QA_API_BASE ?? '') === '';
+/**
+ * There is no backend for the Q&A tutor: it runs entirely in the browser
+ * (see ../../ai/local/inference.ts), on any device, with no API key and no
+ * server. The transcript is the browser's own memory -- useQaHistory
+ * persists it to localStorage so it survives a reload.
+ */
 
 const LESSON_IDS = new Set(OKF_CARDS.filter((card) => card.type === 'Lesson').map((card) => card.id));
+
+/** Keeps one runaway paste from blowing up the on-device model's context window. */
+const MAX_MESSAGE_LENGTH = 2000;
+
+/**
+ * How long a question waits for the understanding layer (23 MB, cached after the
+ * first visit) before Ben answers with the keyword pipeline instead.
+ */
+const SEMANTIC_WAIT_MS = 12_000;
+
+function lessonHref(id: string): string {
+  return `${import.meta.env.BASE_URL}lesson/${id}`;
+}
+
+function priorTurns(history: ChatTurn[]): string {
+  return history
+    .slice(-4)
+    .map((item) => `${item.role === 'user' ? 'Learner' : 'Tutor'}: ${item.content.slice(0, 280)}`)
+    .join('\n');
+}
 
 interface BubbleSource {
   title: string;
@@ -106,14 +125,13 @@ function NewTopicIcon({ className }: { className?: string }) {
 
 export function QaWidget() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<QaMessage[]>([]);
+  const [messages, setMessages] = useQaHistory<QaMessage>();
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
-  const [rotating, setRotating] = useState(false);
-  const [quota, setQuota] = useState<QaQuota | null>(null);
   const [modelStatus, setModelStatus] = useState<ModelStatus>(getModelStatus());
-  const nextId = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
+  const [semanticPhase, setSemanticPhase] = useState<SemanticPhase>('idle');
+  // A restored transcript may already contain ids; never hand out one that collides.
+  const nextId = useRef(messages.reduce((max, m) => Math.max(max, m.id + 1), 0));
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { pathname } = useLocation();
@@ -125,35 +143,19 @@ export function QaWidget() {
   }, [pathname]);
   const focusTitle = OKF_CARDS.find((card) => card.id === focusId)?.title;
 
-  const { sessionId, ensureSession, newTopic } = useQaSession();
-
   useEffect(() => subscribeModel(setModelStatus), []);
+  useEffect(() => subscribeSemantic(setSemanticPhase), []);
 
-  const refreshQuota = useCallback(async (sid: string) => {
-    try {
-      setQuota(await getQuota(sid));
-    } catch {
-      // The badge is informational; a failed refresh must never break chat.
-    }
-  }, []);
-
-  // A stored session from a previous visit restores its quota on mount.
+  // Start the understanding layer as soon as the chat opens, not on the first question.
   useEffect(() => {
-    if (!USE_LOCAL_TUTOR && sessionId) void refreshQuota(sessionId);
-  }, [sessionId, refreshQuota]);
+    if (open) void loadSemantic();
+  }, [open]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, streaming]);
-
-  // Cancel any in-flight stream if the widget unmounts.
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
-    };
-  }, []);
 
   function addMessage(role: QaMessage['role'], content: string, isError = false): number {
     const id = nextId.current++;
@@ -165,146 +167,21 @@ export function QaWidget() {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
   }
 
-  function handleStreamEvent(assistantId: number, event: QaStreamEvent) {
-    switch (event.type) {
-      case 'delta':
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + event.delta } : m)),
-        );
-        break;
-      case 'sources':
-        patchMessage(assistantId, {
-          sources: event.lessons.map((lesson) => ({
-            title: lesson.title,
-            href: `${import.meta.env.BASE_URL}lesson/${lesson.slug}`,
-          })),
-        });
-        break;
-      case 'done':
-        break;
-      case 'error':
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId
-              ? { ...m, content: m.content || event.message, isError: true }
-              : m,
-          ),
-        );
-        break;
-    }
-  }
-
   async function handleSend() {
     const text = input.trim().slice(0, MAX_MESSAGE_LENGTH);
     if (!text || streaming) return;
-    if (USE_LOCAL_TUTOR) {
-      await handleLocalSend(text);
-      return;
-    }
-
     setInput('');
-    addMessage('user', text);
-    const assistantId = addMessage('assistant', '');
-    setStreaming(true);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      const sid = await ensureSession();
-      await streamChat({
-        sessionId: sid,
-        message: text,
-        signal: controller.signal,
-        onEvent: (event) => handleStreamEvent(assistantId, event),
-      });
-      // A well-behaved stream ends with `event: done`; if the backend closed
-      // the stream with no content and no error, say so instead of hanging.
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId && m.content === '' && !m.isError
-            ? { ...m, content: 'The assistant returned an empty response. Please try again.', isError: true }
-            : m,
-        ),
-      );
-      void refreshQuota(sid);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        // Aborted by "New topic" or unmount; the transcript was cleared.
-        return;
-      }
-      const message =
-        err instanceof QaApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : 'Something went wrong.';
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId ? { ...m, content: m.content || message, isError: true } : m,
-        ),
-      );
-    } finally {
-      setStreaming(false);
-      abortRef.current = null;
-    }
-  }
-
-  async function handleLocalSend(text: string) {
-    setInput('');
-    const history = messages
+    const history: ChatTurn[] = messages
       .filter((message) => !message.isError && message.content.length > 0)
       .map((message) => ({ role: message.role, content: message.content }));
     addMessage('user', text);
-    const turn = prepareTurn(text, history, focusId);
-    const lookup = needsWeb(text, turn.inScope);
     const assistantId = addMessage('assistant', '');
-    const lessonSources = turn.inScope
-      ? turn.sources
-          .filter((source) => LESSON_IDS.has(source.id))
-          .map((source) => ({
-            title: source.title,
-            href: `${import.meta.env.BASE_URL}lesson/${source.id}`,
-          }))
-      : [];
 
     setStreaming(true);
     try {
-      const sources = [...lessonSources];
-      let hit: Awaited<ReturnType<typeof searchWeb>>[number] | undefined;
-      if (lookup) {
-        const query = webQuery(text, turn.inScope ? turn.sources[0]?.title : undefined);
-        const hits = await searchWeb(query);
-        hit = hits[0];
-        if (hit) sources.push({ title: hit.title, href: hit.url });
-      }
-      const aboutMe = isAboutTutor(text) || isFollowUp(text);
-      const confidence = grounding({ aboutMe, inScope: turn.inScope, citedWeb: Boolean(hit) });
-      let content = aboutMe
-        ? turn.answer
-        : turn.inScope
-          ? `${turn.answer}${hit ? webAside(hit) : ''}`
-          : hit
-            ? spokenWeb(hit)
-            : confidence.label.startsWith('Low')
-              ? 'I could not find a source for that, so I will not guess.'
-              : turn.answer;
-      patchMessage(assistantId, { content, sources, confidence });
-
-      if (aboutMe || (!turn.inScope && !hit)) return;
-      const prior = history
-        .slice(-4)
-        .map((item) => `${item.role === 'user' ? 'Learner' : 'Tutor'}: ${item.content.slice(0, 280)}`)
-        .join('\n');
-      const context = [
-        turn.context,
-        hit ? `Published page: ${hit.title}\n${hit.extract.slice(0, 700)}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n\n');
-      // The lookup already answered. A model failure must not replace that with a source error.
-      const draft = await rewriteWithModel(text, context, prior);
-      if (draft) patchMessage(assistantId, { content: draft });
+      const semantic = await semanticWithin(SEMANTIC_WAIT_MS);
+      if (semantic) await answerByMeaning(semantic, text, history, assistantId);
+      else await answerByKeywords(text, history, assistantId);
     } catch {
       patchMessage(assistantId, {
         content: 'I could not reach a source just now, so I will not guess.',
@@ -315,23 +192,84 @@ export function QaWidget() {
     }
   }
 
-  async function handleNewTopic() {
-    if (USE_LOCAL_TUTOR) {
-      setMessages([]);
+  /**
+   * No lesson and no web lookup: the question still deserves an answer, so
+   * Ben asks the model directly from its own trained knowledge, clearly
+   * labelled as such (GENERAL_KNOWLEDGE_CONFIDENCE). There is no grounded
+   * text to check the draft against, so unlike the lesson-rewrite path this
+   * either shows the model's answer or the honest "could not find a
+   * source" line -- never a half-grounded guess.
+   */
+  async function answerFromModelKnowledge(text: string, history: ChatTurn[], assistantId: number) {
+    const draft = await answerParametrically(text, priorTurns(history));
+    if (draft) {
+      patchMessage(assistantId, { content: draft, sources: [], confidence: GENERAL_KNOWLEDGE_CONFIDENCE });
+    } else {
+      patchMessage(assistantId, {
+        content: NO_SOURCE,
+        sources: [],
+        confidence: { level: 'low', label: 'Low confidence · I could not find a source, so I will not guess' },
+      });
+    }
+  }
+
+  /** The understanding layer decides; tools run only when the decision needs them. */
+  async function answerByMeaning(semantic: Semantic, text: string, history: ChatTurn[], assistantId: number) {
+    const vector = await semantic.embed(queryText(text, history));
+    const decision = route({ question: text, focusId, vector, index: semantic.index });
+    const turn = buildTurn(text, history, decision);
+    const sources: BubbleSource[] = turn.sources
+      .filter((source) => LESSON_IDS.has(source.id))
+      .map((source) => ({ title: source.title, href: lessonHref(source.id) }));
+
+    if (turn.action === 'parametric_fallback') {
+      await answerFromModelKnowledge(text, history, assistantId);
       return;
     }
-    if (rotating || streaming) return;
-    abortRef.current?.abort();
-    setRotating(true);
-    try {
-      await newTopic();
-      setMessages([]);
-      setQuota(null);
-    } catch {
-      addMessage('assistant', 'Could not start a new topic. Please try again.', true);
-    } finally {
-      setRotating(false);
+
+    const { answer, confidence, context } = turn;
+    patchMessage(assistantId, { content: answer, sources, confidence });
+    if (!context) return;
+
+    // Qwen only rewords. A draft that wanders from the grounded answer is dropped.
+    const draft = await rewriteWithModel(text, context, priorTurns(history));
+    if (!draft) return;
+    const [draftVector, answerVector] = await Promise.all([semantic.embed(draft), semantic.embed(answer)]);
+    if (dot(draftVector, answerVector) >= THRESHOLDS.draftFit) patchMessage(assistantId, { content: draft });
+  }
+
+  /** Fallback when the understanding layer cannot load: keyword routing with guard rails. */
+  async function answerByKeywords(text: string, history: ChatTurn[], assistantId: number) {
+    const turn = prepareTurn(text, history, focusId);
+    const sources: BubbleSource[] = turn.inScope
+      ? turn.sources
+          .filter((source) => LESSON_IDS.has(source.id))
+          .map((source) => ({ title: source.title, href: lessonHref(source.id) }))
+      : [];
+    const aboutMe = isAboutTutor(text) || isFollowUp(text);
+
+    if (!aboutMe && turn.parametric) {
+      await answerFromModelKnowledge(text, history, assistantId);
+      return;
     }
+
+    const offCourse = !aboutMe && !turn.inScope;
+    const confidence = grounding({ aboutMe, inScope: turn.inScope, offCourse });
+    const content = aboutMe ? turn.answer : turn.inScope ? turn.answer : OFF_COURSE;
+    patchMessage(assistantId, {
+      content,
+      sources,
+      confidence: { ...confidence, label: `${confidence.label} · keyword match` },
+    });
+
+    if (aboutMe || !turn.inScope) return;
+    const draft = await rewriteWithModel(text, turn.context, priorTurns(history));
+    if (draft) patchMessage(assistantId, { content: draft });
+  }
+
+  function handleNewTopic() {
+    if (streaming) return;
+    setMessages([]);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -340,8 +278,6 @@ export function QaWidget() {
       void handleSend();
     }
   }
-
-  const badge = quotaLabel(quota);
 
   return (
     <>
@@ -370,20 +306,20 @@ export function QaWidget() {
                 Ask Ben
               </h2>
               <p className="truncate text-xs text-stone-500 dark:text-stone-400">
-                {USE_LOCAL_TUTOR
-                  ? modelStatus.phase === 'loading'
+                {semanticPhase === 'loading'
+                  ? 'Getting ready · reading the lessons'
+                  : modelStatus.phase === 'loading'
                     ? `Loading ${MODEL_LABEL} · ${modelStatus.progress}%`
                     : modelStatus.phase === 'ready'
-                      ? `${MODEL_LABEL} on this device`
-                      : 'Runs in your browser · no API key'
-                  : (badge ?? 'Answers grounded in the lessons')}
+                      ? modelStatus.detail
+                      : 'Runs in your browser · no API key'}
               </p>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => void handleNewTopic()}
-                disabled={rotating || streaming}
+                onClick={handleNewTopic}
+                disabled={streaming}
                 aria-label="New topic (forget this conversation)"
                 title="New topic"
                 className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
@@ -410,9 +346,7 @@ export function QaWidget() {
             {messages.length === 0 && (
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
                 <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                  Hi, I'm Ben. Ask me the way you'd ask a person. I check the lesson first, and if it isn't there I look it up and show the source. {USE_LOCAL_TUTOR
-                    ? 'I run on this device. No account and no API key.'
-                    : 'I remember this conversation until you start a new topic.'}
+                  Hi, I'm Ben. Ask me like you'd ask a person. I'll check the lesson first, and if it's not there, I'll look it up and show you the source. I remember this conversation until you start a new topic.
                 </p>
               </div>
             )}
@@ -451,9 +385,15 @@ export function QaWidget() {
                     </span>
                   )}
                   {message.confidence && (
-                    <p className="mt-2 text-[11px] font-medium text-stone-500 dark:text-stone-400">
-                      {message.confidence.label}
-                    </p>
+                    message.confidence.level === 'general' ? (
+                      <p className="mt-2 inline-flex w-fit items-center rounded-full border border-sky-300 bg-sky-50 px-2.5 py-0.5 text-[11px] font-medium text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300">
+                        {message.confidence.label}
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-[11px] font-medium text-stone-500 dark:text-stone-400">
+                        {message.confidence.label}
+                      </p>
+                    )
                   )}
                   {message.sources && message.sources.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5 border-t border-stone-200/70 pt-2 dark:border-stone-700">

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { OKF_CARDS } from './cards.ts';
-import { needsWeb, prepareTurn } from './agent.ts';
+import { isGeneralTechQuestion, OFF_COURSE, prepareTurn } from './agent.ts';
 import { searchCards } from './retrieve.ts';
 
 describe('local OKF tutor', () => {
@@ -56,37 +56,37 @@ describe('local OKF tutor', () => {
     expect(second.answer).toMatch(/Yes/);
     expect(second.answer).toMatch(/tutor/i);
     expect(second.answer).not.toMatch(/life off this page/);
-    expect(needsWeb('Are you sure', false)).toBe(false);
+    expect(isGeneralTechQuestion('Are you sure', false)).toBe(false);
   });
 
   it('does not search Doctor Who when asked who hired Ben', () => {
     const turn = prepareTurn('Who hired you');
     expect(turn.answer).toMatch(/Nobody hired/);
     expect(turn.answer).not.toMatch(/Doctor Who|BBC/i);
-    expect(needsWeb('Who hired you', false)).toBe(false);
+    expect(isGeneralTechQuestion('Who hired you', false)).toBe(false);
   });
 
   it('does not search the web for a question about Ben', () => {
     const turn = prepareTurn("Hello Ben who's your boss");
     expect(turn.answer).toMatch(/boss/);
     expect(turn.answer).not.toMatch(/Sketch|Sousa|HBO/i);
-    expect(needsWeb("Who is your boss", turn.inScope)).toBe(false);
-    expect(needsWeb('what is amazon', false)).toBe(true);
-    expect(needsWeb('can you explain caching', true)).toBe(true);
+    expect(isGeneralTechQuestion("Who is your boss", turn.inScope)).toBe(false);
+    expect(isGeneralTechQuestion('what is amazon', false)).toBe(true);
+    expect(isGeneralTechQuestion('can you explain caching', true)).toBe(true);
   });
 
   it('does not search the web for small talk with a typo', () => {
     const turn = prepareTurn('how are you tody');
     expect(turn.answer).toMatch(/I'm good/);
     expect(turn.answer).not.toMatch(/Oscar|actor/i);
-    expect(needsWeb('how are you tody', turn.inScope)).toBe(false);
+    expect(isGeneralTechQuestion('how are you tody', turn.inScope)).toBe(false);
   });
 
   it('treats hello Ben as a greeting, not a search', () => {
     const turn = prepareTurn('hello Ben');
     expect(turn.answer).toMatch(/I'm Ben/);
     expect(turn.answer).not.toMatch(/album|Jackson/i);
-    expect(needsWeb('hello Ben', turn.inScope)).toBe(false);
+    expect(isGeneralTechQuestion('hello Ben', turn.inScope)).toBe(false);
   });
 
   it('introduces itself when the greeting is misspelled', () => {
@@ -128,5 +128,40 @@ describe('local OKF tutor', () => {
       { role: 'assistant', content: 'Tokens drip in.' },
     ]);
     expect(turn.sources.some((source) => source.id === 'rate-limiting')).toBe(true);
+  });
+
+  it('keeps a religion debate off the Zero Trust lesson and off the web', () => {
+    const q =
+      'Should we be studying about science in Catholic schools? I think it is controversial because everything becomes religion and faith.';
+    const turn = prepareTurn(q);
+    expect(turn.inScope).toBe(false);
+    expect(turn.sources).toEqual([]);
+    expect(turn.answer).toBe(OFF_COURSE);
+    expect(isGeneralTechQuestion(q, turn.inScope)).toBe(false);
+  });
+
+  it('does not match a lesson on filler words alone', () => {
+    const turn = prepareTurn('I feel like everything becomes harder because of this, what do you think');
+    expect(turn.inScope).toBe(false);
+  });
+
+  it('does not look up opinion questions or long off-course questions', () => {
+    expect(isGeneralTechQuestion('Is abortion wrong?', false)).toBe(false);
+    expect(isGeneralTechQuestion('what do you think about the news', false)).toBe(false);
+    expect(isGeneralTechQuestion('recommend a pizza recipe for tonight', false)).toBe(false);
+    expect(isGeneralTechQuestion('what is amazon', false)).toBe(true);
+    expect(isGeneralTechQuestion('should I shard the database', true)).toBe(true);
+  });
+
+  it('flags a general tech question with no lesson match as parametric', () => {
+    const turn = prepareTurn('what is amazon');
+    expect(turn.inScope).toBe(false);
+    expect(turn.parametric).toBe(true);
+  });
+
+  it('does not flag a genuinely off-course question as parametric', () => {
+    const turn = prepareTurn('Write a poem about my cat named Miso');
+    expect(turn.inScope).toBe(false);
+    expect(turn.parametric).toBe(false);
   });
 });

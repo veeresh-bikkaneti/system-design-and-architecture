@@ -12,22 +12,9 @@ import {
   validateSession,
 } from './auth';
 import { sha256Hex } from './crypto';
-import {
-  handleQaChat,
-  handleQaCreateSession,
-  handleQaDeleteSession,
-  handleQaQuota,
-} from './qa/routes';
 
 export interface Env {
   DB: D1Database;
-  // Course Q&A agent (P2): Workers AI binding (see [ai] in wrangler.toml).
-  // Absent under plain `wrangler dev` without AI support -- routes guard on
-  // this and return a clear error rather than crashing (see routes.ts).
-  AI: Ai;
-  // Optional model-id override; defaults to QA_DEFAULT_MODEL_ID in
-  // worker/src/qa/model.ts. Set via [vars] in wrangler.toml.
-  QA_MODEL_ID?: string;
   // Unset in local dev -- see auth.ts's sendMagicLinkEmail for what these
   // control. DEV_MODE must be set alongside RESEND_API_KEY being absent
   // for local testing to echo a magic link back instead of emailing it;
@@ -556,10 +543,10 @@ export default {
       return jsonResponse({ status: 'ok' });
     }
 
-    // Preflight for the /exam/*, /auth/* and /api/qa/* routes below -- a cross-origin
+    // Preflight for the /exam/* and /auth/* routes below -- a cross-origin
     // POST with a JSON content-type (or, for /auth/session, an Authorization
     // header) triggers a browser preflight before the real request.
-    if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/qa/'))) {
+    if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/'))) {
       return new Response(null, { status: 204, headers: corsHeaders(request.headers.get('Origin')) });
     }
 
@@ -592,23 +579,6 @@ export default {
 
     if (url.pathname === '/exam/submit' && request.method === 'POST') {
       return handleExamSubmit(request, env);
-    }
-
-    // P0 course Q&A agent. See worker/src/qa/routes.ts for the contract.
-    if (url.pathname === '/api/qa/session' && request.method === 'POST') {
-      return handleQaCreateSession(request, env);
-    }
-
-    if (url.pathname === '/api/qa/session' && request.method === 'DELETE') {
-      return handleQaDeleteSession(request, env);
-    }
-
-    if (url.pathname === '/api/qa/chat' && request.method === 'POST') {
-      return handleQaChat(request, env);
-    }
-
-    if (url.pathname === '/api/qa/quota' && request.method === 'GET') {
-      return handleQaQuota(request, env);
     }
 
     const verifyMatch = url.pathname.match(/^\/verify\/([A-Za-z0-9_-]+)$/);

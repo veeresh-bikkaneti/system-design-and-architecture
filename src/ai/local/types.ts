@@ -33,4 +33,6 @@ export interface TutorTurn {
   sources: { id: string; title: string }[];
   traces: ToolTrace[];
   context: string;
+  /** True means: ask the model directly instead of using `answer`. See agent.ts's prepareTurn. */
+  parametric?: boolean;
 }

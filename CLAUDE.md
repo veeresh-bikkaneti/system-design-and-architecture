@@ -10,9 +10,14 @@ npm run dev      # local dev server
 npm run build    # tsc -b && vite build -> dist/ (static export, no SSR/backend)
 npm run preview  # serve the production build locally
 npm run lint      # oxlint (see .oxlintrc.json)
+npm test          # vitest unit tests (no model needed)
+npm run ben:index # fetch + verify Ben's embedder, build his lesson index (also runs on prebuild)
+npm run eval:ben  # score Ben's routing on held-out questions; writes evals/ben/REPORT.md
 ```
 
-There is no test suite in this repo (no test runner in `package.json`, no `*.test.*`/`*.spec.*` files).
+Ben, the local tutor, routes questions with a small embedding model served by the site. Read
+`docs/adr/0001-ben-semantic-routing.md` before changing `src/ai/local/`, and run `npm run eval:ben`
+for any routing change.
 
 `package-lock.json` is committed and required: `.github/workflows/deploy.yml` uses
 `actions/setup-node`'s `cache: npm`, which needs a lockfile to key its cache, and the install step

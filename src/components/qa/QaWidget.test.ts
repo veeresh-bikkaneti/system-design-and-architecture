@@ -1,22 +1,76 @@
-import { describe, expect, it } from 'vitest';
-import { quotaLabel } from './quota';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearStoredHistory, loadStoredHistory, QA_HISTORY_STORAGE_KEY } from './useQaHistory';
+
+interface StoredMessage {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** Minimal in-memory localStorage stand-in (this test runs under vitest's plain node environment, no DOM). */
+function makeFakeStorage(): Storage {
+  const store = new Map<string, string>();
+  return {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => store.clear(),
+    key: (index: number) => [...store.keys()][index] ?? null,
+    get length() {
+      return store.size;
+    },
+  };
+}
 
 /**
- * The quota badge is the only quota logic that lives in the widget: it must
- * stay hidden until the first turn mints a session, count down honestly, and
- * name the terminal state instead of showing "0 left today".
+ * There is no backend and no server-side session: the widget's entire
+ * memory is whatever useQaHistory persists to localStorage. These tests
+ * exercise that persistence layer directly (no DOM needed).
  */
-describe('quotaLabel', () => {
-  it('returns null before the first turn (no session yet)', () => {
-    expect(quotaLabel(null)).toBeNull();
+describe('useQaHistory persistence', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', makeFakeStorage());
   });
 
-  it('shows remaining questions', () => {
-    expect(quotaLabel({ limit: 50, remaining: 49, resetAt: 'x' })).toBe('49 left today');
-    expect(quotaLabel({ limit: 50, remaining: 1, resetAt: 'x' })).toBe('1 left today');
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
-  it('names the exhausted state', () => {
-    expect(quotaLabel({ limit: 50, remaining: 0, resetAt: 'x' })).toBe('Daily limit reached');
+  it('returns an empty array when nothing is stored', () => {
+    expect(loadStoredHistory<StoredMessage>()).toEqual([]);
+  });
+
+  it('round-trips a stored transcript', () => {
+    const messages: StoredMessage[] = [
+      { id: 0, role: 'user', content: 'what is the CAP theorem?' },
+      { id: 1, role: 'assistant', content: 'the course covers this.' },
+    ];
+    localStorage.setItem(QA_HISTORY_STORAGE_KEY, JSON.stringify(messages));
+    expect(loadStoredHistory<StoredMessage>()).toEqual(messages);
+  });
+
+  it('treats corrupt or non-array JSON as empty instead of throwing', () => {
+    localStorage.setItem(QA_HISTORY_STORAGE_KEY, 'not-json{{{');
+    expect(loadStoredHistory<StoredMessage>()).toEqual([]);
+
+    localStorage.setItem(QA_HISTORY_STORAGE_KEY, JSON.stringify({ not: 'an array' }));
+    expect(loadStoredHistory<StoredMessage>()).toEqual([]);
+  });
+
+  it('clearStoredHistory removes the key', () => {
+    localStorage.setItem(QA_HISTORY_STORAGE_KEY, JSON.stringify([{ id: 0 }]));
+    clearStoredHistory();
+    expect(localStorage.getItem(QA_HISTORY_STORAGE_KEY)).toBeNull();
+    expect(loadStoredHistory<StoredMessage>()).toEqual([]);
+  });
+
+  it('is resilient when localStorage does not exist at all (e.g. private browsing)', () => {
+    vi.unstubAllGlobals();
+    expect(loadStoredHistory<StoredMessage>()).toEqual([]);
+    expect(() => clearStoredHistory()).not.toThrow();
   });
 });

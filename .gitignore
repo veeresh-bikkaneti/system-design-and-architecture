@@ -36,3 +36,9 @@ playwright/.cache/
 
 # Generated at build time from content/lessons/*.mdx (see scripts/seo/)
 src/lib/lesson-manifest.ts
+
+# Ben: embedder fetched and verified at build time, index rebuilt from lessons
+# (see docs/adr/0001-ben-semantic-routing.md).
+public/models/
+public/ben/
+public/ort/

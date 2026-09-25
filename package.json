@@ -5,9 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "predev": "node scripts/seo/generate-manifest.mjs",
-    "prebuild": "node scripts/seo/generate-manifest.mjs && node scripts/seo/generate-sitemap.mjs && node scripts/seo/generate-llms-txt.mjs && node scripts/qa/build-index.ts",
-    "qa:index": "node scripts/qa/build-index.ts",
+    "predev": "node scripts/seo/generate-manifest.mjs && node scripts/ben/build-index.mjs --optional",
+    "prebuild": "node scripts/seo/generate-manifest.mjs && node scripts/seo/generate-sitemap.mjs && node scripts/seo/generate-llms-txt.mjs && node scripts/ben/build-index.mjs",
     "build": "tsc -b && vite build && node scripts/seo/prerender.mjs",
     "content:check": "python3 scripts/check_mdx_h1.py",
     "content:validate": "python3 scripts/validate_lessons.py",
@@ -15,11 +14,15 @@
     "pretest": "node scripts/seo/generate-manifest.mjs",
     "test:e2e": "playwright test",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "ben:index": "node scripts/ben/build-index.mjs",
+    "eval:ben": "vitest run --config vitest.eval.config.ts; status=$?; cat evals/ben/REPORT.md; exit $status"
   },
   "dependencies": {
+    "@huggingface/transformers": "4.3.0",
     "@mdx-js/react": "^3.1.1",
     "@mdx-js/rollup": "^3.1.1",
+    "@mlc-ai/web-llm": "^0.2.85",
     "dompurify": "^3.4.15",
     "mermaid": "^12.0.0",
     "motion": "^13.3.0",

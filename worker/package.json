@@ -16,10 +16,5 @@
     "typescript": "~7.0.2",
     "vitest": "^5.0.1",
     "wrangler": "^4.135.0"
-  },
-  "dependencies": {
-    "@langchain/core": "^1.2.12",
-    "@langchain/langgraph": "^1.4.16",
-    "zod": "4.6.5"
   }
 }
