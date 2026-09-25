@@ -100,6 +100,17 @@ describe('router', () => {
     expect(route({ question: 'who hired you', vector: vec(0), index }).action).toBe('self');
   });
 
+  it('does not answer as Ben just because the vote embeds near the self examples', () => {
+    // A question about an unrelated named person can embed close to "who are
+    // you"-style exemplars on nearest-neighbor grounds alone. Without the
+    // rule layer's agreement (isAboutTutor), that vote must not be trusted --
+    // Ben has no idea who this is, and should say so is outside the course,
+    // not answer as if he were asked about himself.
+    const decision = route({ question: 'Who is Michael Keaton', vector: vec(4), index });
+    expect(decision.intent).toBe('self');
+    expect(decision.action).not.toBe('self');
+  });
+
   it('lets a confident off-topic vote veto the about-Ben rule', () => {
     const decision = route({ question: 'Is it okay to lie to your boss?', vector: vec(2), index });
     expect(decision.action).toBe('redirect');

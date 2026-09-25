@@ -202,9 +202,14 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
     }
     return { ...base, action: 'redirect', reasons: [`${vote.intent} is outside the course`, ...reasons] };
   }
-  if (vote.intent === 'self') {
-    return { ...base, action: 'self', reasons: ['reads like a question to Ben', ...reasons] };
-  }
+  // No bare-vote self branch here: every genuine "about Ben" phrasing in
+  // evals/ben/{cases,holdout}.json is already caught by isAboutTutor above.
+  // Trusting the embedding vote alone let a generic "who is X" question about
+  // an unrelated named person (e.g. an actor) embed close enough to "who are
+  // you"-style examples to get Ben's own about-me answer -- a real drift bug,
+  // not a feature. An unconfirmed 'self' vote now falls through to the rest
+  // of the policy table instead, same as any other question no lesson covers.
+
   // Whether the course covers it is a retrieval fact, not an intent: "what is MVC"
   // reads like a general tech question, but the MVC lesson answers it.
   if (topScore >= THRESHOLDS.lesson) {
