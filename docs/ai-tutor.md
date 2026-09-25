@@ -1,6 +1,6 @@
 # How Ben is set up
 
-Ben is the chat button on the course site. He runs in the student's browser. GitHub Pages only hosts the static files. Nothing the student types is sent to a model API. The design and its trade-offs are in [ADR 0001](adr/0001-ben-semantic-routing.md).
+Ben is the chat button on the course site. He runs in the student's browser. GitHub Pages only hosts the static files. Nothing the student types is sent to a model API. The design and its trade-offs are in [ADR 0001](adr/0001-ben-semantic-routing.md). For how this architecture got here — the pivots away from BYOK, a crashing in-browser model, and two competing server-side rewrites — see [ben-history.md](ben-history.md).
 
 Ben has two layers:
 
