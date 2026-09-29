@@ -8,6 +8,8 @@ import { Icon } from '../components/ui/Icon';
 import { Button } from '../components/ui/Button';
 import { HeadingsProvider, OnThisPage } from '../components/OnThisPage';
 import { Seo, JsonLd } from '../components/Seo';
+import { ShareButtons } from '../components/ShareButtons';
+import { ListenButton } from '../components/ListenButton';
 
 /** Thin reading-progress bar pinned to the top of the viewport. */
 function ReadingProgressBar() {
@@ -231,6 +233,7 @@ export function LessonPage() {
         title={`${lesson.meta.title} | System Design Mastery`}
         description={lesson.meta.summary}
         path={`/lesson/${lesson.meta.slug}`}
+        image={`lesson-${lesson.meta.slug}`}
       />
       <JsonLd data={jsonLd} />
       <div className="mx-auto max-w-5xl xl:max-w-6xl">
@@ -263,8 +266,9 @@ export function LessonPage() {
                 {lesson.meta.summary}
               </p>
 
-              <div className="mt-6">
+              <div className="mt-6 flex flex-wrap items-center gap-3">
                 <CompleteButton slug={lesson.meta.slug} completed={completed} />
+                <ListenButton slug={lesson.meta.slug} />
               </div>
             </header>
 
@@ -295,6 +299,13 @@ export function LessonPage() {
                 <div className="mt-4">
                   <CompleteButton slug={lesson.meta.slug} completed={completed} />
                 </div>
+              </div>
+
+              <div className="mt-6 flex justify-center">
+                <ShareButtons
+                  title={`${lesson.meta.title} | System Design Mastery`}
+                  url={canonical}
+                />
               </div>
 
               <nav aria-label="Lesson navigation" className="mt-6 grid gap-3 sm:grid-cols-2">
