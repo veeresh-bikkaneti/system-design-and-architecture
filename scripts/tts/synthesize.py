@@ -471,7 +471,7 @@ def write_lesson_package(synth: Synthesizer, slug: str, limit_blocks: int = 0) -
 
 
 def list_slugs() -> list[str]:
-    content_dir = REPO_ROOT / "src" / "content" / "lessons"
+    content_dir = REPO_ROOT / "content" / "lessons"
     return sorted(p.stem for p in content_dir.glob("*.mdx"))
 
 
