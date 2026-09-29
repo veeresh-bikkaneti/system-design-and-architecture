@@ -72,6 +72,9 @@ export function ListenButton({
   const indexRef = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
   const runRef = useRef<ChunkRun | null>(null);
+  // Whether the current run's utterance had fired `onstart` at the moment
+  // the user paused — decides the resume path (see toggle()).
+  const pausedAfterStartRef = useRef(false);
 
   const stop = () => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -166,10 +169,30 @@ export function ListenButton({
   const toggle = () => {
     if (!supported) return;
     if (status === 'playing') {
+      // Capture whether the utterance ever started BEFORE touching the run:
+      // pausing inside the start-watchdog window means the run is dead (its
+      // watchdog must not fire into a paused synth), while pausing mid-chunk
+      // leaves a live queued utterance that resume() can play.
+      const started = runRef.current?.hasStarted() ?? false;
+      pausedAfterStartRef.current = started;
+      if (!started) {
+        runRef.current?.dispose();
+        runRef.current = null;
+      }
       window.speechSynthesis.pause();
       setStatus('paused');
     } else if (status === 'paused') {
-      window.speechSynthesis.resume();
+      if (pausedAfterStartRef.current) {
+        // Mid-chunk pause: the utterance is still queued — resume plays it.
+        window.speechSynthesis.resume();
+      } else {
+        // Paused before anything started (e.g. during the watchdog window):
+        // the old run is disposed, so speak a fresh utterance + watchdog for
+        // the current chunk. Still inside the click gesture, so voice
+        // resolution stays synchronous.
+        window.speechSynthesis.cancel();
+        speakNext(indexRef.current);
+      }
       setStatus('playing');
     } else {
       play();

@@ -220,4 +220,44 @@ describe('runChunk', () => {
     expect(onUnrecoverable).not.toHaveBeenCalled();
     expect(synth.cancelMock).not.toHaveBeenCalled();
   });
+
+  it('hasStarted() is false before onstart and true after — the pause/resume contract', () => {
+    // The component's toggle() reads this to decide the resume path:
+    // paused-before-start → fresh utterance; paused-mid-chunk → resume().
+    const synth = makeSynth([UK_VOICE]);
+    const utterances: FakeUtterance[] = [];
+    const { handle } = startRun(synth, utterances, 'uk');
+    expect(handle.hasStarted()).toBe(false);
+    fire(utterances[0], 'onstart');
+    expect(handle.hasStarted()).toBe(true);
+    handle.dispose();
+  });
+
+  it('pause during the watchdog window: dispose() kills the run, no watchdog fires into the pause', () => {
+    // Simulates the component's pause path when the utterance never started:
+    // the run is disposed, the pending watchdog must not cancel/retry into
+    // a paused synth, and hasStarted() stays false so resume() takes the
+    // fresh-utterance path instead of resuming a dead queue.
+    const synth = makeSynth([UK_VOICE]);
+    const utterances: FakeUtterance[] = [];
+    const { handle, onEnd, onUnrecoverable } = startRun(synth, utterances, 'uk');
+    handle.dispose(); // what toggle() does on pause-before-start
+    expect(handle.hasStarted()).toBe(false);
+    vi.advanceTimersByTime(WATCHDOG_MS * 3);
+    expect(synth.spoken).toHaveLength(1); // no retry spoken
+    expect(synth.cancelMock).not.toHaveBeenCalled(); // watchdog never fired
+    expect(onUnrecoverable).not.toHaveBeenCalled();
+    expect(onEnd).not.toHaveBeenCalled();
+  });
+
+  it('late events after dispose() are ignored and cannot flip hasStarted()', () => {
+    const synth = makeSynth([UK_VOICE]);
+    const utterances: FakeUtterance[] = [];
+    const { handle, onEnd } = startRun(synth, utterances, 'uk');
+    handle.dispose();
+    fire(utterances[0], 'onstart');
+    fire(utterances[0], 'onend');
+    expect(handle.hasStarted()).toBe(false);
+    expect(onEnd).not.toHaveBeenCalled();
+  });
 });

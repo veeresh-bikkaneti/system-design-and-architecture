@@ -54,6 +54,13 @@ export interface ChunkRun {
    * unmount, or the next chunk — so a late timer can't resurrect playback.
    */
   dispose(): void;
+  /**
+   * True once the platform fired `onstart` for any utterance of this run.
+   * Lets the caller distinguish "paused mid-chunk" (resume the queued
+   * utterance) from "paused before anything started" (the run is dead —
+   * start a fresh utterance on resume instead of stranding the UI).
+   */
+  hasStarted(): boolean;
 }
 
 /**
@@ -64,6 +71,7 @@ export interface ChunkRun {
 export function runChunk(opts: RunChunkOptions): ChunkRun {
   let disposeCurrent: (() => void) | null = null;
   let done = false;
+  let everStarted = false;
 
   const attempt = (useDefaultVoice: boolean): void => {
     if (done) return;
@@ -103,15 +111,19 @@ export function runChunk(opts: RunChunkOptions): ChunkRun {
       }
     };
     utterance.onstart = () => {
+      if (done) return;
+      everStarted = true;
       started = true;
       settle();
     };
     utterance.onend = () => {
+      if (done) return;
       settle();
       done = true;
       opts.onEnd();
     };
     utterance.onerror = () => {
+      if (done) return;
       settle();
       done = true;
       opts.onError();
@@ -127,5 +139,6 @@ export function runChunk(opts: RunChunkOptions): ChunkRun {
       disposeCurrent?.();
       disposeCurrent = null;
     },
+    hasStarted: () => everStarted,
   };
 }
