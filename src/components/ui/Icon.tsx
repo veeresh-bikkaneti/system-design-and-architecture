@@ -24,13 +24,14 @@ export type IconName =
   | 'moon'
   | 'monitor'
   | 'play'
+  | 'pause'
   | 'checkCircle'
   | 'xCircle'
   | 'checkFilled'
   | 'lockFilled';
 
 const FILLED_20 = new Set<IconName>(['checkCircle', 'xCircle', 'checkFilled']);
-const FILLED_24 = new Set<IconName>(['lockFilled', 'play']);
+const FILLED_24 = new Set<IconName>(['lockFilled', 'play', 'pause']);
 
 function paths(name: IconName): React.ReactNode {
   switch (name) {
@@ -107,6 +108,13 @@ function paths(name: IconName): React.ReactNode {
       );
     case 'play':
       return <path d="M8 5.5v13l11-6.5-11-6.5Z" />;
+    case 'pause':
+      return (
+        <>
+          <rect x="6" y="5" width="4" height="14" rx="1.5" />
+          <rect x="14" y="5" width="4" height="14" rx="1.5" />
+        </>
+      );
     case 'checkCircle':
       return (
         <path

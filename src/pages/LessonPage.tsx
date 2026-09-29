@@ -8,6 +8,7 @@ import { Icon } from '../components/ui/Icon';
 import { Button } from '../components/ui/Button';
 import { HeadingsProvider, OnThisPage } from '../components/OnThisPage';
 import { Seo, JsonLd } from '../components/Seo';
+import { ListenButton } from '../components/ListenButton';
 
 /** Thin reading-progress bar pinned to the top of the viewport. */
 function ReadingProgressBar() {
@@ -263,8 +264,9 @@ export function LessonPage() {
                 {lesson.meta.summary}
               </p>
 
-              <div className="mt-6">
+              <div className="mt-6 flex flex-wrap items-center gap-3">
                 <CompleteButton slug={lesson.meta.slug} completed={completed} />
+                <ListenButton slug={lesson.meta.slug} />
               </div>
             </header>
 
