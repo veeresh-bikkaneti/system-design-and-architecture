@@ -9,10 +9,12 @@ unittest only — no extra test dependencies):
 """
 
 import unittest
+import unittest.mock
 
 from synthesize import (
     Synthesizer,
     content_hash,
+    enforce_hf_offline_mode,
     expand_number,
     normalize_token,
     tokenize_words,
@@ -125,6 +127,36 @@ class ContentHashTest(unittest.TestCase):
         )
         # 64 hex chars (SHA-256).
         self.assertRegex(content_hash(texts), r"^[0-9a-f]{64}$")
+
+
+class OfflineShimTest(unittest.TestCase):
+    def test_noop_without_env_var(self):
+        import os
+
+        from huggingface_hub.utils import _http as hf_http
+
+        with unittest.mock.patch.dict(os.environ):
+            os.environ.pop("HF_HUB_OFFLINE", None)
+            before = hf_http.get_session
+            enforce_hf_offline_mode()
+            self.assertIs(hf_http.get_session, before)
+
+    def test_session_raises_offline_when_env_var_set(self):
+        import os
+
+        from huggingface_hub.errors import OfflineModeIsEnabled
+        from huggingface_hub.utils import _http as hf_http
+
+        real = hf_http.get_session
+        try:
+            with unittest.mock.patch.dict(
+                os.environ, {"HF_HUB_OFFLINE": "1"}
+            ):
+                enforce_hf_offline_mode()
+                with self.assertRaises(OfflineModeIsEnabled):
+                    hf_http.get_session()
+        finally:
+            hf_http.get_session = real
 
 
 if __name__ == "__main__":

@@ -123,6 +123,29 @@ def locate_weights() -> Path:
     )
 
 
+def enforce_hf_offline_mode() -> None:
+    """Restore huggingface_hub's documented offline behavior when requested.
+
+    HF_HUB_OFFLINE=1 is meant to make every Hub HTTP request raise
+    OfflineModeIsEnabled, letting hf_hub_download fall back to the local
+    cache. huggingface_hub 1.33 no longer enforces that inside get_session(),
+    so a fully-cached download still builds an httpx client -- which crashes
+    in this environment because the runtime proxy URL contains characters
+    httpx cannot parse (``httpx.InvalidURL: Invalid port``). Patching the
+    session factory only under HF_HUB_OFFLINE=1 keeps default (online)
+    behavior untouched while making offline builds hermetic.
+    """
+    if not os.environ.get("HF_HUB_OFFLINE"):
+        return
+    from huggingface_hub.errors import OfflineModeIsEnabled
+    from huggingface_hub.utils import _http as _hf_http
+
+    def _offline_get_session(*args, **kwargs):  # noqa: ANN001, ANN002, ANN202
+        raise OfflineModeIsEnabled("HF_HUB_OFFLINE=1: network disabled")
+
+    _hf_http.get_session = _offline_get_session
+
+
 # ---------------------------------------------------------------------------
 # Synthesis
 # ---------------------------------------------------------------------------
@@ -137,9 +160,11 @@ class Synthesizer:
         # at import time, so setdefault must run first or the cache dir is
         # silently ignored and every run re-downloads (or fails offline).
         # Run with HF_HUB_OFFLINE=1 for hermetic builds: everything needed
-        # is already in the pinned cache, and huggingface_hub then never
-        # touches the network (avoids proxy/DNS failures mid-batch).
+        # is already in the pinned cache, and the offline shim below makes
+        # huggingface_hub serve it without touching the network (avoids
+        # proxy/DNS failures mid-batch).
         os.environ.setdefault("HF_HUB_CACHE", str(HF_CACHE))
+        enforce_hf_offline_mode()
         from kokoro import KPipeline
 
         self.speed = speed
