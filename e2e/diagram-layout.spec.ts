@@ -290,8 +290,10 @@ test('every mermaid node/actor renders inside its SVG viewport', async ({
 
     // 6. StepThrough glow sweep: walk every step of every StepThrough
     // diagram; highlighted nodes carry a pulsing drop-shadow (up to 7px
-    // blur, diagrams.css) that must keep HIGHLIGHT_GLOW_PX clearance
-    // inside the SVG viewBox (outer <svg> clips at its bounds).
+    // blur, diagrams.css). The svg must allow the glow to paint past its
+    // viewBox (overflow: visible — see diagrams.css); if it clips, each
+    // highlighted node needs HIGHLIGHT_GLOW_PX clearance inside the
+    // viewport or the amber pulse is sliced.
     const stepThroughOutliers: Outlier[] = await page.evaluate(
       async (glowPx: number) => {
         const bad: { kind: 'stepthrough-glow'; label: string; detail: string }[] = [];
@@ -303,6 +305,15 @@ test('every mermaid node/actor renders inside its SVG viewport', async ({
           const root = tablist.parentElement?.parentElement;
           const svg = root?.querySelector('svg') as SVGSVGElement | null;
           if (!svg || tabs.length === 0) continue;
+          // Production invariant: the svg must not clip the highlight glow.
+          if (getComputedStyle(svg).overflow !== 'visible') {
+            bad.push({
+              kind: 'stepthrough-glow',
+              label: `panel#${panelIdx}`,
+              detail: `StepThrough svg clips at its viewBox (overflow: ${getComputedStyle(svg).overflow}) — highlight glow is sliced on edge nodes`,
+            });
+            continue;
+          }
           for (const [stepIdx, tab] of tabs.entries()) {
             tab.click();
             await new Promise((r) => setTimeout(r, 150)); // let React re-render the highlight
