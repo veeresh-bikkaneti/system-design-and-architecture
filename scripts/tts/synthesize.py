@@ -267,12 +267,12 @@ class Synthesizer:
             total_dropped += dropped
             manifest_blocks.append(
                 {
-                    "index": block["index"],
+                    "index": i,
                     "kind": block["kind"],
                     "start": round(start, 3),
                     "end": round(end, 3),
                     "words": [
-                        {"t": w, "start": round(s, 3), "end": round(e, 3)}
+                        {"text": w, "start": round(s, 3), "end": round(e, 3)}
                         for w, s, e in words
                     ],
                 }
@@ -329,7 +329,11 @@ def write_lesson_package(synth: Synthesizer, slug: str, limit_blocks: int = 0) -
     opus_path = out_dir / "narration.opus"
     encode_opus(lesson.pop("audio"), opus_path)
 
-    manifest_path = out_dir / "manifest.json"
+    # The player (src/lib/narration.ts) resolves the audio URL from this
+    # field; it must be present or the manifest is rejected as invalid.
+    lesson["audio"] = "narration.opus"
+
+    manifest_path = out_dir / "narration.json"
     with manifest_path.open("w", encoding="utf-8") as f:
         json.dump(lesson, f, ensure_ascii=False)
     return out_dir
@@ -361,7 +365,7 @@ def main(argv: list[str]) -> int:
     if args.only_missing:
         slugs = [
             s for s in slugs
-            if not ((AUDIO_OUT / s / "narration.opus").exists() and (AUDIO_OUT / s / "manifest.json").exists())
+            if not ((AUDIO_OUT / s / "narration.opus").exists() and (AUDIO_OUT / s / "narration.json").exists())
         ]
     if not slugs:
         print("Nothing to synthesize.")
