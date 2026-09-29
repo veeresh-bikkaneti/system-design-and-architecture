@@ -187,6 +187,11 @@ def extract_blocks(source: str) -> list[dict]:
     # --- markdown -> prose blocks ---
     current: list[str] = []
     table_rows: list[str] = []
+    # Lines of the list item currently being accumulated. A wrapped list
+    # item's continuation lines (indented, no new marker) belong to the same
+    # spoken block — splitting them would pause mid-sentence and the pieces
+    # would never match the single rendered <li>.
+    pending_item: list[str] = []
 
     def flush_paragraph() -> None:
         if current:
@@ -194,6 +199,13 @@ def extract_blocks(source: str) -> list[dict]:
             if text:
                 blocks.append({"kind": "prose", "text": text})
             current.clear()
+
+    def flush_item() -> None:
+        if pending_item:
+            text = _clean_block(" ".join(pending_item))
+            if text:
+                blocks.append({"kind": "prose", "text": text})
+            pending_item.clear()
 
     def flush_table() -> None:
         nonlocal table_rows
@@ -215,14 +227,17 @@ def extract_blocks(source: str) -> list[dict]:
         if not stripped:
             flush_paragraph()
             flush_table()
+            flush_item()
             continue
         if re.match(r"^(\*\*\*|---|___)\s*$", stripped):
             flush_paragraph()
             flush_table()
+            flush_item()
             continue
         # table row?
         if stripped.startswith("|") and stripped.endswith("|"):
             flush_paragraph()
+            flush_item()
             table_rows.append(stripped)
             continue
         if table_rows:
@@ -231,26 +246,33 @@ def extract_blocks(source: str) -> list[dict]:
         m = re.match(r"^(#{1,6})\s+(.*)", stripped)
         if m:
             flush_paragraph()
+            flush_item()
             text = _clean_block(m.group(2))
             if text:
                 blocks.append({"kind": "prose", "text": text})
             continue
         # blockquote
         if stripped.startswith(">"):
+            flush_item()
             current.append(stripped.lstrip(">").strip())
             continue
         # list item
         m = re.match(r"^(\s*[-*+]|\s*\d+[.)])\s+(.*)", line)
         if m:
             flush_paragraph()
-            text = _clean_block(m.group(2))
-            if text:
-                blocks.append({"kind": "prose", "text": text})
+            flush_item()
+            pending_item.append(m.group(2).strip())
             continue
+        # Indented continuation of a wrapped list item: same spoken block.
+        if pending_item and line[:1] in (" ", "\t"):
+            pending_item.append(stripped)
+            continue
+        flush_item()
         current.append(stripped)
 
     flush_paragraph()
     flush_table()
+    flush_item()
     return blocks
 
 

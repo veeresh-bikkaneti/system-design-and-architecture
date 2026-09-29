@@ -8,6 +8,7 @@ import {
   narrationJsonUrl,
   normalizeWordToken,
   planWordSpans,
+  speakablePunct,
   tokenizeWords,
   type FlatWord,
   type NarrationManifest,
@@ -129,6 +130,32 @@ describe('alignBlocks', () => {
 
   it('returns nulls when nothing matches', () => {
     expect(alignBlocks([{ text: 'a' }], ['b'])).toEqual([null]);
+  });
+
+  it('matches spoken expansions against their written form', () => {
+    // The manifest holds the spoken form (extractor's _speakable_punct);
+    // the DOM holds the written form. Both sides must still align.
+    const result = alignBlocks(
+      [
+        { text: 'about 120 requests/second' },
+        { text: 'go from a to b' },
+        { text: 'research and development' },
+        { text: '50 percent faster' },
+      ],
+      ['~120 requests/second', 'go from a -> b', 'research & development', '50% faster'],
+    );
+    expect(result).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe('speakablePunct', () => {
+  it('mirrors the extractor expansions', () => {
+    expect(speakablePunct('~10× average')).toBe(' about 10× average');
+    expect(speakablePunct('a -> b')).toBe('a  to  b');
+    expect(speakablePunct('R&D')).toBe('R and D');
+    expect(speakablePunct('50% of 100')).toBe('50 percent of 100');
+    // No-op when nothing needs expanding.
+    expect(speakablePunct('plain words')).toBe('plain words');
   });
 });
 

@@ -94,7 +94,7 @@ function NeuralPlayer({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const flatRef = useRef<FlatWord[]>([]);
-  const taggedRef = useRef<TaggedBlock[]>([]);
+  const taggedRef = useRef<Array<TaggedBlock | null>>([]);
   const spansRef = useRef<Array<HTMLSpanElement | null>>([]);
   const activeRef = useRef<{ word: number; block: number }>({ word: -1, block: -1 });
   const rafRef = useRef(0);
@@ -133,6 +133,7 @@ function NeuralPlayer({
     }
     clearActive();
     for (const t of taggedRef.current) {
+      if (!t) continue;
       unwrapSpans(t.el, WORD_SPAN_CLASS);
       t.el.classList.remove(BLOCK_ACTIVE_CLASS);
     }
@@ -169,7 +170,7 @@ function NeuralPlayer({
    * guaranteed mounted by then because the learner pressed play.
    */
   const ensureTagged = (): boolean => {
-    if (taggedRef.current.length > 0) return true;
+    if (taggedRef.current.some(Boolean)) return true;
     const flat = flattenWords(manifest);
     flatRef.current = flat;
 
@@ -194,7 +195,6 @@ function NeuralPlayer({
     }
 
     const alignment = alignBlocks(manifest.blocks, domTexts);
-    const tagged: TaggedBlock[] = [];
     // Flat-word offset of each block's first word.
     const flatStartOf: number[] = [];
     let cursor = 0;
@@ -202,10 +202,12 @@ function NeuralPlayer({
       flatStartOf.push(cursor);
       cursor += b.words.length;
     });
-
-    manifest.blocks.forEach((block, b) => {
+    // Indexed by manifest block index (null when the block has no DOM
+    // counterpart): tick() looks blocks up by FlatWord.block, which is the
+    // manifest index, so a compacted array would misalign after any skip.
+    const tagged: Array<TaggedBlock | null> = manifest.blocks.map((block, b) => {
       const domIdx = alignment[b];
-      if (domIdx === null || block.words.length === 0) return;
+      if (domIdx === null || block.words.length === 0) return null;
       const el = domEls[domIdx];
       const flatStart = flatStartOf[b];
       const wordTagged = wrapWordSpans(
@@ -213,7 +215,7 @@ function NeuralPlayer({
         block.words.map((w) => w.text),
         (pos) => flatStart + pos,
       );
-      tagged.push({ el, flatStart, flatEnd: flatStart + block.words.length, wordTagged });
+      return { el, flatStart, flatEnd: flatStart + block.words.length, wordTagged };
     });
     taggedRef.current = tagged;
 
@@ -227,7 +229,7 @@ function NeuralPlayer({
         }
       });
     spansRef.current = spans;
-    return tagged.length > 0;
+    return tagged.some(Boolean);
   };
 
   const tick = () => {

@@ -131,10 +131,27 @@ const normBlockText = (s: string): string =>
   s.toLowerCase().replace(/\s+/g, ' ').trim();
 
 /**
+ * Mirror of the extractor's `_speakable_punct` (scripts/tts/extract_narration.py):
+ * symbols the TTS voice speaks as words. The manifest holds the *spoken*
+ * form ("about 120 requests/second") while the DOM holds the written form
+ * ("~120 requests/second"); applying the same expansion to both sides lets
+ * those blocks align. Keep in sync with the extractor.
+ */
+export const speakablePunct = (text: string): string =>
+  text
+    .replace(/->/g, ' to ')
+    .replace(/=>/g, ' to ')
+    .replace(/&/g, ' and ')
+    .replace(/(?<=\d)%/g, ' percent')
+    .replace(/~/g, ' about ');
+
+/**
  * Align manifest blocks to rendered DOM blocks by normalized text equality.
- * Returns, per manifest block, the index of the first still-unclaimed DOM
- * block with identical text, or `null` when no DOM block matches (the audio
- * still plays; that block just gets no word highlighting).
+ * The DOM side is first run through {@link speakablePunct} so blocks whose
+ * spoken form expands symbols ("~" → "about") still match their written
+ * form. Returns, per manifest block, the index of the first still-unclaimed
+ * DOM block with identical text, or `null` when no DOM block matches (the
+ * audio still plays; that block falls back to whole-block highlighting).
  */
 export function alignBlocks(
   manifestBlocks: readonly { text: string }[],
@@ -145,7 +162,7 @@ export function alignBlocks(
     const want = normBlockText(mb.text);
     for (let d = 0; d < domTexts.length; d++) {
       if (claimed.has(d)) continue;
-      if (normBlockText(domTexts[d]) === want) {
+      if (normBlockText(speakablePunct(domTexts[d])) === want) {
         claimed.add(d);
         return d;
       }
