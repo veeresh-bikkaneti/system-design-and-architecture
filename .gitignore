@@ -42,3 +42,11 @@ src/lib/lesson-manifest.ts
 public/models/
 public/ben/
 public/ort/
+
+# Open Graph share images: generated at build time from lesson metadata
+# (see scripts/seo/generate-og-images.mjs). ~3 MB of PNGs — no binaries in git.
+public/og/
+
+# RSS feed: generated at build time (see scripts/seo/generate-feed.mjs).
+# <lastBuildDate> uses wall-clock time, so a committed copy would churn every build.
+public/feed.xml

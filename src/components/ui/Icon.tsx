@@ -28,7 +28,9 @@ export type IconName =
   | 'checkCircle'
   | 'xCircle'
   | 'checkFilled'
-  | 'lockFilled';
+  | 'lockFilled'
+  | 'share'
+  | 'link';
 
 const FILLED_20 = new Set<IconName>(['checkCircle', 'xCircle', 'checkFilled']);
 const FILLED_24 = new Set<IconName>(['lockFilled', 'play', 'pause']);
@@ -146,6 +148,22 @@ function paths(name: IconName): React.ReactNode {
           d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5Zm-3 8V7a3 3 0 116 0v3H9Z"
           clipRule="evenodd"
         />
+      );
+    case 'share':
+      return (
+        <>
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+        </>
+      );
+    case 'link':
+      return (
+        <>
+          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+        </>
       );
   }
 }

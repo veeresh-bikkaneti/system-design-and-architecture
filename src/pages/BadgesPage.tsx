@@ -60,6 +60,7 @@ export function BadgesPage() {
         title="Badges | System Design Mastery"
         description="Earn badges as you learn system design: per-lesson, per-quiz, per-tier, and the System Design Master badge."
         path="/badges"
+        image="badges"
       />
       <p className="text-xs font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-400">
         Progress

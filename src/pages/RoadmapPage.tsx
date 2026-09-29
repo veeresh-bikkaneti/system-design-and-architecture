@@ -173,6 +173,7 @@ export function RoadmapPage() {
         title="Roadmap | System Design Mastery"
         description="The complete system design learning path: 36 lessons from beginner to advanced, in syllabus order."
         path="/roadmap"
+        image="roadmap"
       />
       {/* Hero */}
       <section className="pt-4 text-center sm:pt-8">

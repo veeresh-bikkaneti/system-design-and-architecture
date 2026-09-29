@@ -163,15 +163,16 @@ export function HomePage() {
     <div className="mx-auto max-w-5xl">
       <Seo
         title="System Design Mastery — Learn System Design from Zero to Master"
-        description="Learn system design progressively, from beginner to master, with an AI assistant that answers your questions."
+        description="A free system design course — learn progressively, from beginner to master, with an AI assistant that answers your questions."
         path="/"
+        image="home"
       />
       {/* Hero — the course's animated diagrams, live above the fold */}
       <section className="pt-4 sm:pt-8">
         <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent-700 dark:text-accent-400">
-              A self-paced course
+              A free, self-paced course
             </p>
             <h1 className="mt-3 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-stone-950 text-balance sm:text-6xl dark:text-stone-50">
               System design, from first principles to interview-ready.

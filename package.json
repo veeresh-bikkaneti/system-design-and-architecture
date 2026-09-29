@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "predev": "node scripts/seo/generate-manifest.mjs && node scripts/ben/build-index.mjs --optional",
-    "prebuild": "node scripts/seo/generate-manifest.mjs && node scripts/seo/generate-sitemap.mjs && node scripts/seo/generate-llms-txt.mjs && node scripts/ben/build-index.mjs",
+    "prebuild": "node scripts/seo/generate-manifest.mjs && node scripts/seo/generate-sitemap.mjs && node scripts/seo/generate-feed.mjs && node scripts/seo/generate-llms-txt.mjs && node scripts/seo/generate-og-images.mjs && node scripts/ben/build-index.mjs",
     "build": "tsc -b && vite build && node scripts/seo/prerender.mjs",
     "content:check": "python3 scripts/check_mdx_h1.py",
     "content:validate": "python3 scripts/validate_lessons.py",
@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/dompurify": "^3.2.0",
     "@types/mdx": "^2.0.14",
@@ -43,6 +44,7 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.83.0",
+    "satori": "^0.33.5",
     "tailwindcss": "^4.3.3",
     "typescript": "~7.0.2",
     "vite": "^8.3.0",
