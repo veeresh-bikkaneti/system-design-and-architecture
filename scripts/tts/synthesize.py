@@ -394,13 +394,27 @@ def main(argv: list[str]) -> int:
 
     print(f"Synthesizing {len(slugs)} lesson(s): {', '.join(slugs)}")
     synth = Synthesizer(device=args.device, speed=args.speed)
+    failed: list[str] = []
     for slug in slugs:
         if not (NARRATION_DIR / f"{slug}.json").exists():
             print(f"  [{slug}] narration script missing -- run extract_narration.py first; skipping")
+            failed.append(f"{slug} (no narration script)")
             continue
         t0 = time.time()
-        out_dir = write_lesson_package(synth, slug, limit_blocks=args.limit_blocks)
+        try:
+            out_dir = write_lesson_package(synth, slug, limit_blocks=args.limit_blocks)
+        except Exception as e:  # noqa: BLE001 -- one bad lesson must not kill the batch
+            print(f"  [{slug}] FAILED after {time.time() - t0:.0f}s: {e}")
+            failed.append(f"{slug} ({type(e).__name__}: {e})")
+            continue
         print(f"  [{slug}] wrote {out_dir} in {time.time() - t0:.0f}s")
+    if failed:
+        print(f"\n{len(failed)} lesson(s) failed:")
+        for f in failed:
+            print(f"  - {f}")
+        print("Re-run with --only-missing to retry just these.")
+        return 1
+    print("\nAll lessons synthesized.")
     return 0
 
 

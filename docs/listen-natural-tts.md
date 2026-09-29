@@ -70,27 +70,59 @@ Prerequisites are build-time only (they never ship to learners):
 ```bash
 cd scripts/tts
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt        # kokoro, misaki, soundfile (pinned)
-sudo apt-get install espeak-ng        # phonemizer Kokoro was trained with
+# CPU-only PyTorch + Kokoro stack, pinned (see AUDIT.md for the audit record)
+pip install --index-url https://download.pytorch.org/whl/cpu torch
+pip install -r requirements.txt
 ```
+
+No system packages are needed: phonemization goes through the bundled
+`espeakng-loader`, not a system `espeak-ng` binary. The first run downloads
+the Kokoro-82M weights (~330 MB, `hexgrad/Kokoro-82M`) into the git-ignored
+`scripts/tts/.cache/` directory.
 
 Then:
 
 ```bash
-# 1. Extract speakable prose from every lesson (skips code, diagrams, quizzes)
+# 1. Extract speakable prose from every lesson (skips code, diagrams, quizzes).
+#    Wrapped list items are joined into one block; symbols are expanded to
+#    their spoken form ("~" -> "about") for natural speech.
 python3 scripts/tts/extract_narration.py
 
-# 2. Synthesize audio + word timings (CPU; resumable per lesson)
-python3 scripts/tts/synthesize.py --voice af_heart
+# 2. Synthesize audio + word timings (CPU) and write
+#    public/audio/<slug>/{narration.opus,narration.json} directly.
+python3 scripts/tts/synthesize.py --only-missing
 
-# 3. Encode + write public/audio/<slug>/{narration.opus,narration.json}
-python3 scripts/tts/package.py
+# 3. Validate every manifest against the player contract.
+for slug in $(ls public/audio); do
+  python3 scripts/tts/validate_manifest.py "$slug" || break
+done
+
+# 4. End-to-end player check in headless Chromium (needs node_modules).
+node scripts/tts/verify_player.mjs <lesson-slug>
 ```
 
-`synthesize.py` keeps a manifest of finished lessons, so an interrupted
-run resumes where it left off. To re-voice the course with a different
-Kokoro voice, pass `--voice <id>` (see `VOICES.md` upstream) and re-run
-steps 2–3.
+`synthesize.py` writes each lesson's opus + manifest as it finishes, logs
+failures per lesson without aborting the batch, and exits nonzero if any
+lesson failed — re-run with `--only-missing` to retry just those. To
+re-voice the course with a different Kokoro voice, change the `VOICE`
+constant in `synthesize.py` (see `VOICES.md` upstream) and re-run
+steps 1–2. To smoke-test the pipeline, pass `--slugs <slug> --limit-blocks 3`.
+
+### Read-along alignment
+
+Word highlighting aligns manifest blocks to the rendered article by
+normalized text equality (`alignBlocks` in `src/lib/narration.ts`). Two
+things keep that alignment honest:
+
+- The extractor's `_speakable_punct` expansions (`~` → "about", `&` →
+  "and", …) are mirrored by `speakablePunct` on the DOM side, so
+  spoken-form blocks still match their written form.
+- Wrapped list items are extracted as a single block, matching the single
+  rendered `<li>`.
+
+Blocks that still can't align (or whose words can't be tagged, e.g. after
+a spoken expansion) fall back to whole-block highlighting while their
+audio plays — the audio never depends on the highlighting.
 
 ### Why Kokoro, and why build-time?
 
