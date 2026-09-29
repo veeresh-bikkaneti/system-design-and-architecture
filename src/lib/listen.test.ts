@@ -52,6 +52,13 @@ describe('rankVoices', () => {
     );
   });
 
+  it('us falls back to UK English when no US voice exists', () => {
+    const gbOnly = voices.filter((x) => !/^en[_-]us$/i.test(x.lang));
+    expect(rankVoices(gbOnly, 'us')?.name).toBe(
+      'Microsoft Libby Online (Natural) - English (United Kingdom)',
+    );
+  });
+
   it('prefers Google voices over generic ones when no natural voice exists', () => {
     const plain = [
       v('Microsoft David - English (United States)', 'en-US'),
