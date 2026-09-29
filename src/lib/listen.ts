@@ -160,16 +160,37 @@ export interface LessonBlock {
 
 /**
  * Walk a lesson article element and return speakable prose blocks: headings,
- * paragraphs, list items, blockquotes, table cells. Skips code blocks,
+ * paragraphs, list items, blockquotes, table rows. Skips code blocks,
  * mermaid diagrams, quizzes and other embeds, nav/buttons, and tables that
  * contain code. Outermost-first so nested elements are never read twice.
+ *
+ * Plain-text tables yield one block per row ("cell1, cell2") — the same
+ * granularity as the build-time narration extractor, so those blocks can
+ * align for read-along highlighting.
  */
 export function extractLessonBlocks(root: Element): LessonBlock[] {
   const blocks: LessonBlock[] = [];
 
   const walk = (node: TextDomNode): void => {
     if (shouldSkip(node)) return;
-    if (BLOCK_TAGS.has(node.tagName.toUpperCase())) {
+    const tag = node.tagName.toUpperCase();
+    if (tag === 'TR') {
+      // Plain-text table row: join the cells exactly like the extractor.
+      // (Tables containing code are skipped entirely by shouldSkip above.)
+      const cells: string[] = [];
+      const kids = node.children;
+      for (let i = 0; i < kids.length; i++) {
+        const cellTag = kids[i].tagName.toUpperCase();
+        if (cellTag === 'TD' || cellTag === 'TH') {
+          const t = clean((kids[i] as unknown as Element).textContent);
+          if (t) cells.push(t);
+        }
+      }
+      const text = cells.join(', ');
+      if (text) blocks.push({ element: node as unknown as Element, text });
+      return;
+    }
+    if (BLOCK_TAGS.has(tag)) {
       // textContent already includes nested inline content — don't descend,
       // or nested elements would be read twice.
       const text = clean(node.textContent);

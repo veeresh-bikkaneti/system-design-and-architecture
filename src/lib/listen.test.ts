@@ -172,12 +172,16 @@ describe('extractLessonText', () => {
     ]);
   });
 
-  it('skips tables containing code but reads plain tables cell by cell', () => {
+  it('skips tables containing code but reads plain tables row by row', () => {
     const root = new FakeEl('div', '', {}, [
       new FakeEl('table', '', {}, [
         new FakeEl('tr', '', {}, [
           new FakeEl('td', 'LRU'),
           new FakeEl('td', 'Evicts least recently used.'),
+        ]),
+        new FakeEl('tr', '', {}, [
+          new FakeEl('td', 'LFU'),
+          new FakeEl('td', 'Evicts least frequently used.'),
         ]),
       ]),
       new FakeEl('table', '', {}, [
@@ -187,9 +191,26 @@ describe('extractLessonText', () => {
       ]),
     ]);
     const chunks = extractLessonText(asElement(root));
-    expect(chunks).toContain('LRU');
-    expect(chunks).toContain('Evicts least recently used.');
+    // One block per row, cells joined with ", " — the same granularity as
+    // the build-time narration extractor, so rows can align for highlighting.
+    expect(chunks).toEqual([
+      'LRU, Evicts least recently used.',
+      'LFU, Evicts least frequently used.',
+    ]);
     expect(chunks.join(' ')).not.toContain('cache.get(k)');
+  });
+
+  it('extractLessonBlocks yields one block per table row with the row element', () => {
+    const row = new FakeEl('tr', '', {}, [
+      new FakeEl('td', 'a'),
+      new FakeEl('td', 'b'),
+    ]);
+    const root = new FakeEl('div', '', {}, [
+      new FakeEl('table', '', {}, [row]),
+    ]);
+    const blocks = extractLessonBlocks(asElement(root));
+    expect(blocks.map((b) => b.text)).toEqual(['a, b']);
+    expect(blocks[0].element).toBe(asElement(row));
   });
 
   it('skips aria-hidden content', () => {

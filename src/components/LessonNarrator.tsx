@@ -6,6 +6,7 @@ import {
   alignBlocks,
   findActiveWordIndex,
   flattenWords,
+  isValidManifest,
   narrationAudioUrl,
   narrationJsonUrl,
   type FlatWord,
@@ -23,6 +24,13 @@ type Status = 'idle' | 'playing' | 'paused';
 
 const SPEEDS = [0.9, 1, 1.25, 1.5] as const;
 
+/**
+ * Below this fraction of manifest blocks aligned to the rendered lesson,
+ * the narration is treated as stale (prose edited after recording) and the
+ * learner is told so, with a one-tap switch to the browser voice.
+ */
+const STALE_ALIGNMENT_RATIO = 0.7;
+
 const pillClass =
   'inline-flex items-center gap-1.5 border border-stone-200/80 bg-white px-3.5 py-2 text-sm font-semibold text-stone-600 shadow-soft transition-colors hover:border-accent-300 hover:text-accent-800 active:translate-y-px dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-accent-800 dark:hover:text-accent-300';
 
@@ -38,24 +46,6 @@ const fmtTime = (seconds: number): string => {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${String(s).padStart(2, '0')}`;
-};
-
-const isValidManifest = (value: unknown): value is NarrationManifest => {
-  if (typeof value !== 'object' || value === null) return false;
-  const m = value as Record<string, unknown>;
-  return (
-    typeof m.slug === 'string' &&
-    typeof m.duration === 'number' &&
-    typeof m.audio === 'string' &&
-    Array.isArray(m.blocks) &&
-    m.blocks.every(
-      (b) =>
-        typeof b === 'object' &&
-        b !== null &&
-        typeof (b as { text: string }).text === 'string' &&
-        Array.isArray((b as { words: unknown }).words),
-    )
-  );
 };
 
 interface TaggedBlock {
@@ -91,6 +81,15 @@ function NeuralPlayer({
   const [speed, setSpeed] = useState<number>(1);
   const [progress, setProgress] = useState(0);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  /**
+   * One-line, non-blocking notices: untagged playback, stale narration,
+   * audio load failure. `offerFallback` adds the "use my browser's voice
+   * instead" link.
+   */
+  const [notice, setNotice] = useState<{
+    text: string;
+    offerFallback: boolean;
+  } | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const flatRef = useRef<FlatWord[]>([]);
@@ -108,6 +107,11 @@ function NeuralPlayer({
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
+  // NOTE: the effect above is only a backstop. The karaoke rAF loop gates
+  // on statusRef, and rAF callbacks can run before React flushes a state
+  // update (rAF-vs-Macrotask ordering is not deterministic) — so the
+  // handlers below write statusRef synchronously. Without that, the first
+  // tick could see a stale 'idle' and the highlight loop would die silently.
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'matchMedia' in window) {
@@ -168,6 +172,11 @@ function NeuralPlayer({
    * Wrap every manifest word in a span inside its rendered block.
    * Runs once, lazily, on first play — the lesson body (Suspense) is
    * guaranteed mounted by then because the learner pressed play.
+   *
+   * Returns `true` when at least one block aligned. A `false` return means
+   * the prose changed so much that nothing matches — the caller still
+   * plays the audio (timestamps stay valid for the seek bar) and shows a
+   * notice instead of leaving a dead button.
    */
   const ensureTagged = (): boolean => {
     if (taggedRef.current.some(Boolean)) return true;
@@ -195,12 +204,12 @@ function NeuralPlayer({
     }
 
     const alignment = alignBlocks(manifest.blocks, domTexts);
-    // Flat-word offset of each block's first word.
-    const flatStartOf: number[] = [];
-    let cursor = 0;
-    manifest.blocks.forEach((b) => {
-      flatStartOf.push(cursor);
-      cursor += b.words.length;
+    // Flat-word offset of each block's first word, derived from the same
+    // flattened array the highlighter binary-searches — one computation,
+    // no chance of the two drifting apart.
+    const flatStartOf = new Map<number, number>();
+    flat.forEach((w, i) => {
+      if (!flatStartOf.has(w.block)) flatStartOf.set(w.block, i);
     });
     // Indexed by manifest block index (null when the block has no DOM
     // counterpart): tick() looks blocks up by FlatWord.block, which is the
@@ -209,7 +218,7 @@ function NeuralPlayer({
       const domIdx = alignment[b];
       if (domIdx === null || block.words.length === 0) return null;
       const el = domEls[domIdx];
-      const flatStart = flatStartOf[b];
+      const flatStart = flatStartOf.get(b) ?? 0;
       const wordTagged = wrapWordSpans(
         el,
         block.words.map((w) => w.text),
@@ -229,7 +238,19 @@ function NeuralPlayer({
         }
       });
     spansRef.current = spans;
-    return tagged.some(Boolean);
+
+    const alignedCount = tagged.filter(Boolean).length;
+    if (alignedCount === 0) return false;
+    // Staleness signal: the lesson prose was edited after the narration
+    // was recorded. The audio still plays; the learner gets an honest note
+    // and a one-tap switch to the browser voice.
+    if (alignedCount < manifest.blocks.length * STALE_ALIGNMENT_RATIO) {
+      setNotice({
+        text: 'This lesson\u2019s text has changed since its narration was recorded, so the highlighting may not match the words you hear.',
+        offerFallback: true,
+      });
+    }
+    return true;
   };
 
   const tick = () => {
@@ -279,16 +300,25 @@ function NeuralPlayer({
       audio.playbackRate = speed;
       audio.onended = () => {
         cancelAnimationFrame(rafRef.current);
+        statusRef.current = 'idle';
         setStatus('idle');
         clearActive();
         setProgress(0);
         lastProgressRef.current = -1;
       };
       audio.onerror = () => {
-        // Corrupt/missing audio file: stop cleanly, learner keeps the text.
+        // Corrupt/missing audio file (the probe only fetched the JSON, so
+        // this is reachable): drop the broken element so a retry builds a
+        // fresh one, and offer the browser voice instead of a dead button.
         cancelAnimationFrame(rafRef.current);
+        statusRef.current = 'idle';
         setStatus('idle');
         clearActive();
+        audioRef.current = null;
+        setNotice({
+          text: "Couldn't load the AI narration audio.",
+          offerFallback: true,
+        });
       };
       audioRef.current = audio;
     }
@@ -298,10 +328,24 @@ function NeuralPlayer({
   const play = () => {
     const audio = ensureAudio();
     if (!audio) return;
-    if (!ensureTagged()) return;
+    if (!ensureTagged()) {
+      // Nothing aligned (prose rewritten after recording): still play the
+      // audio — timestamps stay valid for the seek bar — and say so plainly
+      // instead of leaving a pressed button that does nothing.
+      setNotice({
+        text: 'Word-by-word highlighting isn\u2019t available for this lesson, but the audio still plays.',
+        offerFallback: false,
+      });
+    }
     audio.playbackRate = speed;
+    // Synchronous ref write: the rAF loop gates on statusRef and can run
+    // before React flushes setStatus (see the note on the sync effect).
+    statusRef.current = 'playing';
     setStatus('playing');
-    void audio.play().catch(() => setStatus('idle'));
+    void audio.play().catch(() => {
+      statusRef.current = 'idle';
+      setStatus('idle');
+    });
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
   };
@@ -309,6 +353,7 @@ function NeuralPlayer({
   const pause = () => {
     audioRef.current?.pause();
     cancelAnimationFrame(rafRef.current);
+    statusRef.current = 'paused';
     setStatus('paused');
   };
 
@@ -340,7 +385,8 @@ function NeuralPlayer({
         : 'AI narration stopped.';
 
   return (
-    <div ref={panelRef} className="relative inline-flex items-stretch">
+    <div className="inline-flex flex-col items-start gap-1">
+      <div ref={panelRef} className="relative inline-flex items-stretch">
       <div className="inline-flex overflow-hidden rounded-full">
         <button
           type="button"
@@ -421,6 +467,22 @@ function NeuralPlayer({
       <span aria-live="polite" className="sr-only">
         {statusText}
       </span>
+      </div>
+
+      {notice && (
+        <p className="max-w-72 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+          {notice.text}{' '}
+          {notice.offerFallback && (
+            <button
+              type="button"
+              onClick={onUseBrowserVoice}
+              className="font-semibold text-accent-700 underline-offset-2 hover:underline dark:text-accent-400"
+            >
+              Use my browser&apos;s voice instead
+            </button>
+          )}
+        </p>
+      )}
     </div>
   );
 }

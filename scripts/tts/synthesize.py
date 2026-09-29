@@ -136,6 +136,9 @@ class Synthesizer:
         # Set BEFORE importing kokoro: huggingface_hub freezes HF_HUB_CACHE
         # at import time, so setdefault must run first or the cache dir is
         # silently ignored and every run re-downloads (or fails offline).
+        # Run with HF_HUB_OFFLINE=1 for hermetic builds: everything needed
+        # is already in the pinned cache, and huggingface_hub then never
+        # touches the network (avoids proxy/DNS failures mid-batch).
         os.environ.setdefault("HF_HUB_CACHE", str(HF_CACHE))
         from kokoro import KPipeline
 

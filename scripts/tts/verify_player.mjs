@@ -193,7 +193,9 @@ try {
     );
 
     // Seek: jump to the middle of a known word; the highlight must land there.
-    const probe = flat[500];
+    // (Mid-lesson for long lessons; the midpoint for short ones — a hardcoded
+    // index would fail with a confusing timeout on lessons under 501 words.)
+    const probe = flat.length > 500 ? flat[500] : flat[Math.floor(flat.length / 2)];
     const t = (probe.start + probe.end) / 2;
     const expected = wordIndexAt(flat, t);
     await page.getByRole('button', { name: 'Narration options', exact: true }).click();
@@ -238,7 +240,6 @@ try {
     await page.addInitScript(() => {
       window.__speakCalls = [];
       const synth = window.speechSynthesis;
-      const orig = synth.speak.bind(synth);
       const fakeVoice = { name: 'verify-fake-voice', lang: 'en-US', default: true, localService: true, voiceURI: 'fake' };
       synth.getVoices = () => [fakeVoice];
       synth.speak = (u) => {

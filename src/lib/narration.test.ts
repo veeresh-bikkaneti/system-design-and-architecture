@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   alignBlocks,
+  expandPunctWithMap,
+  expandTokens,
   findActiveWordIndex,
   flattenWords,
+  isValidManifest,
   narrationAudioUrl,
   narrationJsonUrl,
   normalizeWordToken,
@@ -19,6 +22,21 @@ import {
 /* ------------------------------------------------------------------ */
 
 describe('tokenizeWords', () => {
+  // Cross-language parity: this exact sample is also asserted in
+  // scripts/tts/test_align.py (TokenizerParityTest). The build-time Python
+  // extractor and this TS rule must produce the same sequence, or the DOM
+  // tagger consumes the wrong words. If you change tokenization, change
+  // both.
+  const PARITY_SAMPLE = "The cache sits in front of the database, and it doesn't blink.";
+  const PARITY_EXPECTED = [
+    'The', 'cache', 'sits', 'in', 'front', 'of', 'the',
+    'database', 'and', 'it', "doesn't", 'blink',
+  ];
+
+  it('matches the Python extractor on the parity sample', () => {
+    expect(tokenizeWords(PARITY_SAMPLE)).toEqual(PARITY_EXPECTED);
+  });
+
   it('splits on whitespace and punctuation, keeping contractions whole', () => {
     expect(tokenizeWords("Don't stop read-along highlighting!")).toEqual([
       "Don't",
@@ -113,6 +131,19 @@ describe('findActiveWordIndex', () => {
   it('returns -1 for an empty word list', () => {
     expect(findActiveWordIndex([], 1)).toBe(-1);
   });
+
+  it('skips zero-length words instead of sticking on them', () => {
+    // Real manifests contain clamped zero-length words (overlapped spans).
+    // At t=0.2 neither the zero-length word [0.2,0.2] nor "there" [0.2,0.5]
+    // is *strictly* active for the zero-length one: binary search lands on
+    // the last word with start <= t, then requires t < end.
+    const flat = flatOf(
+      manifest([{ text: 'Hi dropped there', times: [[0, 0.2], [0.2, 0.2], [0.2, 0.5]] }]),
+    );
+    expect(findActiveWordIndex(flat, 0.1)).toBe(0);
+    expect(findActiveWordIndex(flat, 0.2)).toBe(2); // not stuck on the zero-length word
+    expect(findActiveWordIndex(flat, 0.3)).toBe(2);
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -159,6 +190,51 @@ describe('speakablePunct', () => {
   });
 });
 
+describe('expandPunctWithMap', () => {
+  it('attributes inserted words to the replaced symbol range', () => {
+    const { expanded, origOf } = expandPunctWithMap('~10');
+    expect(expanded).toBe(' about 10');
+    // "about" (expanded[1,6)) derives from "~" (original[0,1)).
+    expect(origOf[1]).toBe(0);
+    expect(origOf[5]).toBe(0);
+    // "10" derives from itself.
+    expect(origOf[7]).toBe(1);
+    expect(origOf[8]).toBe(2);
+  });
+
+  it('maps multi-char symbols to their full original range', () => {
+    const { expanded, origOf } = expandPunctWithMap('a->b');
+    expect(expanded).toBe('a to b');
+    // "to" (expanded[2,4)) derives from "->" (original[1,3)).
+    expect(origOf[2]).toBe(1);
+    expect(origOf[3]).toBe(2);
+  });
+
+  it('only expands % after a digit', () => {
+    expect(expandPunctWithMap('100%').expanded).toBe('100 percent');
+    expect(expandPunctWithMap('100 %').expanded).toBe('100 %');
+  });
+});
+
+describe('expandTokens', () => {
+  it('tokenizes the spoken form while remembering written origins', () => {
+    const tokens = expandTokens('~10x of R&D');
+    expect(tokens.map((t) => t.text)).toEqual(['about', '10x', 'of', 'R', 'and', 'D']);
+    // Spans resolve to the written text: "~" for "about", "&" for "and".
+    const written = (t: { origStart: number; origEnd: number }): string =>
+      '~10x of R&D'.slice(t.origStart, t.origEnd);
+    expect(tokens.map(written)).toEqual(['~', '10x', 'of', 'R', '&', 'D']);
+  });
+
+  it('is the identity when nothing expands', () => {
+    const tokens = expandTokens('plain words');
+    expect(tokens).toEqual([
+      { text: 'plain', origStart: 0, origEnd: 5 },
+      { text: 'words', origStart: 6, origEnd: 11 },
+    ]);
+  });
+});
+
 /* ------------------------------------------------------------------ */
 /* planWordSpans                                                       */
 /* ------------------------------------------------------------------ */
@@ -196,6 +272,106 @@ describe('planWordSpans', () => {
     expect(plan).not.toBeNull();
     expect(plan!.consumed).toBe(0);
     expect(plan!.parts).toEqual([{ kind: 'gap', text: ' … ' }]);
+  });
+
+  it('matches spoken expansions against the written symbols', () => {
+    // Manifest words are spoken-form ("about"); the DOM holds "~". The
+    // word parts keep the written text so the "~" is what gets wrapped.
+    const plan = planWordSpans('~10x of traffic', ['about', '10x', 'of', 'traffic']);
+    expect(plan).not.toBeNull();
+    expect(plan!.consumed).toBe(4);
+    expect(plan!.parts).toEqual([
+      { kind: 'word', text: '~' },
+      { kind: 'word', text: '10x' },
+      { kind: 'gap', text: ' ' },
+      { kind: 'word', text: 'of' },
+      { kind: 'gap', text: ' ' },
+      { kind: 'word', text: 'traffic' },
+    ]);
+  });
+});
+
+
+/* ------------------------------------------------------------------ */
+/* isValidManifest                                                    */
+/* ------------------------------------------------------------------ */
+
+const word = (text: string, start: number, end: number): unknown => ({
+  text,
+  start,
+  end,
+});
+
+const valid = (): Record<string, unknown> => ({
+  slug: 'demo',
+  voice: 'af_heart',
+  sampleRate: 24000,
+  duration: 12.5,
+  audio: 'narration.opus',
+  contentHash: 'abc123',
+  blocks: [
+    {
+      kind: 'prose',
+      text: 'Hello world',
+      words: [word('Hello', 0, 0.5), word('world', 0.5, 1.0)],
+    },
+  ],
+});
+
+describe('isValidManifest', () => {
+  it('accepts a well-formed manifest, with or without contentHash', () => {
+    expect(isValidManifest(valid())).toBe(true);
+    const legacy = valid();
+    delete legacy.contentHash;
+    expect(isValidManifest(legacy)).toBe(true);
+  });
+
+  it('rejects non-objects and missing fields', () => {
+    expect(isValidManifest(null)).toBe(false);
+    expect(isValidManifest('nope')).toBe(false);
+    expect(isValidManifest({})).toBe(false);
+    const noAudio = valid();
+    delete noAudio.audio;
+    expect(isValidManifest(noAudio)).toBe(false);
+  });
+
+  it('rejects non-positive or non-finite durations', () => {
+    for (const duration of [0, -3, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(isValidManifest({ ...valid(), duration })).toBe(false);
+    }
+  });
+
+  it('constrains audio to a plain .opus filename (no path traversal)', () => {
+    for (const audio of [
+      '../../config',
+      '/etc/passwd.opus',
+      'sub/narration.opus',
+      'narration.mp3',
+      '',
+    ]) {
+      expect(isValidManifest({ ...valid(), audio })).toBe(false);
+    }
+    expect(isValidManifest({ ...valid(), audio: 'narration.v2.opus' })).toBe(true);
+  });
+
+  it('rejects malformed words', () => {
+    const withWords = (words: unknown): boolean =>
+      isValidManifest({
+        ...valid(),
+        blocks: [{ kind: 'prose', text: 'Hi', words }],
+      });
+    // NaN start
+    expect(withWords([word('Hi', Number.NaN, 0.5)])).toBe(false);
+    // start after end
+    expect(withWords([word('Hi', 0.9, 0.5)])).toBe(false);
+    // negative start
+    expect(withWords([word('Hi', -0.1, 0.5)])).toBe(false);
+    // non-numeric end
+    expect(withWords([{ text: 'Hi', start: 0, end: '0.5' }])).toBe(false);
+    // missing text
+    expect(withWords([{ start: 0, end: 0.5 }])).toBe(false);
+    // zero-length spans are legal (clamped overlaps)
+    expect(withWords([word('Hi', 0.5, 0.5)])).toBe(true);
   });
 });
 
