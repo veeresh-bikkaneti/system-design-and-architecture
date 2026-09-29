@@ -165,7 +165,7 @@ try {
     );
 
     // Neural player mounted (its options button only exists in neural mode).
-    await page.getByRole('button', { name: 'Narration options: progress, speed, voice' })
+    await page.getByRole('button', { name: 'Narration options', exact: true })
       .waitFor({ timeout: 15_000 });
     check('neural player mounted', true);
 
@@ -196,7 +196,7 @@ try {
     const probe = flat[500];
     const t = (probe.start + probe.end) / 2;
     const expected = wordIndexAt(flat, t);
-    await page.getByRole('button', { name: 'Narration options: progress, speed, voice' }).click();
+    await page.getByRole('button', { name: 'Narration options', exact: true }).click();
     const slider = page.getByLabel('Seek narration');
     // Set via the native value setter so React's controlled input picks up
     // the change; then fire input for React's onChange.
@@ -208,7 +208,7 @@ try {
     // The dialog shows "m:ss / m:ss" progress; the seek must move it near t.
     await page.waitForFunction(
       (exp) => {
-        const dlg = document.querySelector('[aria-label="Narration options"]');
+        const dlg = document.querySelector('div[aria-label="Narration options"]');
         return dlg && dlg.textContent.includes(`${Math.floor(exp / 60)}:${String(Math.floor(exp % 60)).padStart(2, '0')}`);
       },
       t,
@@ -255,14 +255,14 @@ try {
     // Fallback player UI: no neural options button, no karaoke word spans.
     await page.getByRole('button', { name: 'Listen to this lesson' }).waitFor({ timeout: 15_000 });
     const neuralOptions = await page
-      .getByRole('button', { name: 'Narration options: progress, speed, voice' })
+      .getByRole('button', { name: 'Narration options', exact: true })
       .count();
     const karaokeSpans = await page.locator('span.narr-word').count();
     check('fallback renders (no neural UI)', neuralOptions === 0 && karaokeSpans === 0,
       `neuralOptions=${neuralOptions} narr-word spans=${karaokeSpans}`);
 
     await page.getByRole('button', { name: 'Listen to this lesson' }).click();
-    await page.getByText('Playing lesson audio.').waitFor({ timeout: 15_000 });
+    await page.getByText('Playing narration.').waitFor({ timeout: 15_000 });
     const speakCalls = await page.evaluate(() => window.__speakCalls.length);
     const firstText = await page.evaluate(() => window.__speakCalls[0]?.text ?? '');
     check('browser voice fallback speaks', speakCalls > 0 && firstText.length > 0,

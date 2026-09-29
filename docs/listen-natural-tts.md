@@ -26,8 +26,8 @@ flowchart TB
         BTN --> PROBE
         PROBE -->|yes| PLAYER
         PROBE -->|no| FALLBACK
-        OPUS -.->|lazy fetch| PLAYER
-        JSON -.->|lazy fetch| PLAYER
+        OPUS -.->|lazy fetch on play| PLAYER
+        JSON -.->|probed on page load| PLAYER
     end
 
     style BUILD fill:#f5f3ff,stroke:#8b5cf6
@@ -70,8 +70,8 @@ Prerequisites are build-time only (they never ship to learners):
 ```bash
 cd scripts/tts
 python3 -m venv .venv && source .venv/bin/activate
-# CPU-only PyTorch + Kokoro stack, pinned (see AUDIT.md for the audit record)
-pip install --index-url https://download.pytorch.org/whl/cpu torch
+# Pinned toolchain; requirements.txt already points pip at the CPU-only
+# PyTorch wheel index (see AUDIT.md for the audit record)
 pip install -r requirements.txt
 ```
 

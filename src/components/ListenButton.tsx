@@ -244,13 +244,13 @@ export function ListenButton({
   if (!supported) return null;
 
   const mainLabel =
-    status === 'playing' ? 'Pause listening' : status === 'paused' ? 'Resume listening' : 'Listen to this lesson';
+    status === 'playing' ? 'Pause narration' : status === 'paused' ? 'Resume narration' : 'Listen to this lesson';
   const statusText =
     status === 'playing'
-      ? 'Playing lesson audio.'
+      ? 'Playing narration.'
       : status === 'paused'
-        ? 'Paused.'
-        : 'Lesson audio stopped.';
+        ? 'Narration paused.'
+        : 'Narration stopped.';
 
   return (
     <div ref={panelRef} className="relative inline-flex items-stretch">
@@ -269,7 +269,7 @@ export function ListenButton({
           type="button"
           onClick={() => setOptionsOpen((o) => !o)}
           aria-expanded={optionsOpen}
-          aria-label="Listening options: speed and voice"
+          aria-label="Narration options: speed and voice"
           className={`${pillClass} rounded-l-none px-2.5`}
         >
           <Icon name="chevronDown" className="h-4 w-4" />
@@ -278,8 +278,8 @@ export function ListenButton({
 
       {optionsOpen && (
         <div
-          role="dialog"
-          aria-label="Listening options"
+          role="group"
+          aria-label="Narration options"
           className="absolute right-0 top-full z-30 mt-2 w-64 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-lift dark:border-stone-700 dark:bg-stone-900"
         >
           <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">

@@ -356,7 +356,7 @@ function NeuralPlayer({
           type="button"
           onClick={() => setOptionsOpen((o) => !o)}
           aria-expanded={optionsOpen}
-          aria-label="Narration options: progress, speed, voice"
+          aria-label="Narration options"
           className={`${pillClass} rounded-l-none px-2.5`}
         >
           <Icon name="chevronDown" className="h-4 w-4" />
@@ -365,7 +365,7 @@ function NeuralPlayer({
 
       {optionsOpen && (
         <div
-          role="dialog"
+          role="group"
           aria-label="Narration options"
           className="absolute right-0 top-full z-30 mt-2 w-72 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-lift dark:border-stone-700 dark:bg-stone-900"
         >
@@ -404,9 +404,9 @@ function NeuralPlayer({
             ))}
           </div>
           <p className="mt-3 text-xs leading-relaxed text-stone-400 dark:text-stone-500">
-            Narrated by an AI voice — generated when the course was built, so
-            it plays with no network calls, no account, and no cost. Highlighting
-            follows the words automatically.
+            Narrated by an AI voice — recorded when the course was built, so
+            there&apos;s no account, no API key, and no cost. The audio downloads
+            once as it plays, and the highlighting follows the words automatically.
           </p>
           <button
             type="button"

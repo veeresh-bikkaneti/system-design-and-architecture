@@ -47,22 +47,24 @@ unchanged). The only artifacts committed to the repo are generated
 - **Security:** binary weight file; SHA-256 verified against the
   upstream-published digest after download. Never executed as code; loaded
   only through the audited `kokoro` package. Not committed to the repo
-  (stays in `scripts/tts/.cache/`, git-ignored).
+  (stays in `scripts/tts/.cache/hf/`, git-ignored).
 - **Runtime cost:** $0.
 
-## 3. `espeak-ng` + `misaki` — build-time phonemizer
+## 3. `espeakng-loader` + `misaki` — build-time phonemizer
 
 - **Purpose:** grapheme-to-phoneme conversion that Kokoro was trained against.
   Used **only** inside the local synthesis script to turn words into phonemes.
-- **Trusted source:** `espeak-ng` from the Ubuntu 24.04 (noble) official
-  package archive via `apt`; `misaki` from PyPI (hexgrad's G2P library).
+- **Trusted source:** `espeakng-loader` (0.2.4) and `misaki` from PyPI
+  (`espeakng-loader` bundles the espeak-ng library — hexgrad's G2P library).
+  No system packages: an `apt-get install espeak-ng` attempt was abandoned
+  as unnecessary (see §5); nothing outside the venv + bundled loader is used.
 - **License:** espeak-ng is **GPL-3.0-or-later** — and that is fine here,
   deliberately: it is a *build-time tool*, never distributed, never linked
   into the course app, never shipped to learners. GPL obligations attach to
   distribution of the program, not to private use of a tool; the generated
   `.opus`/`.json` artifacts are data output, not a derivative work of
   espeak-ng. `misaki` itself is Apache-2.0.
-- **Security:** espeak-ng is a decades-old, distro-packaged C program fed only
+- **Security:** espeak-ng is a decades-old C program fed only
   our own lesson text; no network, no untrusted input. `misaki` is a small
   pure-Python wrapper; no known advisories.
 - **Runtime cost:** $0.
@@ -78,7 +80,7 @@ unchanged). The only artifacts committed to the repo are generated
 |---|---|---|---|---|
 | `kokoro` (pip) | PyPI / hexgrad | Apache-2.0 | No (build-time) | ✅ |
 | Kokoro-82M weights | HF `hexgrad/Kokoro-82M` | Apache-2.0 | No (build-time) | ✅ |
-| `espeak-ng` | Ubuntu archive | GPL-3.0-or-later, build-time tool only | No | ✅ |
+| `espeakng-loader` (pip) | PyPI (espeak-ng bundle) | GPL-3.0-or-later, build-time tool only | No | ✅ |
 | `misaki` (pip) | PyPI / hexgrad | Apache-2.0 | No (build-time) | ✅ |
 
 ## 5. Post-install verification (2026-09-29, continuation lead)
@@ -123,5 +125,5 @@ unchanged). The only artifacts committed to the repo are generated
 - An `apt-get install espeak-ng` was attempted for completeness but
   `apt-get update` stalled for 20+ minutes on the sandbox egress proxy with
   zero output; the attempt was killed and abandoned as unnecessary. No
-  system packages were installed or modified. §3's "Ubuntu archive" source
-  is superseded: nothing outside the venv + bundled loader is needed.
+  system packages were installed or modified — §3 above already records the
+  correct source (PyPI `espeakng-loader` bundle).
