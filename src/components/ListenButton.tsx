@@ -66,10 +66,13 @@ export function ListenButton({
 
   const stop = () => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    // Settle state first so any stray `onend` from the cancelled utterance
-    // is ignored by the guard in `speakNext`.
-    setStatus('idle');
+    // Settle the guard *synchronously* before cancelling: desktop Chrome
+    // fires the cancelled utterance's `end` event synchronously from
+    // cancel(), so a pending setStatus('idle') alone can't stop the onend
+    // handler from chaining into the next chunk with stale state.
+    statusRef.current = 'idle';
     indexRef.current = 0;
+    setStatus('idle');
     window.speechSynthesis.cancel();
   };
 
@@ -77,6 +80,12 @@ export function ListenButton({
   // playback. The cleanup runs on slug change as well as unmount.
   useEffect(() => {
     return () => {
+      // Settle the guard synchronously first (same race as stop()): the
+      // cancelled utterance's `end` may fire synchronously and would
+      // otherwise chain into speakNext with the old lesson's chunks.
+      statusRef.current = 'idle';
+      indexRef.current = 0;
+      setStatus('idle');
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
