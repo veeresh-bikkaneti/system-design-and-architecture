@@ -65,6 +65,13 @@ interface LessonCase {
   diagramCount: number;
 }
 
+function allLessonSlugs(): string[] {
+  const dir = join(repoRoot, 'content', 'lessons');
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.mdx'))
+    .map((f) => f.slice(0, -4));
+}
+
 function lessonsWithDiagrams(): LessonCase[] {
   const dir = join(repoRoot, 'content', 'lessons');
   return readdirSync(dir)
@@ -94,6 +101,26 @@ test('every mermaid node/actor renders inside its SVG viewport', async ({
   expect(lessons.length).toBeGreaterThan(30); // sanity: the sweep must stay course-wide
 
   await proxyLocalServer(page);
+
+  // Lessons unlock tier-by-tier as earlier tiers are completed (see
+  // src/lib/progress-gate.ts); a locked lesson renders a gate instead of its
+  // diagrams. Seed every lesson as complete so the sweep sees real content.
+  // The store persists via zustand/middleware under this key/shape.
+  await page.addInitScript((slugs: string[]) => {
+    window.localStorage.setItem(
+      'sdm-progress',
+      JSON.stringify({
+        state: {
+          completedLessons: slugs,
+          quizResults: {},
+          seenBadges: [],
+          celebratedBadges: [],
+        },
+        version: 0,
+      }),
+    );
+  }, allLessonSlugs());
+
   const pageErrors: string[] = [];
   page.on('pageerror', (e) => pageErrors.push(String(e).slice(0, 200)));
 
