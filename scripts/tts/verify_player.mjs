@@ -1,41 +1,39 @@
 #!/usr/bin/env node
 /**
- * End-to-end verification for neural lesson narration (Track A).
+ * End-to-end verification of the neural narration player for one lesson.
  *
- * Serves the app with vite, drives it with system Chromium via
- * playwright-core, and proves:
- *  1. narration.json + narration.opus are served for the lesson
- *  2. clicking Listen tags every manifest word as span.narr-word
- *  3. seeking through the public UI moves the karaoke highlight to the
- *     word the manifest says is spoken at that media time (sync proof)
- *  4. the highlight advances on its own with the audio clock
- *  5. with /audio/* blocked, the Web Speech fallback renders (no neural UI)
+ * Proves, in a real Chromium:
+ *  1. `public/audio/<slug>/narration.json` is served and valid.
+ *  2. Every manifest word is wrapped in a `span.narr-word` in the article.
+ *  3. Pressing play starts the neural audio and the read-along highlight
+ *     advances with the audio clock.
+ *  4. Seeking via the narration options slider moves the highlight to the
+ *     manifest word at the seek position.
+ *  5. When the neural assets are unavailable, the lesson falls back to the
+ *     browser's speech synthesis (spy on speechSynthesis.speak) and shows
+ *     the fallback player UI.
  *
- * Usage: node scripts/tts/verify_player.mjs [slug]
- * Requires: npm install already run; public/audio/<slug>/ generated.
+ * Environment note: this sandbox's Chromium blocks direct navigation to
+ * localhost (Local Network Access checks), so every request to the dev
+ * server is proxied through Node fetch via request interception — the same
+ * pattern as e2e/smoke.spec.ts. Range requests are forwarded so the
+ * <audio> element can stream the opus file through the proxy.
+ *
+ * Usage: node scripts/tts/verify_player.mjs <lesson-slug>
  */
-import { chromium } from 'playwright-core';
 import { spawn } from 'node:child_process';
-import { setTimeout as sleep } from 'node:timers/promises';
+import { chromium } from 'playwright';
 
-const REPO = new URL('../..', import.meta.url).pathname;
+const REPO = new URL('../../..', import.meta.url).pathname;
 const CHROME = '/opt/meta-chromium/chrome';
 const PORT = 5199;
-const SLUG = process.argv[2] ?? 'scaling-web-service';
 const BASE = `http://127.0.0.1:${PORT}`;
-
-const norm = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
-
-async function waitForVite(proc) {
-  for (let i = 0; i < 60; i++) {
-    try {
-      const r = await fetch(`${BASE}/`);
-      if (r.ok) return;
-    } catch { /* not up yet */ }
-    await sleep(1000);
-  }
-  throw new Error('vite dev server did not start');
+const SLUG = process.argv[2];
+if (!SLUG) {
+  console.error('usage: node scripts/tts/verify_player.mjs <lesson-slug>');
+  process.exit(2);
 }
+const LESSON_URL = `${BASE}/lesson/${SLUG}/`;
 
 const results = [];
 const check = (name, ok, detail = '') => {
@@ -43,85 +41,243 @@ const check = (name, ok, detail = '') => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`);
 };
 
-let vite;
-try {
-  vite = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], {
-    cwd: REPO, stdio: 'ignore',
-  });
-  await waitForVite(vite);
+async function waitForVite(proc, timeoutMs = 60_000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const r = await fetch(`${BASE}/audio/${SLUG}/narration.json`);
+      if (r.ok) return;
+    } catch { /* not up yet */ }
+    if (proc.exitCode !== null) throw new Error('vite dev server exited early');
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error('vite dev server did not start');
+}
 
-  const browser = await chromium.launch({
+/**
+ * Proxy the local dev server through Node fetch (see module docstring).
+ * When blockAudio is true, /audio/** requests get a 404, simulating a
+ * lesson with no build-time narration so the browser-voice fallback runs.
+ */
+async function proxyLocalServer(page, { blockAudio = false } = {}) {
+  await page.route('**/*', async (route) => {
+    const req = route.request();
+    const url = new URL(req.url());
+    if (url.hostname !== '127.0.0.1') {
+      await route.continue();
+      return;
+    }
+    if (blockAudio && url.pathname.startsWith('/audio/')) {
+      await route.fulfill({ status: 404, body: 'not found (verify_player fallback simulation)' });
+      return;
+    }
+    const upstream = await fetch(`${BASE}${url.pathname}${url.search}`, {
+      method: req.method(),
+      headers: {
+        ...(req.headers().range ? { range: req.headers().range } : {}),
+      },
+      redirect: 'manual',
+    });
+    const headers = {};
+    upstream.headers.forEach((v, k) => {
+      headers[k] = v;
+    });
+    await route.fulfill({
+      status: upstream.status,
+      headers,
+      body: Buffer.from(await upstream.arrayBuffer()),
+    });
+  });
+}
+
+async function newBrowser() {
+  return chromium.launch({
     executablePath: CHROME,
-    args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required', '--mute-audio'],
+    env: {
+      ...process.env,
+      http_proxy: '', https_proxy: '', HTTP_PROXY: '', HTTPS_PROXY: '',
+      all_proxy: '', ALL_PROXY: '',
+      no_proxy: '*', NO_PROXY: '*',
+    },
+    args: [
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+      // The sandbox's proxy env vars would otherwise route localhost
+      // through the public egress proxy, tripping Chrome's Local Network
+      // Access checks and blocking the dev server (see playwright.config.ts).
+      '--no-proxy-server',
+      '--disable-features=LocalNetworkAccessChecks,BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults',
+      '--autoplay-policy=no-user-gesture-required',
+      '--mute-audio',
+    ],
   });
+}
 
-  // ---- neural path ----
-  const page = await browser.newPage();
-  const jsonRes = await page.request.get(`${BASE}/audio/${SLUG}/narration.json`);
-  check('manifest served (200)', jsonRes.ok());
-  const opusRes = await page.request.get(`${BASE}/audio/${SLUG}/narration.opus`);
-  check('opus audio served (200)', opusRes.ok());
-  const manifest = await jsonRes.json();
+/** Manifest word index active at media time t (mirrors findActiveWordIndex). */
+function wordIndexAt(flat, t) {
+  let idx = -1;
+  for (let i = 0; i < flat.length; i++) {
+    if (flat[i].start <= t) idx = i;
+    else break;
+  }
+  return idx !== -1 && t < flat[idx].end ? idx : -1;
+}
+
+let vite;
+let ownVite = false;
+try {
+  // Reuse a server already on the port (e.g. started separately).
+  // The manifest URL proves it is serving this repo's public/ dir.
+  let up = false;
+  try {
+    up = (await fetch(`${BASE}/audio/${SLUG}/narration.json`)).ok;
+  } catch { /* not up */ }
+  if (!up) {
+    vite = spawn('npx', ['vite', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], {
+      cwd: REPO, stdio: 'ignore',
+    });
+    ownVite = true;
+    await waitForVite(vite);
+  }
+
+  const manifest = await (await fetch(`${BASE}/audio/${SLUG}/narration.json`)).json();
   const flat = manifest.blocks.flatMap((b) => b.words);
+  check('manifest served and valid', manifest.slug === SLUG && flat.length > 0, `${flat.length} words`);
 
-  await page.goto(`${BASE}/lesson/${SLUG}/`, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: 'Listen to this lesson' }).click();
-  await page.waitForFunction(
-    () => document.querySelectorAll('span.narr-word').length > 0,
-    null, { timeout: 20000 },
-  );
-  const tagged = await page.locator('span.narr-word').count();
-  check('all manifest words tagged in DOM', tagged === flat.length, `${tagged}/${flat.length}`);
+  // ---- Neural path -------------------------------------------------------
+  {
+    const browser = await newBrowser();
+    const page = await browser.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(`pageerror: ${e}`));
+    page.on('console', (m) => {
+      if (m.type() === 'error' && !m.text().startsWith('Failed to load resource:')) {
+        errors.push(`console: ${m.text()}`);
+      }
+    });
+    await proxyLocalServer(page);
+    await page.goto(LESSON_URL, { waitUntil: 'networkidle' });
+    // The MDX body mounts asynchronously (Suspense + dynamic import);
+    // tagging aligns against the rendered article, so wait for it.
+    await page.waitForFunction(
+      () => (document.querySelector('.lesson-prose')?.textContent ?? '').length > 1000,
+      { timeout: 30_000 },
+    );
 
-  // Seek to the middle of the lesson through the public UI, then confirm
-  // the highlighted word matches the manifest at that media time.
-  const target = Math.floor(flat.length / 2);
-  const t = flat[target].start + 0.05;
-  await page.evaluate((time) => {
-    const slider = document.querySelector('input[aria-label="Seek narration"]');
-    slider.value = String(time);
-    slider.dispatchEvent(new Event('input', { bubbles: true }));
-    slider.dispatchEvent(new Event('change', { bubbles: true }));
-  }, t);
-  await sleep(1200);
-  const active = await page.evaluate(() => {
-    const el = document.querySelector('span.narr-word-active');
-    return el ? { text: el.textContent, idx: Number(el.dataset.narrIdx) } : null;
-  });
-  const idxOk = active && Math.abs(active.idx - target) <= 3;
-  const textOk = active && norm(active.text) === norm(flat[active.idx]?.text ?? '');
-  check('karaoke highlight matches manifest at seek time', !!(idxOk && textOk),
-    active ? `idx=${active.idx} (target ${target}) text="${active.text}"` : 'no active word');
+    // Neural player mounted (its options button only exists in neural mode).
+    await page.getByRole('button', { name: 'Narration options: progress, speed, voice' })
+      .waitFor({ timeout: 15_000 });
+    check('neural player mounted', true);
 
-  // Highlight must advance on its own, driven by the audio clock.
-  const idx1 = active?.idx ?? -1;
-  await sleep(3000);
-  const idx2 = await page.evaluate(() => {
-    const el = document.querySelector('span.narr-word-active');
-    return el ? Number(el.dataset.narrIdx) : -1;
-  });
-  check('highlight advances with audio clock', idx2 > idx1, `${idx1} -> ${idx2}`);
+    // Play: status flips to the neural "playing" state.
+    await page.getByRole('button', { name: 'Listen to this lesson' }).click();
+    await page.getByText(/Playing AI narration/).waitFor({ timeout: 15_000 });
+    check('neural audio playing', true);
 
-  const blockActive = await page.locator('.narr-block-active').count();
-  check('spoken block highlighted', blockActive > 0);
-  await page.close();
+    // Words are tagged lazily on first play.
+    const tagged = await page.locator('span.narr-word').count();
+    check(
+      'all manifest words tagged',
+      tagged === flat.length,
+      `${tagged}/${flat.length} spans`,
+    );
 
-  // ---- fallback path: /audio/* blocked ----
-  const ctx2 = await browser.newContext();
-  await ctx2.route('**/audio/**', (route) => route.abort());
-  const page2 = await ctx2.newPage();
-  await page2.goto(`${BASE}/lesson/${SLUG}/`, { waitUntil: 'networkidle' });
-  await page2.getByRole('button', { name: 'Listen to this lesson' }).click();
-  await sleep(3000);
-  const taggedFallback = await page2.locator('span.narr-word').count();
-  const aiNote = await page2.getByText('Narrated by an AI voice').count();
-  check('fallback renders without neural tagging', taggedFallback === 0 && aiNote === 0,
-    `tagged=${taggedFallback} aiNote=${aiNote}`);
-  await browser.close();
+    // Highlight advances with the audio clock.
+    const idx1 = await page.locator('span.narr-word-active').getAttribute('data-narr-idx');
+    await page.waitForTimeout(4000);
+    const idx2 = await page.locator('span.narr-word-active').getAttribute('data-narr-idx');
+    check(
+      'highlight advances with audio clock',
+      idx1 !== null && idx2 !== null && Number(idx2) > Number(idx1),
+      `word ${idx1} → ${idx2}`,
+    );
+
+    // Seek: jump to the middle of a known word; the highlight must land there.
+    const probe = flat[500];
+    const t = (probe.start + probe.end) / 2;
+    const expected = wordIndexAt(flat, t);
+    await page.getByRole('button', { name: 'Narration options: progress, speed, voice' }).click();
+    const slider = page.getByLabel('Seek narration');
+    // Set via the native value setter so React's controlled input picks up
+    // the change; then fire input for React's onChange.
+    await slider.evaluate((el, v) => {
+      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
+        .set.call(el, String(v));
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }, t);
+    // The dialog shows "m:ss / m:ss" progress; the seek must move it near t.
+    await page.waitForFunction(
+      (exp) => {
+        const dlg = document.querySelector('[aria-label="Narration options"]');
+        return dlg && dlg.textContent.includes(`${Math.floor(exp / 60)}:${String(Math.floor(exp % 60)).padStart(2, '0')}`);
+      },
+      t,
+      { timeout: 10_000 },
+    );
+    check('seek moves playback position', true, `t=${t.toFixed(2)}s`);
+    await page.waitForFunction(
+      (exp) => document.querySelector('span.narr-word-active')?.getAttribute('data-narr-idx') === String(exp),
+      expected,
+      { timeout: 10_000 },
+    );
+    check('seek highlights manifest word at seek time', true, `t=${t.toFixed(2)}s → word ${expected}`);
+
+    // Pausing keeps the highlight where it is.
+    await page.getByRole('button', { name: 'Pause narration' }).click();
+    await page.getByText(/Paused at/).waitFor({ timeout: 10_000 });
+    check('pause works', true);
+
+    check('no page errors during neural playback', errors.length === 0, errors.join(' | ').slice(0, 200));
+    await browser.close();
+  }
+
+  // ---- Fallback path (neural assets unavailable) --------------------------
+  {
+    const browser = await newBrowser();
+    const page = await browser.newPage();
+    await page.addInitScript(() => {
+      window.__speakCalls = [];
+      const synth = window.speechSynthesis;
+      const orig = synth.speak.bind(synth);
+      const fakeVoice = { name: 'verify-fake-voice', lang: 'en-US', default: true, localService: true, voiceURI: 'fake' };
+      synth.getVoices = () => [fakeVoice];
+      synth.speak = (u) => {
+        window.__speakCalls.push({ text: u.text.slice(0, 80), rate: u.rate });
+        // Don't actually speak: just record the call and report started so
+        // the app's state machine proceeds.
+        setTimeout(() => u.onstart && u.onstart(new Event('start')), 0);
+        return undefined;
+      };
+    });
+    await proxyLocalServer(page, { blockAudio: true });
+    await page.goto(LESSON_URL, { waitUntil: 'networkidle' });
+
+    // Fallback player UI: no neural options button, no karaoke word spans.
+    await page.getByRole('button', { name: 'Listen to this lesson' }).waitFor({ timeout: 15_000 });
+    const neuralOptions = await page
+      .getByRole('button', { name: 'Narration options: progress, speed, voice' })
+      .count();
+    const karaokeSpans = await page.locator('span.narr-word').count();
+    check('fallback renders (no neural UI)', neuralOptions === 0 && karaokeSpans === 0,
+      `neuralOptions=${neuralOptions} narr-word spans=${karaokeSpans}`);
+
+    await page.getByRole('button', { name: 'Listen to this lesson' }).click();
+    await page.getByText('Playing lesson audio.').waitFor({ timeout: 15_000 });
+    const speakCalls = await page.evaluate(() => window.__speakCalls.length);
+    const firstText = await page.evaluate(() => window.__speakCalls[0]?.text ?? '');
+    check('browser voice fallback speaks', speakCalls > 0 && firstText.length > 0,
+      `${speakCalls} speak() call(s), first: ${JSON.stringify(firstText)}`);
+
+    // Fallback highlights the spoken block.
+    const activeBlocks = await page.locator('.narr-block-active').count();
+    check('fallback highlights spoken block', activeBlocks > 0, `${activeBlocks} active block(s)`);
+
+    await browser.close();
+  }
 
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
-  process.exitCode = failed.length ? 1 : 0;
+  process.exit(failed.length ? 1 : 0);
 } finally {
-  vite?.kill();
+  if (ownVite) vite?.kill('SIGKILL');
 }
