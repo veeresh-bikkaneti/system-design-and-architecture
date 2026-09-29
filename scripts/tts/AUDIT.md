@@ -92,6 +92,10 @@ unchanged). The only artifacts committed to the repo are generated
   attempt failed on a malformed `no_proxy` env entry breaking httpx URL
   parsing; retried with a sanitized `no_proxy=localhost,127.0.0.1` — the
   proxy itself and the downloaded files were unaffected.)
+- Follow-up: the remaining repo files (full 72-file snapshot — `config.json`,
+  all `voices/*.pt`, docs, samples; ~35 MiB beyond the two files above)
+  were fetched the same way into the same git-ignored cache, because
+  `KModel` requires `config.json` at load time. Total cache ≈ 362 MiB.
 
 **SHA-256 verification — PASS.**
 - `kokoro-v1_0.pth`: `496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4`
