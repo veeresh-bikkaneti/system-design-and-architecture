@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { extractLessonText, rankVoices, type RankableVoice } from './listen';
+import {
+  chunkBlocks,
+  extractLessonBlocks,
+  extractLessonText,
+  rankVoices,
+  splitSentences,
+  type RankableVoice,
+} from './listen';
 
 /* ------------------------------------------------------------------ */
 /* rankVoices                                                          */
@@ -213,5 +220,71 @@ describe('extractLessonText', () => {
       new FakeEl('pre', 'only code here'),
     ]);
     expect(extractLessonText(asElement(root))).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* extractLessonBlocks / splitSentences / chunkBlocks                   */
+/* ------------------------------------------------------------------ */
+
+describe('extractLessonBlocks', () => {
+  it('returns blocks with their DOM elements in document order', () => {
+    const h2 = new FakeEl('h2', 'Why caching matters');
+    const p = new FakeEl('p', 'A cache trades stale data for speed.');
+    const root = new FakeEl('div', '', {}, [h2, p]);
+    const blocks = extractLessonBlocks(asElement(root));
+    expect(blocks.map((b) => b.text)).toEqual([
+      'Why caching matters',
+      'A cache trades stale data for speed.',
+    ]);
+    expect(blocks[0].element).toBe(asElement(h2));
+    expect(blocks[1].element).toBe(asElement(p));
+  });
+
+  it('skips code and widget subtrees like extractLessonText does', () => {
+    const root = new FakeEl('div', '', {}, [
+      new FakeEl('p', 'Kept.'),
+      new FakeEl('div', '', { class: 'not-prose' }, [new FakeEl('p', 'Dropped.')]),
+    ]);
+    expect(extractLessonBlocks(asElement(root)).map((b) => b.text)).toEqual(['Kept.']);
+  });
+});
+
+describe('splitSentences', () => {
+  it('splits at sentence boundaries', () => {
+    expect(splitSentences('First. Second! Third? Yes…')).toEqual([
+      'First.',
+      'Second!',
+      'Third?',
+      'Yes…',
+    ]);
+  });
+
+  it('returns [] for blank input', () => {
+    expect(splitSentences('   ')).toEqual([]);
+  });
+});
+
+describe('chunkBlocks', () => {
+  it('tracks block index and sentence ranges per chunk', () => {
+    const chunks = chunkBlocks([
+      { text: 'Alpha. Beta.' },
+      { text: 'Gamma.' },
+    ]);
+    expect(chunks).toEqual([
+      { blockIndex: 0, text: 'Alpha. Beta.', sentenceStart: 0, sentenceCount: 2 },
+      { blockIndex: 1, text: 'Gamma.', sentenceStart: 0, sentenceCount: 1 },
+    ]);
+  });
+
+  it('splits long blocks at sentence boundaries like the old chunker', () => {
+    const long = `${'a'.repeat(200)}. ${'b'.repeat(200)}.`;
+    const chunks = chunkBlocks([{ text: long }]);
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0]).toMatchObject({ blockIndex: 0, sentenceStart: 0, sentenceCount: 1 });
+    expect(chunks[1]).toMatchObject({ blockIndex: 0, sentenceStart: 1, sentenceCount: 1 });
+    // Joined chunk texts equal the old extractLessonText output.
+    const root = new FakeEl('div', '', {}, [new FakeEl('p', long)]);
+    expect(chunks.map((c) => c.text)).toEqual(extractLessonText(asElement(root)));
   });
 });

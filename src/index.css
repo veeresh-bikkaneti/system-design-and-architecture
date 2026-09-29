@@ -277,3 +277,48 @@ body {
 [data-motion='calm'] .mermaid-diagram .flow-tokens {
   display: none;
 }
+
+/* ------------------------------------------------------------------ */
+/* Narration read-along highlighting (ListenButton + LessonNarrator)    */
+/* ------------------------------------------------------------------ */
+
+/* Word currently being spoken by the neural narration. */
+.narr-word {
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
+}
+.narr-word-active {
+  background-color: rgb(253 224 71 / 0.55);
+}
+.dark .narr-word-active {
+  background-color: rgb(250 204 21 / 0.28);
+}
+
+/* Block being spoken: neural fallback for untagged blocks, and the
+   Web Speech fallback's block-level highlight. */
+.narr-block-active {
+  border-radius: 0.5rem;
+  background-color: rgb(253 224 71 / 0.22);
+  box-shadow: 0 0 0 4px rgb(253 224 71 / 0.22);
+}
+.dark .narr-block-active {
+  background-color: rgb(250 204 21 / 0.12);
+  box-shadow: 0 0 0 4px rgb(250 204 21 / 0.12);
+}
+
+/* Sentence currently being spoken by the Web Speech fallback. */
+.narr-sent-active {
+  border-radius: 0.25rem;
+  background-color: rgb(253 224 71 / 0.45);
+}
+.dark .narr-sent-active {
+  background-color: rgb(250 204 21 / 0.25);
+}
+
+/* Learners who prefer reduced motion get instant (non-animated)
+   highlighting instead of smooth transitions. */
+@media (prefers-reduced-motion: reduce) {
+  .narr-word {
+    transition: none;
+  }
+}

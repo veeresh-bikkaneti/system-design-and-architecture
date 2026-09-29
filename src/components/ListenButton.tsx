@@ -1,10 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './ui/Icon';
 import {
-  extractLessonText,
+  chunkBlocks,
+  extractLessonBlocks,
   rankVoices,
+  splitSentences,
+  type BlockChunk,
+  type LessonBlock,
   type VoicePreference,
 } from '../lib/listen';
+import {
+  BLOCK_ACTIVE_CLASS,
+  SENT_ACTIVE_CLASS,
+  SENT_SPAN_CLASS,
+  unwrapSpans,
+  wrapSentenceSpans,
+} from '../lib/narrate-dom';
 
 type Status = 'idle' | 'playing' | 'paused';
 
@@ -28,13 +39,19 @@ const segmentClass = (active: boolean) =>
   }`;
 
 /**
- * "Listen to this lesson" — strictly opt-in audio via the browser's own
- * speech synthesis. No network, no keys, no backend, no audio files: the
- * learner's device does the speaking, so this also works offline where the
- * platform ships offline voices.
+ * "Listen to this lesson" — browser speech-synthesis fallback.
  *
- * AI narration here is an *alternative*, never the featured experience:
- * nothing autoplays, the text stays primary, and the control is one quiet
+ * This is the fallback voice behind `LessonNarrator`: it renders when no
+ * build-time neural narration exists for the lesson (or the learner picks
+ * "browser voice"). No network, no keys, no backend, no audio files: the
+ * learner's own device does the speaking, so this also works offline where
+ * the platform ships offline voices.
+ *
+ * While reading, the block being spoken is highlighted, and — on browsers
+ * that fire speech boundary events — the exact sentence is highlighted too,
+ * so the learner can follow along in the text.
+ *
+ * Nothing autoplays, the text stays primary, and the control is one quiet
  * pill in the lesson header.
  */
 export function ListenButton({
@@ -60,9 +77,19 @@ export function ListenButton({
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
-  const chunksRef = useRef<string[]>([]);
+  const chunksRef = useRef<BlockChunk[]>([]);
+  const blocksRef = useRef<LessonBlock[]>([]);
   const indexRef = useRef(0);
+  const activeBlockRef = useRef<Element | null>(null);
+  const activeSentRef = useRef<Element | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  const clearHighlight = () => {
+    activeBlockRef.current?.classList.remove(BLOCK_ACTIVE_CLASS);
+    activeBlockRef.current = null;
+    activeSentRef.current?.classList.remove(SENT_ACTIVE_CLASS);
+    activeSentRef.current = null;
+  };
 
   const stop = () => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -70,18 +97,26 @@ export function ListenButton({
     // is ignored by the guard in `speakNext`.
     setStatus('idle');
     indexRef.current = 0;
+    clearHighlight();
+    const root = document.querySelector(articleSelector);
+    if (root) unwrapSpans(root, SENT_SPAN_CLASS);
     window.speechSynthesis.cancel();
   };
 
   // No orphaned audio: navigating to another lesson (or unmounting) stops
-  // playback. The cleanup runs on slug change as well as unmount.
+  // playback and restores the article DOM. The cleanup runs on slug change
+  // as well as unmount.
   useEffect(() => {
     return () => {
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
+      clearHighlight();
+      const root = document.querySelector(articleSelector);
+      if (root) unwrapSpans(root, SENT_SPAN_CLASS);
     };
-  }, [slug]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, articleSelector]);
 
   // Close the options popover on outside click / Escape.
   useEffect(() => {
@@ -102,18 +137,65 @@ export function ListenButton({
     };
   }, [optionsOpen]);
 
+  /** Highlight the sentence containing `charIndex` inside the chunk. */
+  const highlightSentence = (chunk: BlockChunk, charIndex: number) => {
+    const block = blocksRef.current[chunk.blockIndex];
+    if (!block) return;
+    const sentences = splitSentences(chunk.text);
+    let cursor = 0;
+    let local = sentences.length - 1;
+    for (let i = 0; i < sentences.length; i++) {
+      const end = cursor + sentences[i].length;
+      if (charIndex <= end) {
+        local = i;
+        break;
+      }
+      cursor = end + 1; // the joining space
+    }
+    const globalIdx = chunk.sentenceStart + local;
+    const span = block.element.querySelector(
+      `span.${SENT_SPAN_CLASS}[data-narr-sent="${globalIdx}"]`,
+    );
+    if (span && span !== activeSentRef.current) {
+      activeSentRef.current?.classList.remove(SENT_ACTIVE_CLASS);
+      span.classList.add(SENT_ACTIVE_CLASS);
+      activeSentRef.current = span;
+    }
+  };
+
   const speakNext = (index: number) => {
     const synth = window.speechSynthesis;
     const chunks = chunksRef.current;
     if (index >= chunks.length) {
       setStatus('idle');
       indexRef.current = 0;
+      clearHighlight();
+      const root = document.querySelector(articleSelector);
+      if (root) unwrapSpans(root, SENT_SPAN_CLASS);
       return;
     }
-    const utterance = new SpeechSynthesisUtterance(chunks[index]);
+    const chunk = chunks[index];
+    const utterance = new SpeechSynthesisUtterance(chunk.text);
     utterance.rate = speed;
     const ranked = rankVoices(synth.getVoices(), voicePref);
     if (ranked) utterance.voice = ranked;
+
+    // Block-level highlight always; sentence-level when the browser
+    // reports word boundaries (Chrome/Edge do; some browsers don't).
+    utterance.onstart = () => {
+      clearHighlight();
+      const block = blocksRef.current[chunk.blockIndex];
+      if (block) {
+        block.element.classList.add(BLOCK_ACTIVE_CLASS);
+        activeBlockRef.current = block.element;
+      }
+    };
+    utterance.onboundary = (event) => {
+      if (statusRef.current !== 'playing') return;
+      if (typeof event.charIndex === 'number') {
+        highlightSentence(chunk, event.charIndex);
+      }
+    };
     utterance.onend = () => {
       if (statusRef.current !== 'playing') return;
       indexRef.current += 1;
@@ -131,8 +213,15 @@ export function ListenButton({
     // Clear any stuck state first (long-standing Chrome quirk).
     synth.cancel();
     const root = document.querySelector(articleSelector);
-    const chunks = root ? extractLessonText(root) : [];
+    const blocks = root ? extractLessonBlocks(root) : [];
+    const chunks = chunkBlocks(blocks);
     if (chunks.length === 0) return;
+    // Tag every block's sentences so the spoken sentence can light up.
+    // Blocks that fail tagging keep block-level highlighting only.
+    blocks.forEach((block) => {
+      wrapSentenceSpans(block.element, splitSentences(block.text));
+    });
+    blocksRef.current = blocks;
     chunksRef.current = chunks;
     indexRef.current = 0;
     setStatus('playing');
