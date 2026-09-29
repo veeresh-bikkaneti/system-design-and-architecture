@@ -60,6 +60,11 @@ WORD_RE = re.compile(r"[^\W_]+(?:['\u2019][^\W_]+)*", re.UNICODE)
 
 
 def tokenize_words(text: str) -> list[str]:
+    """Cross-language contract: keep in lockstep with tokenizeWords() in
+    src/lib/narration.ts. If you change tokenization here, change it there
+    and update both parity tests (TokenizeParityTest in test_align.py,
+    narration.test.ts) -- mismatched tokenizers break karaoke highlighting.
+    """
     return WORD_RE.findall(text)
 
 
@@ -136,8 +141,15 @@ def enforce_hf_offline_mode() -> None:
     httpx cannot parse (``httpx.InvalidURL: Invalid port``). Patching the
     session factory only under HF_HUB_OFFLINE=1 keeps default (online)
     behavior untouched while making offline builds hermetic.
+
+    The patch is process-global and never restored: acceptable for this
+    batch script (one synthesis per process), but do not import this module
+    into a long-lived process with HF_HUB_OFFLINE set and expect Hub calls
+    to work afterwards.
     """
-    if not os.environ.get("HF_HUB_OFFLINE"):
+    from huggingface_hub.constants import ENV_VARS_TRUE_VALUES
+
+    if os.environ.get("HF_HUB_OFFLINE", "").upper() not in ENV_VARS_TRUE_VALUES:
         return
     from huggingface_hub.errors import OfflineModeIsEnabled
     from huggingface_hub.utils import _http as _hf_http

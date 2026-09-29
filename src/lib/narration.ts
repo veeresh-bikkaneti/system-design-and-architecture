@@ -70,18 +70,24 @@ export const isValidManifest = (value: unknown): value is NarrationManifest => {
     const bb = b as Record<string, unknown>;
     if (typeof bb.text !== 'string') return false;
     if (!Array.isArray(bb.words)) return false;
+    // The karaoke lookup binary-searches word starts, so they must be
+    // non-decreasing within a block (the build enforces this with a
+    // monotonic clamp; a hand-edited manifest that violates it is corrupt).
+    let prevStart = 0;
     return (bb.words as unknown[]).every((w) => {
       if (typeof w !== 'object' || w === null) return false;
       const ww = w as Record<string, unknown>;
-      return (
+      const ok =
         typeof ww.text === 'string' &&
         typeof ww.start === 'number' &&
         Number.isFinite(ww.start) &&
         typeof ww.end === 'number' &&
         Number.isFinite(ww.end) &&
         ww.start >= 0 &&
-        ww.start <= ww.end
-      );
+        ww.start <= ww.end &&
+        ww.start >= prevStart;
+      if (typeof ww.start === 'number') prevStart = ww.start;
+      return ok;
     });
   });
 };
@@ -91,6 +97,9 @@ const WORD_RE = /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu;
 /**
  * Canonical word tokenizer. Must stay in lockstep with the build-time
  * tokenizer in `scripts/tts/synthesize.py` (see module docstring).
+ * Cross-language contract: if you change tokenization here, change
+ * `tokenize_words()` in `scripts/tts/synthesize.py` and update both
+ * parity tests (TokenizeParityTest in test_align.py, narration.test.ts).
  */
 export function tokenizeWords(text: string): string[] {
   WORD_RE.lastIndex = 0;

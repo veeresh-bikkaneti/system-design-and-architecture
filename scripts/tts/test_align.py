@@ -158,6 +158,42 @@ class OfflineShimTest(unittest.TestCase):
         finally:
             hf_http.get_session = real
 
+    def test_ignores_falsy_values(self):
+        import os
+
+        from huggingface_hub.utils import _http as hf_http
+
+        with unittest.mock.patch.dict(os.environ, {"HF_HUB_OFFLINE": "0"}):
+            before = hf_http.get_session
+            enforce_hf_offline_mode()
+            self.assertIs(hf_http.get_session, before)
+
+    def test_real_download_path_serves_pinned_cache_offline(self):
+        # Proves the patch reaches the actual consumer: hf_hub_download
+        # must resolve from the pinned cache with zero network. (Without
+        # the patch this crashes in this environment: httpx cannot parse
+        # the runtime proxy URL and raises InvalidURL.)
+        import os
+
+        from huggingface_hub import hf_hub_download
+        from huggingface_hub.utils import _http as hf_http
+
+        real = hf_http.get_session
+        try:
+            with unittest.mock.patch.dict(os.environ, {"HF_HUB_OFFLINE": "1"}):
+                enforce_hf_offline_mode()
+                path = hf_hub_download(
+                    repo_id="hexgrad/Kokoro-82M",
+                    filename="config.json",
+                    # cache_dir is a parameter (not env) because
+                    # huggingface_hub freezes HF_HUB_CACHE at import time.
+                    cache_dir=os.path.abspath(".cache/hf"),
+                )
+                self.assertTrue(path.endswith("config.json"))
+                self.assertTrue(os.path.exists(path))
+        finally:
+            hf_http.get_session = real
+
 
 if __name__ == "__main__":
     unittest.main()

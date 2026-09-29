@@ -328,6 +328,10 @@ function NeuralPlayer({
   const play = () => {
     const audio = ensureAudio();
     if (!audio) return;
+    // Fresh attempt: drop any previous notice (e.g. a load error from an
+    // earlier try). ensureTagged()/the failure path below re-set it when
+    // the condition still holds.
+    setNotice(null);
     if (!ensureTagged()) {
       // Nothing aligned (prose rewritten after recording): still play the
       // audio — timestamps stay valid for the seek bar — and say so plainly
@@ -470,12 +474,21 @@ function NeuralPlayer({
       </div>
 
       {notice && (
-        <p className="max-w-72 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+        <p
+          role="status"
+          className="max-w-72 text-xs leading-relaxed text-stone-500 dark:text-stone-400"
+        >
           {notice.text}{' '}
           {notice.offerFallback && (
             <button
               type="button"
-              onClick={onUseBrowserVoice}
+              onClick={() => {
+                // The learner took the fallback: the notice's complaint no
+                // longer applies, so dismiss it instead of leaving stale text
+                // under the browser-voice player.
+                setNotice(null);
+                onUseBrowserVoice();
+              }}
               className="font-semibold text-accent-700 underline-offset-2 hover:underline dark:text-accent-400"
             >
               Use my browser&apos;s voice instead

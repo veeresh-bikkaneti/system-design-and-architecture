@@ -78,7 +78,15 @@ pip install -r requirements.txt
 No system packages are needed: phonemization goes through the bundled
 `espeakng-loader`, not a system `espeak-ng` binary. The first run downloads
 the Kokoro-82M weights (~330 MB, `hexgrad/Kokoro-82M`) into the git-ignored
-`scripts/tts/.cache/` directory.
+`scripts/tts/.cache/hf/` directory.
+
+On machines without network access (or with a broken proxy config), run
+synthesis with `HF_HUB_OFFLINE=1` so the build stays hermetic and resolves
+the weights from that cache instead of hitting the network:
+
+```bash
+HF_HUB_OFFLINE=1 python3 scripts/tts/synthesize.py --only-missing
+```
 
 Then:
 
