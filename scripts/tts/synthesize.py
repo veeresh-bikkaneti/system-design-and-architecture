@@ -209,7 +209,20 @@ class Synthesizer:
             wstart = pending[0][1] if pending else 0.0
             wend = pending[-1][2] if pending else 0.0
             result.append((surface[g], wstart, wend))
-        return result
+
+        # Monotonic clamp: folding expansion words (e.g. "dollars" from "$5")
+        # into neighboring surface words can otherwise produce overlapping or
+        # regressing spans. The player binary-searches on non-decreasing
+        # starts, so enforce start[i+1] >= end[i] here; overlapped words
+        # become zero-length (counted as dropped downstream).
+        clamped: list[tuple[str, float, float]] = []
+        prev_end = 0.0
+        for w, s, e in result:
+            s = max(s, prev_end)
+            e = max(e, s)
+            clamped.append((w, s, e))
+            prev_end = e
+        return clamped
 
     # -- per-block synthesis -----------------------------------------------
 
@@ -272,10 +285,15 @@ class Synthesizer:
                 {
                     "index": i,
                     "kind": block["kind"],
+                    "text": text,
                     "start": round(start, 3),
                     "end": round(end, 3),
+                    # Words must be lesson-absolute (media time): synthesize_block
+                    # returns block-relative timings, so shift by the block's
+                    # start offset. The player binary-searches flattened words
+                    # against audio.currentTime.
                     "words": [
-                        {"text": w, "start": round(s, 3), "end": round(e, 3)}
+                        {"text": w, "start": round(s + start, 3), "end": round(e + start, 3)}
                         for w, s, e in words
                     ],
                 }
