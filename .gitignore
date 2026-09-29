@@ -50,3 +50,7 @@ public/og/
 # RSS feed: generated at build time (see scripts/seo/generate-feed.mjs).
 # <lastBuildDate> uses wall-clock time, so a committed copy would churn every build.
 public/feed.xml
+
+# TTS synthesis scratch: per-block WAVs, self-cleaned on success; a killed
+# run can orphan them, so they must never be committed.
+public/audio/*-blocks-*/
