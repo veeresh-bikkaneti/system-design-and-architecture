@@ -139,6 +139,15 @@ def _drop_jsx_block(lines: list[str], i: int) -> int:
         ):
             return j
         j += 1
+    # Unclosed JSX block: scanning ran to EOF, which would silently swallow
+    # the rest of the lesson. Warn loudly (build-time, visible in logs) so a
+    # stray "<Note:" in prose gets fixed instead of muting narration.
+    if j - i > 50:
+        print(
+            f"WARNING: unclosed JSX block <{name}> at line {i + 1} ran to EOF "
+            f"({j - i} lines skipped); check for a missing </{name}>",
+            flush=True,
+        )
     return j
 
 

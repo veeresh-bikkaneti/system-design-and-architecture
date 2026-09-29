@@ -97,6 +97,22 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def content_hash(block_texts: list[str]) -> str:
+    """Fingerprint of the narration source text for staleness detection.
+
+    SHA-256 over the extracted block texts joined with "\\n". Written into
+    the manifest so CI / maintainers can tell whether a manifest still
+    matches the lesson prose it was generated from. The player itself does
+    not need this field: it detects staleness at runtime via the
+    aligned-block ratio and tolerates manifests that predate the field.
+    """
+    h = hashlib.sha256()
+    for t in block_texts:
+        h.update(t.encode("utf-8"))
+        h.update(b"\n")
+    return h.hexdigest()
+
+
 def locate_weights() -> Path:
     for base in (HF_CACHE, Path.home() / ".cache" / "huggingface"):
         for cand in base.rglob("kokoro-v1_0.pth"):
@@ -309,11 +325,14 @@ class Synthesizer:
             f"{duration / 60:.1f} min audio, {total_dropped} zero-length words",
             flush=True,
         )
+        chash = content_hash([b["text"] for b in manifest_blocks])
+        print(f"  [{slug}] contentHash: {chash}", flush=True)
         return {
             "slug": slug,
             "voice": VOICE,
             "sampleRate": SAMPLE_RATE,
             "duration": round(duration, 3),
+            "contentHash": chash,
             "blocks": manifest_blocks,
             "audio": lesson_samples,
         }
@@ -329,18 +348,21 @@ def encode_opus(samples: list[float], out_path: Path) -> None:
     import soundfile as sf
 
     tmp_wav = out_path.with_suffix(".tmp.wav")
-    sf.write(str(tmp_wav), np.asarray(samples, dtype=np.float32), SAMPLE_RATE)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        [
-            "ffmpeg", "-y", "-v", "error",
-            "-i", str(tmp_wav),
-            "-c:a", "libopus", "-b:a", "48k",
-            str(out_path),
-        ],
-        check=True,
-    )
-    tmp_wav.unlink()
+    try:
+        sf.write(str(tmp_wav), np.asarray(samples, dtype=np.float32), SAMPLE_RATE)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            [
+                "ffmpeg", "-y", "-v", "error",
+                "-i", str(tmp_wav),
+                "-c:a", "libopus", "-b:a", "48k",
+                str(out_path),
+            ],
+            check=True,
+        )
+    finally:
+        # Don't leave a stray WAV behind when ffmpeg fails.
+        tmp_wav.unlink(missing_ok=True)
 
 
 def write_lesson_package(synth: Synthesizer, slug: str, limit_blocks: int = 0) -> Path:
