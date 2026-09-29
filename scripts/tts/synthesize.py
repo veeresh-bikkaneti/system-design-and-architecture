@@ -33,8 +33,10 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -170,6 +172,12 @@ class Synthesizer:
         self.speed = speed
         print("Loading Kokoro pipeline (weights download on first run)...", flush=True)
         self.pipeline = KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M", device=device)
+        # This VM has few vCPUs and no swap: cap torch's thread pool so
+        # inference doesn't oversubscribe the box (or balloon per-thread
+        # workspace memory) while the agent runtime is also working.
+        import torch
+
+        torch.set_num_threads(2)
         weights = locate_weights()
         digest = sha256_file(weights)
         if digest != EXPECTED_WEIGHT_SHA256:
@@ -303,7 +311,22 @@ class Synthesizer:
 
     # -- per-lesson ----------------------------------------------------------
 
-    def synthesize_lesson(self, slug: str, limit_blocks: int = 0) -> dict:
+    def synthesize_lesson(
+        self, slug: str, limit_blocks: int = 0, block_dir: Path | None = None
+    ) -> dict:
+        """Synthesize every block of a lesson.
+
+        Block audio is streamed to per-block WAV files in ``block_dir``
+        (created by the caller) instead of accumulating the whole lesson as
+        Python floats: a 15-minute lesson is ~21M samples (~500MB as a
+        float list), which OOM-kills the synth on small VMs. The returned
+        dict carries the WAV paths under ``"block_wavs"`` for the caller
+        to concatenate; word timings are identical to the in-memory
+        version (same sample counts, same offsets).
+        """
+        import numpy as np
+        import soundfile as sf
+
         src = NARRATION_DIR / f"{slug}.json"
         with src.open("r", encoding="utf-8") as f:
             narration = json.load(f)
@@ -311,10 +334,13 @@ class Synthesizer:
         blocks = narration["blocks"]
         if limit_blocks:
             blocks = blocks[:limit_blocks]
+        if block_dir is None:
+            raise ValueError("block_dir is required (streaming synthesis)")
 
-        lesson_samples: list[float] = []
+        block_wavs: list[str] = []
         manifest_blocks: list[dict] = []
         total_dropped = 0
+        total_samples = 0
         t0 = time.time()
 
         for i, block in enumerate(blocks):
@@ -322,9 +348,13 @@ class Synthesizer:
             if not text.strip():
                 continue
             samples, words, dropped = self.synthesize_block(text)
-            start = len(lesson_samples) / SAMPLE_RATE
-            lesson_samples.extend(samples)
-            end = len(lesson_samples) / SAMPLE_RATE
+            start = total_samples / SAMPLE_RATE
+            wav_path = block_dir / f"block_{i:04d}.wav"
+            sf.write(str(wav_path), np.asarray(samples, dtype=np.float32), SAMPLE_RATE)
+            total_samples += len(samples)
+            del samples  # free the block's audio before the next one
+            end = total_samples / SAMPLE_RATE
+            block_wavs.append(str(wav_path))
             total_dropped += dropped
             manifest_blocks.append(
                 {
@@ -347,7 +377,7 @@ class Synthesizer:
                 el = time.time() - t0
                 print(f"  [{slug}] block {i + 1}/{len(blocks)} ({el:.0f}s elapsed)", flush=True)
 
-        duration = len(lesson_samples) / SAMPLE_RATE
+        duration = total_samples / SAMPLE_RATE
         print(
             f"  [{slug}] done: {len(manifest_blocks)} blocks, "
             f"{duration / 60:.1f} min audio, {total_dropped} zero-length words",
@@ -362,7 +392,7 @@ class Synthesizer:
             "duration": round(duration, 3),
             "contentHash": chash,
             "blocks": manifest_blocks,
-            "audio": lesson_samples,
+            "block_wavs": block_wavs,
         }
 
 
@@ -371,44 +401,56 @@ class Synthesizer:
 # ---------------------------------------------------------------------------
 
 
-def encode_opus(samples: list[float], out_path: Path) -> None:
-    import numpy as np
-    import soundfile as sf
+def encode_concat_opus(wav_paths: list[str], out_path: Path) -> None:
+    """Concatenate per-block WAVs and encode straight to Opus.
 
-    tmp_wav = out_path.with_suffix(".tmp.wav")
+    The ffmpeg concat demuxer joins the identical-PCM block files with no
+    re-encode between them, so the result is sample-identical to encoding
+    one concatenated WAV -- while never holding the whole lesson in RAM.
+    """
+    if not wav_paths:
+        raise ValueError("no audio blocks synthesized; refusing to write empty opus")
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".txt", delete=False, encoding="utf-8"
+    ) as list_file:
+        for wav in wav_paths:
+            # Absolute paths + -safe 0: no quoting surprises from block names.
+            list_file.write(f"file '{Path(wav).resolve()}'\n")
+        list_path = list_file.name
     try:
-        sf.write(str(tmp_wav), np.asarray(samples, dtype=np.float32), SAMPLE_RATE)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(
             [
                 "ffmpeg", "-y", "-v", "error",
-                "-i", str(tmp_wav),
+                "-f", "concat", "-safe", "0",
+                "-i", list_path,
                 "-c:a", "libopus", "-b:a", "48k",
                 str(out_path),
             ],
             check=True,
         )
     finally:
-        # Don't leave a stray WAV behind when ffmpeg fails.
-        tmp_wav.unlink(missing_ok=True)
+        Path(list_path).unlink(missing_ok=True)
 
 
 def write_lesson_package(synth: Synthesizer, slug: str, limit_blocks: int = 0) -> Path:
-    lesson = synth.synthesize_lesson(slug, limit_blocks=limit_blocks)
-    out_dir = AUDIO_OUT / slug
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    opus_path = out_dir / "narration.opus"
-    encode_opus(lesson.pop("audio"), opus_path)
+    lesson_out = AUDIO_OUT / slug
+    lesson_out.mkdir(parents=True, exist_ok=True)
+    # Block WAVs live in a temp dir that is always cleaned up, even when
+    # synthesis or encoding fails mid-lesson.
+    with tempfile.TemporaryDirectory(prefix=f"{slug}-blocks-", dir=str(AUDIO_OUT)) as tmp:
+        lesson = synth.synthesize_lesson(slug, limit_blocks, block_dir=Path(tmp))
+        opus_path = lesson_out / "narration.opus"
+        encode_concat_opus(lesson.pop("block_wavs"), opus_path)
 
     # The player (src/lib/narration.ts) resolves the audio URL from this
     # field; it must be present or the manifest is rejected as invalid.
     lesson["audio"] = "narration.opus"
 
-    manifest_path = out_dir / "narration.json"
+    manifest_path = lesson_out / "narration.json"
     with manifest_path.open("w", encoding="utf-8") as f:
         json.dump(lesson, f, ensure_ascii=False)
-    return out_dir
+    return lesson_out
 
 
 # ---------------------------------------------------------------------------
