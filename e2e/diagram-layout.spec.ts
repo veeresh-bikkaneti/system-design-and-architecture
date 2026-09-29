@@ -306,14 +306,15 @@ test('every mermaid node/actor renders inside its SVG viewport', async ({
           const svg = root?.querySelector('svg') as SVGSVGElement | null;
           if (!svg || tabs.length === 0) continue;
           // Production invariant: the svg must not clip the highlight glow.
-          if (getComputedStyle(svg).overflow !== 'visible') {
-            bad.push({
-              kind: 'stepthrough-glow',
-              label: `panel#${panelIdx}`,
-              detail: `StepThrough svg clips at its viewBox (overflow: ${getComputedStyle(svg).overflow}) — highlight glow is sliced on edge nodes`,
-            });
-            continue;
-          }
+          // With overflow: visible the halo paints past the viewBox freely.
+          // If the invariant is ever violated, walk every step and report
+          // which highlighted nodes would have their glow sliced.
+          if (getComputedStyle(svg).overflow === 'visible') continue;
+          bad.push({
+            kind: 'stepthrough-glow',
+            label: `panel#${panelIdx}`,
+            detail: `StepThrough svg clips at its viewBox (overflow: ${getComputedStyle(svg).overflow}) — highlight glow is sliced on edge nodes`,
+          });
           for (const [stepIdx, tab] of tabs.entries()) {
             tab.click();
             await new Promise((r) => setTimeout(r, 150)); // let React re-render the highlight
