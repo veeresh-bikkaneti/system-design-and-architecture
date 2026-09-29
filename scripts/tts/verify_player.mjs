@@ -24,7 +24,7 @@
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
 
-const REPO = new URL('../../..', import.meta.url).pathname;
+const REPO = new URL('../..', import.meta.url).pathname;
 const CHROME = '/opt/meta-chromium/chrome';
 const PORT = 5199;
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -240,8 +240,12 @@ try {
     await page.addInitScript(() => {
       window.__speakCalls = [];
       const synth = window.speechSynthesis;
-      const fakeVoice = { name: 'verify-fake-voice', lang: 'en-US', default: true, localService: true, voiceURI: 'fake' };
-      synth.getVoices = () => [fakeVoice];
+      // No fake voice objects: assigning a plain object to
+      // utterance.voice fails Chromium's WebIDL type check (a real
+      // browser returns genuine SpeechSynthesisVoice platform objects,
+      // so the app never hits this). With zero voices the app skips the
+      // voice assignment and speaks with the default voice.
+      synth.getVoices = () => [];
       synth.speak = (u) => {
         window.__speakCalls.push({ text: u.text.slice(0, 80), rate: u.rate });
         // Don't actually speak: just record the call and report started so
