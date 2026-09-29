@@ -2,13 +2,21 @@ import { useEffect, useRef, useState } from 'react';
 import { Icon } from './ui/Icon';
 import {
   extractLessonText,
-  rankVoices,
   type VoicePreference,
 } from '../lib/listen';
+import { runChunk, type ChunkRun } from '../lib/listen-speak';
 
 type Status = 'idle' | 'playing' | 'paused';
 
 const SPEEDS = [0.9, 1, 1.25, 1.5] as const;
+
+/**
+ * If an utterance hasn't fired `onstart` after this long, the platform
+ * dropped it silently (no onstart/onend/onerror) — recover instead of
+ * stranding the UI at "Listening…". 5s is generous enough for slow network
+ * voices to start, short enough that a stuck button recovers quickly.
+ */
+const START_WATCHDOG_MS = 5000;
 
 const VOICE_OPTIONS: { value: VoicePreference; label: string }[] = [
   { value: 'auto', label: 'Auto' },
@@ -63,9 +71,15 @@ export function ListenButton({
   const chunksRef = useRef<string[]>([]);
   const indexRef = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
+  const runRef = useRef<ChunkRun | null>(null);
+  // Whether the current run's utterance had fired `onstart` at the moment
+  // the user paused — decides the resume path (see toggle()).
+  const pausedAfterStartRef = useRef(false);
 
   const stop = () => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    runRef.current?.dispose();
+    runRef.current = null;
     // Settle state first so any stray `onend` from the cancelled utterance
     // is ignored by the guard in `speakNext`.
     setStatus('idle');
@@ -77,6 +91,8 @@ export function ListenButton({
   // playback. The cleanup runs on slug change as well as unmount.
   useEffect(() => {
     return () => {
+      runRef.current?.dispose();
+      runRef.current = null;
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
@@ -110,20 +126,31 @@ export function ListenButton({
       indexRef.current = 0;
       return;
     }
-    const utterance = new SpeechSynthesisUtterance(chunks[index]);
-    utterance.rate = speed;
-    const ranked = rankVoices(synth.getVoices(), voicePref);
-    if (ranked) utterance.voice = ranked;
-    utterance.onend = () => {
-      if (statusRef.current !== 'playing') return;
-      indexRef.current += 1;
-      speakNext(indexRef.current);
-    };
-    utterance.onerror = () => {
-      // e.g. the voice list changed mid-lesson — stop cleanly, don't loop.
-      if (statusRef.current === 'playing') stop();
-    };
-    synth.speak(utterance);
+    // Voice resolution + the silent-drop watchdog live in lib/listen-speak so
+    // they can be unit-tested with a mocked speechSynthesis (no DOM needed).
+    runRef.current?.dispose();
+    runRef.current = runChunk({
+      synth,
+      createUtterance: (text) => new SpeechSynthesisUtterance(text),
+      text: chunks[index],
+      rate: speed,
+      preference: voicePref,
+      startWatchdogMs: START_WATCHDOG_MS,
+      onEnd: () => {
+        if (statusRef.current !== 'playing') return;
+        indexRef.current += 1;
+        speakNext(indexRef.current);
+      },
+      onError: () => {
+        // e.g. the voice list changed mid-lesson — stop cleanly, don't loop.
+        if (statusRef.current === 'playing') stop();
+      },
+      onUnrecoverable: () => {
+        // Preferred voice AND default voice both dropped silently — stop
+        // cleanly so the button never strands at "Listening…".
+        if (statusRef.current === 'playing') stop();
+      },
+    });
   };
 
   const play = () => {
@@ -142,10 +169,30 @@ export function ListenButton({
   const toggle = () => {
     if (!supported) return;
     if (status === 'playing') {
+      // Capture whether the utterance ever started BEFORE touching the run:
+      // pausing inside the start-watchdog window means the run is dead (its
+      // watchdog must not fire into a paused synth), while pausing mid-chunk
+      // leaves a live queued utterance that resume() can play.
+      const started = runRef.current?.hasStarted() ?? false;
+      pausedAfterStartRef.current = started;
+      if (!started) {
+        runRef.current?.dispose();
+        runRef.current = null;
+      }
       window.speechSynthesis.pause();
       setStatus('paused');
     } else if (status === 'paused') {
-      window.speechSynthesis.resume();
+      if (pausedAfterStartRef.current) {
+        // Mid-chunk pause: the utterance is still queued — resume plays it.
+        window.speechSynthesis.resume();
+      } else {
+        // Paused before anything started (e.g. during the watchdog window):
+        // the old run is disposed, so speak a fresh utterance + watchdog for
+        // the current chunk. Still inside the click gesture, so voice
+        // resolution stays synchronous.
+        window.speechSynthesis.cancel();
+        speakNext(indexRef.current);
+      }
       setStatus('playing');
     } else {
       play();
