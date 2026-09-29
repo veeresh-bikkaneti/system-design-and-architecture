@@ -19,7 +19,8 @@ Usage:
     .venv/bin/python scripts/tts/synthesize.py --slugs scaling,caching --limit-blocks 3
     .venv/bin/python scripts/tts/synthesize.py --only-missing   # resume
 
-Requires: pip install -r scripts/tts/requirements.txt, espeak-ng installed,
+Requires: pip install -r scripts/tts/requirements.txt, espeakng-loader
+(PyPI; bundles the espeak-ng shared library — no system espeak-ng binary needed),
 spacy en_core_web_sm, and Kokoro weights (auto-downloaded from
 hexgrad/Kokoro-82M on first run into scripts/tts/.cache/hf).
 """
@@ -374,7 +375,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Synthesize Kokoro narration for lessons.")
     p.add_argument("--slugs", default="", help="Comma-separated lesson slugs (default: all)")
     p.add_argument("--limit-blocks", type=int, default=0, help="Only synthesize the first N blocks per lesson (smoke tests)")
-    p.add_argument("--only-missing", action="store_true", help="Skip lessons that already have narration.opus + manifest.json")
+    p.add_argument("--only-missing", action="store_true", help="Skip lessons that already have narration.opus + narration.json")
     p.add_argument("--device", default="cpu")
     p.add_argument("--speed", type=float, default=1.0)
     return p.parse_args(argv)

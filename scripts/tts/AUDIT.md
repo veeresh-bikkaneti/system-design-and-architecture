@@ -64,8 +64,10 @@ unchanged). The only artifacts committed to the repo are generated
   distribution of the program, not to private use of a tool; the generated
   `.opus`/`.json` artifacts are data output, not a derivative work of
   espeak-ng. `misaki` itself is Apache-2.0.
-- **Security:** espeak-ng is a decades-old C program fed only
-  our own lesson text; no network, no untrusted input. `misaki` is a small
+- **Security:** espeak-ng is used here only as the native shared library bundled
+  inside the `espeakng-loader` wheel — loaded in-process by the loader, no
+  separate binary or distro package installed. It is fed only our own lesson
+  text at build time; no network, no untrusted input. `misaki` is a small
   pure-Python wrapper; no known advisories.
 - **Runtime cost:** $0.
 
@@ -116,6 +118,19 @@ unchanged). The only artifacts committed to the repo are generated
 - Skipped (expected): `torch 2.14.0+cpu` (installed from the official
   `download.pytorch.org` CPU wheel index, not PyPI) and `en-core-web-sm`
   (spacy model package, not a PyPI distribution).
+
+**PyTorch advisory — manual check (2026-09-29).** pip-audit skips the
+`torch` CPU wheel because of its non-PyPI index origin, so this manual
+check stands in for it. CVE-2026-24747 / PYSEC-2026-2286: an unpickler RCE
+in `torch.load(weights_only=True)` (CVSS 8.8), fixed in PyTorch 2.10.0.
+Our pin `torch==2.14.0+cpu` is newer than the fixed-in version → **not
+affected**. Residual exposure is minimal regardless: torch runs only in
+this build-time synthesis tool (never ships to learners, never runs in
+the browser app); weights come only from the official Hugging Face repo
+`hexgrad/Kokoro-82M`; and `synthesize.py` SHA-256-verifies
+`kokoro-v1_0.pth` against the pinned `EXPECTED_WEIGHT_SHA256` before
+synthesis proceeds — it aborts on mismatch, so unverified weights can
+never produce shipped audio.
 
 **`espeak-ng` system binary — NOT REQUIRED (correction to §3).**
 - The phonemization path works entirely through the pip `espeakng-loader`
