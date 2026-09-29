@@ -81,4 +81,43 @@ unchanged). The only artifacts committed to the repo are generated
 | `espeak-ng` | Ubuntu archive | GPL-3.0-or-later, build-time tool only | No | ✅ |
 | `misaki` (pip) | PyPI / hexgrad | Apache-2.0 | No (build-time) | ✅ |
 
-Post-install step: run `pip-audit` on the venv and record the result here.
+## 5. Post-install verification (2026-09-29, continuation lead)
+
+**Weight download — full disclosure.** Fetched from the official
+`hexgrad/Kokoro-82M` Hugging Face repo via `huggingface_hub` into
+`scripts/tts/.cache/hf/` (git-ignored, never committed):
+- `kokoro-v1_0.pth` — 327,212,226 bytes (~312 MiB)
+- `voices/af_heart.pt` — 523,425 bytes (~0.5 MiB)
+- Download took ~10.5 min over the sandbox egress proxy. (Note: the first
+  attempt failed on a malformed `no_proxy` env entry breaking httpx URL
+  parsing; retried with a sanitized `no_proxy=localhost,127.0.0.1` — the
+  proxy itself and the downloaded files were unaffected.)
+
+**SHA-256 verification — PASS.**
+- `kokoro-v1_0.pth`: `496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4`
+- Matches `EXPECTED_WEIGHT_SHA256` pinned in `scripts/tts/synthesize.py`
+  exactly. `synthesize.py` re-verifies this hash on every run and aborts on
+  mismatch — unverified weights can never produce shipped audio.
+- `voices/af_heart.pt`: `0ab5709b8ffab19bfd849cd11d98f75b60af7733253ad0d67b12382a102cb4ff`
+  (recorded for reference; no upstream-published digest for voice files).
+
+**`pip-audit` on `scripts/tts/.venv` — CLEAN (after one fix).**
+- First run: 4 known vulnerabilities, all in `setuptools 78.1.0`
+  (PYSEC-2025-49, PYSEC-2026-3447 — install-time tool, not used during
+  inference, but fixed anyway).
+- Fix: upgraded venv setuptools to >= 83.0.0. Re-run: **"No known
+  vulnerabilities found."**
+- Skipped (expected): `torch 2.14.0+cpu` (installed from the official
+  `download.pytorch.org` CPU wheel index, not PyPI) and `en-core-web-sm`
+  (spacy model package, not a PyPI distribution).
+
+**`espeak-ng` system binary — NOT REQUIRED (correction to §3).**
+- The phonemization path works entirely through the pip `espeakng-loader`
+  (0.2.4), which bundles the espeak-ng library: verified live —
+  `misaki.en.G2P` phonemizes English text with correct output and no system
+  binary present.
+- An `apt-get install espeak-ng` was attempted for completeness but
+  `apt-get update` stalled for 20+ minutes on the sandbox egress proxy with
+  zero output; the attempt was killed and abandoned as unnecessary. No
+  system packages were installed or modified. §3's "Ubuntu archive" source
+  is superseded: nothing outside the venv + bundled loader is needed.

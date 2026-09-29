@@ -8,3 +8,6 @@ torch==2.14.0+cpu
 kokoro==0.9.4
 misaki[en]==0.9.4
 soundfile==0.13.1
+# pip-audit 2026-09-29: setuptools<83 has known vulns (PYSEC-2025-49,
+# PYSEC-2026-3447); floor it even though it's install-time only.
+setuptools>=83.0.0
