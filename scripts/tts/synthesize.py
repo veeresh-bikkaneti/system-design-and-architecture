@@ -116,9 +116,12 @@ SAMPLE_RATE = 24000
 
 class Synthesizer:
     def __init__(self, device: str = "cpu", speed: float = 1.0):
+        # Set BEFORE importing kokoro: huggingface_hub freezes HF_HUB_CACHE
+        # at import time, so setdefault must run first or the cache dir is
+        # silently ignored and every run re-downloads (or fails offline).
+        os.environ.setdefault("HF_HUB_CACHE", str(HF_CACHE))
         from kokoro import KPipeline
 
-        os.environ.setdefault("HF_HUB_CACHE", str(HF_CACHE))
         self.speed = speed
         print("Loading Kokoro pipeline (weights download on first run)...", flush=True)
         self.pipeline = KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M", device=device)
