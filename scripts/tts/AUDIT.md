@@ -18,7 +18,11 @@ unchanged). The only artifacts committed to the repo are generated
 - **Trusted source:** PyPI package `kokoro`, published from the official repo
   https://github.com/hexgrad/kokoro by hexgrad (the model's author).
   Installed from the default PyPI index; versions pinned in
-  `scripts/tts/requirements.txt`.
+  `scripts/tts/requirements.txt`. **CPU-only PyTorch:** `requirements.txt`
+  installs `torch==2.14.0+cpu` from the official CPU-only PyTorch index
+  (`https://download.pytorch.org/whl/cpu`) — a deliberate choice, since the
+  dev VM has no GPU; it avoids the multi-GB CUDA build while remaining
+  identical for Kokoro CPU inference.
 - **License:** Apache-2.0 (repo LICENSE; matches the model card). Permits
   commercial and private use, modification, distribution — no copyleft
   obligations on our generated audio.

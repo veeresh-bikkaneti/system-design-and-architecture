@@ -1,4 +1,4 @@
-scripts/tts/.venv/
-scripts/tts/.cache/
-scripts/tts/narration/
-scripts/tts/wav/
+.venv/
+.cache/
+narration/
+wav/
