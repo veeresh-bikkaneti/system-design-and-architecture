@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './ui/Icon';
 import { ListenButton } from './ListenButton';
+import { FloatingPlaybackButton } from './FloatingPlaybackButton';
 import { extractLessonBlocks } from '../lib/listen';
+import { createPlaybackShare, type PlaybackShare } from '../lib/playback-share';
 import {
   alignBlocks,
   findActiveWordIndex,
@@ -76,6 +78,7 @@ function NeuralPlayer({
   manifest,
   articleSelector,
   onUseBrowserVoice,
+  share,
 }: {
   slug: string;
   /** Accent whose manifest/audio this player instance is bound to. */
@@ -83,6 +86,12 @@ function NeuralPlayer({
   manifest: NarrationManifest;
   articleSelector: string;
   onUseBrowserVoice: () => void;
+  /**
+   * Shared playback state (see `src/lib/playback-share.ts`): status
+   * changes are published so the floating pause/play button agrees with
+   * this player, and the floating button's toggle drives this player.
+   */
+  share: PlaybackShare;
 }) {
   const [status, setStatus] = useState<Status>('idle');
   const [speed, setSpeed] = useState<number>(1);
@@ -399,6 +408,17 @@ function NeuralPlayer({
     else play();
   };
 
+  // Shared playback state: publish status for the floating button and let
+  // it drive this player's toggle. Registered without a dep array so the
+  // floating button always calls the latest toggle closure.
+  useEffect(() => {
+    share.setStatus(status);
+  }, [status, share]);
+  useEffect(() => {
+    share.registerToggle(toggle);
+    return () => share.registerToggle(null);
+  });
+
   const seek = (value: number) => {
     const audio = ensureAudio();
     if (!audio) return;
@@ -559,8 +579,17 @@ export function LessonNarrator({
   const [failed, setFailed] = useState(false);
   const [browserVoice, setBrowserVoice] = useState(false);
 
+  // One shared playback state per lesson mount: the active player (neural
+  // or the Web Speech fallback) publishes its status here, and the
+  // floating pause/play button drives playback through it — both controls
+  // always agree. See `src/lib/playback-share.ts`.
+  const [share] = useState(() => createPlaybackShare());
+
   useEffect(() => {
     let cancelled = false;
+    // Fresh probe (slug or accent changed): drop any stale shared status
+    // so the floating button can never show "playing" for a dead player.
+    share.setStatus('idle');
     fetch(narrationJsonUrl(slug, accent))
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -576,26 +605,46 @@ export function LessonNarrator({
     return () => {
       cancelled = true;
     };
-  }, [slug, accent]);
+  }, [slug, accent, share]);
 
   const changeAccent = (next: NarrationAccent) => {
     if (next === accent) return;
     saveAccentPreference(next);
     setAccent(next);
     // Fresh probe for the new accent: drop the old manifest, clear any
-    // fallback state so the neural player gets its chance first.
+    // fallback state so the neural player gets its chance first, and reset
+    // the shared status (the keyed player below remounts and re-registers).
     setManifest(null);
     setFailed(false);
     setBrowserVoice(false);
+    share.setStatus('idle');
   };
+
+  // The floating button appears only when narration is available: the
+  // neural player is up, or the Web Speech fallback can render — the same
+  // support gating as the main player.
+  const speechSupported =
+    typeof window !== 'undefined' && 'speechSynthesis' in window;
+  const neuralReady = manifest !== null && !failed && !browserVoice;
+  const floatingVisible = neuralReady || (!neuralReady && speechSupported);
 
   const player =
     failed || browserVoice ? (
-      <ListenButton slug={slug} articleSelector={articleSelector} />
+      <ListenButton
+        key={`${slug}:${accent}`}
+        slug={slug}
+        articleSelector={articleSelector}
+        share={share}
+      />
     ) : !manifest ? (
       // Manifest still loading: the fallback works immediately, and is
       // replaced by the neural player the moment the manifest arrives.
-      <ListenButton slug={slug} articleSelector={articleSelector} />
+      <ListenButton
+        key={`${slug}:${accent}`}
+        slug={slug}
+        articleSelector={articleSelector}
+        share={share}
+      />
     ) : (
       <NeuralPlayer
         key={`${slug}:${accent}`}
@@ -604,6 +653,7 @@ export function LessonNarrator({
         manifest={manifest}
         articleSelector={articleSelector}
         onUseBrowserVoice={() => setBrowserVoice(true)}
+        share={share}
       />
     );
 
@@ -633,6 +683,7 @@ export function LessonNarrator({
           </button>
         ))}
       </div>
+      <FloatingPlaybackButton share={share} visible={floatingVisible} />
     </div>
   );
 }

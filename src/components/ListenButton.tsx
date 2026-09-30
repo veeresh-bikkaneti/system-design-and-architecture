@@ -9,6 +9,7 @@ import {
   type VoicePreference,
 } from '../lib/listen';
 import { runChunk, type ChunkRun } from '../lib/listen-speak';
+import type { PlaybackShare } from '../lib/playback-share';
 import {
   BLOCK_ACTIVE_CLASS,
   SENT_ACTIVE_CLASS,
@@ -65,11 +66,19 @@ const segmentClass = (active: boolean) =>
 export function ListenButton({
   slug,
   articleSelector = '.lesson-prose',
+  share,
 }: {
   /** Current lesson slug — speech is cancelled when it changes. */
   slug: string;
   /** CSS selector for the element holding the lesson's rendered prose. */
   articleSelector?: string;
+  /**
+   * Optional shared playback state (see `src/lib/playback-share.ts`).
+   * When provided, status changes are published so the floating pause/play
+   * button agrees with this player, and the floating button's toggle
+   * drives this player's own toggle.
+   */
+  share?: PlaybackShare;
 }) {
   // SSR-safe: prerender.mjs runs this component in Node, where `window`
   // doesn't exist. Unsupported browsers get no button at all.
@@ -285,6 +294,18 @@ export function ListenButton({
       play();
     }
   };
+
+  // Shared playback state: publish status for the floating button and let
+  // it drive this player's toggle. Registered without a dep array so the
+  // floating button always calls the latest toggle closure.
+  useEffect(() => {
+    share?.setStatus(status);
+  }, [status, share]);
+  useEffect(() => {
+    if (!share) return;
+    share.registerToggle(toggle);
+    return () => share.registerToggle(null);
+  });
 
   if (!supported) return null;
 
