@@ -3,12 +3,29 @@ import { MDXProvider } from '@mdx-js/react';
 import { isValidElement, lazy, Suspense, useEffect } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { Layout } from './components/Layout';
-import { HomePage } from './pages/HomePage';
-import { RoadmapPage } from './pages/RoadmapPage';
-import { LessonPage } from './pages/LessonPage';
-import { BadgesPage, BadgeDetailPage } from './pages/BadgesPage';
-import { NotFoundPage } from './pages/NotFoundPage';
 import { OauthCallbackPage } from './components/AuthBar';
+
+// Route-level code splitting: every page ships as its own chunk so the entry
+// bundle only carries the app shell (router, layout, MDX provider). Pages are
+// fetched on navigation instead of weighing down first paint.
+const HomePage = lazy(() =>
+  import('./pages/HomePage').then((m) => ({ default: m.HomePage })),
+);
+const RoadmapPage = lazy(() =>
+  import('./pages/RoadmapPage').then((m) => ({ default: m.RoadmapPage })),
+);
+const LessonPage = lazy(() =>
+  import('./pages/LessonPage').then((m) => ({ default: m.LessonPage })),
+);
+const BadgesPage = lazy(() =>
+  import('./pages/BadgesPage').then((m) => ({ default: m.BadgesPage })),
+);
+const BadgeDetailPage = lazy(() =>
+  import('./pages/BadgesPage').then((m) => ({ default: m.BadgeDetailPage })),
+);
+const NotFoundPage = lazy(() =>
+  import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
+);
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { Quiz } from './components/Quiz';
 import { VideoCard } from './components/VideoCard';
@@ -147,12 +164,26 @@ function ScrollToTop() {
   return null;
 }
 
+// Shown inside the layout while a lazily-loaded route chunk downloads.
+function RouteLoading() {
+  return (
+    <div
+      className="flex min-h-[50vh] items-center justify-center"
+      role="status"
+      aria-label="Loading page"
+    >
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-200 border-t-accent-500 dark:border-stone-700 dark:border-t-accent-400" />
+    </div>
+  );
+}
+
 function App() {
   return (
     <MDXProvider components={mdxComponents}>
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <ScrollToTop />
         <AppErrorBoundary>
+          <Suspense fallback={<RouteLoading />}>
           <Routes>
           <Route element={<Layout />}>
             <Route index element={<HomePage />} />
@@ -164,6 +195,7 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
+          </Suspense>
         <Suspense fallback={null}>
           <QaWidget />
         </Suspense>

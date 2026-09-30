@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion } from 'motion/react';
+import { useEffect, useState } from 'react';
 import { lessons, tierLabels, tierOrder, type Tier } from '../lib/lessons';
+import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 import { getBadgesWithStatus } from '../lib/badges';
 import { isLessonUnlocked, isTierUnlocked } from '../lib/progress-gate';
 import { useProgressStore } from '../store/progress';
@@ -30,12 +31,22 @@ function StatCard({ value, label }: { value: string; label: string }) {
 
 /**
  * Per-lesson progress ring: full + check when done, empty otherwise.
- * Motion-animated on scroll into view; instant under reduced motion.
+ * Draws itself on mount via a CSS stroke-dashoffset transition (was a motion
+ * spring); renders at its final state instantly under reduced motion.
  */
 function ProgressRing({ done, upNext }: { done: boolean; upNext: boolean }) {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = usePrefersReducedMotion();
   const r = 9;
   const circumference = 2 * Math.PI * r;
+  // Start from the empty ring and draw on mount, mirroring the old
+  // `initial={{ strokeDashoffset: circumference }}` — unless reduced motion,
+  // where the final state renders immediately.
+  const [drawn, setDrawn] = useState(false);
+  useEffect(() => {
+    if (reduceMotion) return;
+    const frame = requestAnimationFrame(() => setDrawn(true));
+    return () => cancelAnimationFrame(frame);
+  }, [reduceMotion]);
   return (
     <span
       className="relative inline-flex h-6 w-6 shrink-0"
@@ -51,7 +62,7 @@ function ProgressRing({ done, upNext }: { done: boolean; upNext: boolean }) {
           strokeWidth={3}
           className="stroke-stone-200 dark:stroke-stone-700"
         />
-        <motion.circle
+        <circle
           cx="12"
           cy="12"
           r={r}
@@ -60,10 +71,9 @@ function ProgressRing({ done, upNext }: { done: boolean; upNext: boolean }) {
           strokeLinecap="round"
           className="stroke-accent-500 dark:stroke-accent-400"
           strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: done ? 0 : circumference }}
-          transition={
-            reduceMotion ? { duration: 0 } : { duration: 0.9, ease: 'easeOut' }
+          strokeDashoffset={(reduceMotion || drawn) && done ? 0 : circumference}
+          style={
+            reduceMotion ? undefined : { transition: 'stroke-dashoffset 0.9s ease-out' }
           }
         />
       </svg>
