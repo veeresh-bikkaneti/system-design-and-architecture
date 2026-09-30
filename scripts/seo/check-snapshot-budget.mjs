@@ -109,7 +109,7 @@ if (failed) {
   console.error(
     'snapshot-budget: budgets are deliberate — shrinking lesson content, ' +
       'trimming the static snapshot in scripts/seo/prerender.mjs, or raising the ' +
-      'budgets with a reviewed architecture.md update are the three ways out.',
+      'budgets with a reviewed ADR update (docs/adr/0002) are the three ways out.',
   );
   process.exit(1);
 }
