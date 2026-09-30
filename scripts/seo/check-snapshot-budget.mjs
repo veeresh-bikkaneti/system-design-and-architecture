@@ -1,7 +1,7 @@
 /**
  * Fail the build if the prerendered SEO snapshot grows past its budget.
  *
- * Context (see docs/architecture.md, build-pipeline section): every
+ * Context (see docs/adr/0002-prerender-snapshot-no-hydration.md): every
  * prerendered route ships its lesson text as static HTML inside `#root`
  * (~11–38 KB per lesson page, measured 2026-09-30). On boot the SPA's
  * `createRoot` discards it — it is crawler/no-JS payload, not a hydration
@@ -28,6 +28,21 @@ import { repoRoot } from './lesson-meta.mjs';
  * numbers when you do). */
 const PER_PAGE_BUDGET = Number(process.env.SNAPSHOT_BUDGET_PER_PAGE ?? 60_000);
 const TOTAL_BUDGET = Number(process.env.SNAPSHOT_BUDGET_TOTAL ?? 1_200_000);
+
+// A non-numeric override would silently become NaN and every `bytes > NaN`
+// comparison is false, so the guard would pass everything. Fail loudly.
+for (const [name, value] of [
+  ['SNAPSHOT_BUDGET_PER_PAGE', PER_PAGE_BUDGET],
+  ['SNAPSHOT_BUDGET_TOTAL', TOTAL_BUDGET],
+]) {
+  if (!Number.isFinite(value)) {
+    console.error(
+      `snapshot-budget FAIL: ${name} must be a plain byte count, ` +
+        `got "${process.env[name]}" — refusing to run with an unparseable budget`,
+    );
+    process.exit(1);
+  }
+}
 
 const BODY_RE = /<!--prerender-body-->([\s\S]*?)<!--\/prerender-body-->/;
 const fmt = (n) => `${(n / 1024).toFixed(1)} KB`;

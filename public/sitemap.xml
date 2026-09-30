@@ -2,19 +2,19 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/</loc>
-    <lastmod>2026-09-24T19:09:17-05:00</lastmod>
+    <lastmod>2026-09-29T12:15:39-05:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/roadmap/</loc>
-    <lastmod>2026-09-17T10:38:21-05:00</lastmod>
+    <lastmod>2026-09-29T12:15:39-05:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/badges/</loc>
-    <lastmod>2026-09-17T10:38:21-05:00</lastmod>
+    <lastmod>2026-09-29T12:15:39-05:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/scaling-web-service/</loc>
-    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+    <lastmod>2026-09-29T23:54:10+00:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/solid-principles/</loc>
@@ -66,23 +66,23 @@
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/message-queues/</loc>
-    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+    <lastmod>2026-09-29T23:53:55+00:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/api-gateways/</loc>
-    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+    <lastmod>2026-09-29T12:15:39-05:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/bff-backend-for-frontend/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <lastmod>2026-09-29T23:54:26+00:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/replication-consistency-models/</loc>
-    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+    <lastmod>2026-09-29T23:54:05+00:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/rate-limiting/</loc>
-    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+    <lastmod>2026-09-29T23:54:00+00:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/microservices-vs-monolith/</loc>
@@ -90,7 +90,7 @@
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/microservices-patterns-pitfalls/</loc>
-    <lastmod>2026-09-16T15:35:46-05:00</lastmod>
+    <lastmod>2026-09-29T12:15:39-05:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/resilience-patterns/</loc>
@@ -98,7 +98,7 @@
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/stream-vs-batch/</loc>
-    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+    <lastmod>2026-09-29T23:54:13+00:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/consensus-raft/</loc>
@@ -110,7 +110,7 @@
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/distributed-transactions/</loc>
-    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+    <lastmod>2026-09-29T12:15:39-05:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/observability/</loc>
@@ -126,7 +126,7 @@
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/design-instagram/</loc>
-    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+    <lastmod>2026-09-29T23:53:47+00:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/designing-ai-systems/</loc>
@@ -138,7 +138,7 @@
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/event-sourcing-cqrs/</loc>
-    <lastmod>2026-09-17T10:38:21-05:00</lastmod>
+    <lastmod>2026-09-29T12:15:39-05:00</lastmod>
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/designing-chat-at-scale/</loc>
@@ -154,6 +154,6 @@
   </url>
   <url>
     <loc>https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/zero-trust-security/</loc>
-    <lastmod>2026-09-18T00:11:15+00:00</lastmod>
+    <lastmod>2026-09-29T23:54:21+00:00</lastmod>
   </url>
 </urlset>
