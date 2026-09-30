@@ -149,24 +149,119 @@ const clean = (s: string | null): string => (s ?? '').replace(/\s+/g, ' ').trim(
  */
 const MAX_CHUNK = 400;
 
-function chunkBlock(block: string): string[] {
-  const sentences = block
+/**
+ * A speakable prose block together with the DOM element it came from.
+ * The element handle lets callers highlight the block being read aloud.
+ */
+export interface LessonBlock {
+  element: Element;
+  text: string;
+}
+
+/**
+ * Walk a lesson article element and return speakable prose blocks: headings,
+ * paragraphs, list items, blockquotes, table rows. Skips code blocks,
+ * mermaid diagrams, quizzes and other embeds, nav/buttons, and tables that
+ * contain code. Outermost-first so nested elements are never read twice.
+ *
+ * Plain-text tables yield one block per row ("cell1, cell2") — the same
+ * granularity as the build-time narration extractor, so those blocks can
+ * align for read-along highlighting.
+ */
+export function extractLessonBlocks(root: Element): LessonBlock[] {
+  const blocks: LessonBlock[] = [];
+
+  const walk = (node: TextDomNode): void => {
+    if (shouldSkip(node)) return;
+    const tag = node.tagName.toUpperCase();
+    if (tag === 'TR') {
+      // Plain-text table row: join the cells exactly like the extractor.
+      // (Tables containing code are skipped entirely by shouldSkip above.)
+      const cells: string[] = [];
+      const kids = node.children;
+      for (let i = 0; i < kids.length; i++) {
+        const cellTag = kids[i].tagName.toUpperCase();
+        if (cellTag === 'TD' || cellTag === 'TH') {
+          const t = clean((kids[i] as unknown as Element).textContent);
+          if (t) cells.push(t);
+        }
+      }
+      const text = cells.join(', ');
+      if (text) blocks.push({ element: node as unknown as Element, text });
+      return;
+    }
+    if (BLOCK_TAGS.has(tag)) {
+      // textContent already includes nested inline content — don't descend,
+      // or nested elements would be read twice.
+      const text = clean(node.textContent);
+      if (text) blocks.push({ element: node as unknown as Element, text });
+      return;
+    }
+    const kids = node.children;
+    for (let i = 0; i < kids.length; i++) walk(kids[i]);
+  };
+
+  walk(root as unknown as TextDomNode);
+  return blocks;
+}
+
+/**
+ * Split prose into sentences at sentence boundaries. Shared by the
+ * chunker below and the sentence-level highlighter in the fallback player.
+ */
+export function splitSentences(text: string): string[] {
+  return text
     .split(/(?<=[.!?…])\s+/)
     .map((s) => s.trim())
     .filter(Boolean);
-  const chunks: string[] = [];
-  let current = '';
-  for (const sentence of sentences) {
-    const next = current ? `${current} ${sentence}` : sentence;
-    if (next.length > MAX_CHUNK && current) {
-      chunks.push(current);
-      current = sentence;
-    } else {
-      current = next;
-    }
-  }
-  if (current) chunks.push(current);
-  return chunks;
+}
+
+/**
+ * A speakable chunk that remembers where it came from: which DOM block it
+ * belongs to and which sentence range inside that block it covers. The
+ * fallback player uses this to highlight the exact sentence being spoken.
+ */
+export interface BlockChunk {
+  blockIndex: number;
+  text: string;
+  /** Index of the chunk's first sentence within its block. */
+  sentenceStart: number;
+  sentenceCount: number;
+}
+
+/**
+ * Chunk every block's sentences (at most ~400 chars per chunk, ending at a
+ * sentence boundary) while tracking each chunk's sentence range per block.
+ */
+export function chunkBlocks(blocks: readonly { text: string }[]): BlockChunk[] {
+  const out: BlockChunk[] = [];
+  blocks.forEach((block, blockIndex) => {
+    const sentences = splitSentences(block.text);
+    let current: string[] = [];
+    let currentLen = 0;
+    let sentenceStart = 0;
+    const flush = () => {
+      if (current.length > 0) {
+        out.push({
+          blockIndex,
+          text: current.join(' '),
+          sentenceStart,
+          sentenceCount: current.length,
+        });
+        sentenceStart += current.length;
+        current = [];
+        currentLen = 0;
+      }
+    };
+    sentences.forEach((sentence) => {
+      const nextLen = currentLen === 0 ? sentence.length : currentLen + 1 + sentence.length;
+      if (nextLen > MAX_CHUNK && current.length > 0) flush();
+      current.push(sentence);
+      currentLen = currentLen === 0 ? sentence.length : currentLen + 1 + sentence.length;
+    });
+    flush();
+  });
+  return out;
 }
 
 /**
@@ -176,21 +271,5 @@ function chunkBlock(block: string): string[] {
  * contain code. Each chunk ends at a sentence boundary.
  */
 export function extractLessonText(root: Element): string[] {
-  const blocks: string[] = [];
-
-  const walk = (node: TextDomNode): void => {
-    if (shouldSkip(node)) return;
-    if (BLOCK_TAGS.has(node.tagName.toUpperCase())) {
-      // textContent already includes nested inline content — don't descend,
-      // or nested elements would be read twice.
-      const text = clean(node.textContent);
-      if (text) blocks.push(text);
-      return;
-    }
-    const kids = node.children;
-    for (let i = 0; i < kids.length; i++) walk(kids[i]);
-  };
-
-  walk(root as unknown as TextDomNode);
-  return blocks.flatMap(chunkBlock);
+  return chunkBlocks(extractLessonBlocks(root)).map((c) => c.text);
 }

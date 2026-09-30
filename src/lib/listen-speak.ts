@@ -39,6 +39,17 @@ export interface RunChunkOptions {
   startWatchdogMs: number;
   /** The utterance finished normally — advance to the next chunk. */
   onEnd: () => void;
+  /**
+   * The platform started speaking this chunk — fires after the watchdog
+   * bookkeeping, on every attempt (including the default-voice retry).
+   * Optional: the read-along highlight hook.
+   */
+  onStart?: () => void;
+  /**
+   * The platform reported a speech boundary; charIndex is the offset into
+   * the chunk text. Not all platforms fire boundary events — optional.
+   */
+  onBoundary?: (charIndex: number) => void;
   /** The platform reported an error — stop cleanly. */
   onError: () => void;
   /**
@@ -115,6 +126,11 @@ export function runChunk(opts: RunChunkOptions): ChunkRun {
       everStarted = true;
       started = true;
       settle();
+      opts.onStart?.();
+    };
+    utterance.onboundary = (event: SpeechSynthesisEvent) => {
+      if (done) return;
+      if (typeof event.charIndex === 'number') opts.onBoundary?.(event.charIndex);
     };
     utterance.onend = () => {
       if (done) return;
