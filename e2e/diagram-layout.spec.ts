@@ -150,7 +150,8 @@ test('every mermaid node/actor renders inside its SVG viewport', async ({
 
   for (const { slug, diagramCount } of lessons) {
     await page.goto(`${TARGET}/lesson/${slug}`, { timeout: 60_000 });
-    // Diagrams load lazily as they near the viewport; scroll them into being.
+    // Diagrams are viewport-gated (lazyMdx + IntersectionObserver, PR #44):
+    // placeholders below the fold never load until scrolled near.
     await revealLazyDiagrams(page);
     const diagrams = page.locator('.mermaid-diagram');
     await expect(diagrams).toHaveCount(diagramCount, { timeout: 45_000 });

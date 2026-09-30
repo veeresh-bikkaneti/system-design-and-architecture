@@ -137,10 +137,11 @@ test.describe('production build smoke test', () => {
     const errors = collectErrors(page);
 
     await page.goto(`${TARGET}/lesson/${LESSON_SLUG}`);
-    // Diagrams load lazily as they near the viewport; scroll them into being.
-    await revealLazyDiagrams(page);
     // The read-replica diagram exercises node labels, <br/> multiline
     // labels, edge labels, and semantic class colors.
+    // Diagrams are viewport-gated (lazyMdx + IntersectionObserver, PR #44):
+    // bring the placeholders into view so they load before asserting.
+    await revealLazyDiagrams(page);
     const diagram = page.locator('.mermaid-diagram', { hasText: 'Photocopy' });
     await expect(diagram.locator('svg')).toBeAttached({ timeout: 15000 });
 
