@@ -24,8 +24,8 @@ import { join } from 'node:path';
 import { repoRoot } from './lesson-meta.mjs';
 
 /* Budgets — see the header comment for the rationale. Raise them only as
- * a deliberate, reviewed act (and update docs/architecture.md's measured
- * numbers when you do). */
+ * a deliberate, reviewed act (and update the measured numbers in
+ * docs/adr/0002-prerender-snapshot-no-hydration.md when you do). */
 const PER_PAGE_BUDGET = Number(process.env.SNAPSHOT_BUDGET_PER_PAGE ?? 60_000);
 const TOTAL_BUDGET = Number(process.env.SNAPSHOT_BUDGET_TOTAL ?? 1_200_000);
 
