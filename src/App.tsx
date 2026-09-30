@@ -8,6 +8,7 @@ import { RoadmapPage } from './pages/RoadmapPage';
 import { LessonPage } from './pages/LessonPage';
 import { BadgesPage, BadgeDetailPage } from './pages/BadgesPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { OauthCallbackPage } from './components/AuthBar';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { Quiz } from './components/Quiz';
 import { VideoCard } from './components/VideoCard';
@@ -110,8 +111,6 @@ function extractText(node: ReactNode): string {
   return '';
 }
 
-// Render ```mermaid fenced code blocks as diagrams; pass all other code blocks
-// through to a normal <pre>. MDX turns a fence into <pre><code class="language-*">.
 function Pre(props: ComponentPropsWithoutRef<'pre'>) {
   const child = props.children;
   if (isValidElement(child)) {
@@ -123,10 +122,6 @@ function Pre(props: ComponentPropsWithoutRef<'pre'>) {
   return <pre {...props} />;
 }
 
-// Every MDX `##` heading gets a stable anchor id, registers itself for the
-// "On this page" rail / "In this lesson" chips, and keeps the sticky-header
-// offset so anchors never hide under the top bar. Still a plain <h2>, so the
-// .lesson-prose typography keeps applying.
 function H2(props: ComponentPropsWithoutRef<'h2'>) {
   const register = useRegisterHeading();
   const title = extractText(props.children);
@@ -137,12 +132,6 @@ function H2(props: ComponentPropsWithoutRef<'h2'>) {
   return <h2 {...props} id={id} className={`${props.className ?? ''} scroll-mt-24`} />;
 }
 
-/**
- * MDX anchor override. Internal route links (`/lesson/<slug>`, `/roadmap`,
- * `/badges`, `/`) go through the router for client-side transitions; in-page
- * `#anchor` links and external URLs keep native behavior — React Router does
- * not scroll to hash fragments, so those must stay plain anchors.
- */
 function SmartLink(props: ComponentPropsWithoutRef<'a'>) {
   const { href = '', ...rest } = props;
   const isInternalRoute = href === '/' || /^\/(lesson|roadmap|badges)(\/|$)/.test(href);
@@ -168,8 +157,6 @@ const mdxComponents = {
   pre: Pre,
   h2: H2,
   a: SmartLink,
-  // Every MDX table gets a horizontal-scroll wrapper so wide tables scroll
-  // instead of clipping on narrow viewports (styled by .table-scroll).
   table: (props: ComponentPropsWithoutRef<'table'>) => (
     <div className="table-scroll not-prose">
       <table {...props} />
@@ -177,13 +164,10 @@ const mdxComponents = {
   ),
 };
 
-// Course Q&A agent widget (P0): server-side LangGraph agent, anonymous sessions.
-// Lazy so the chat bundle never weighs down the initial page load.
 const QaWidget = lazy(() =>
   import('./components/qa/QaWidget').then((m) => ({ default: m.QaWidget })),
 );
 
-// Keep the viewport at the top when the route changes (e.g. Home -> lesson).
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -195,9 +179,6 @@ function ScrollToTop() {
 function App() {
   return (
     <MDXProvider components={mdxComponents}>
-      {/* History-API routing (GitHub Pages serves each prerendered route as a
-          real static file with HTTP 200 — see scripts/seo/prerender.mjs).
-          `basename` honors the Pages subpath from VITE_BASE_PATH. */}
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <ScrollToTop />
         <AppErrorBoundary>
@@ -206,6 +187,7 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="roadmap" element={<RoadmapPage />} />
             <Route path="lesson/:slug" element={<LessonPage />} />
+            <Route path="oauth/callback" element={<OauthCallbackPage />} />
             <Route path="badges" element={<BadgesPage />} />
             <Route path="badges/:id" element={<BadgeDetailPage />} />
             <Route path="*" element={<NotFoundPage />} />

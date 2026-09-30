@@ -1,4 +1,5 @@
 import { lessons, tierOrder, type Tier } from './lessons';
+import { isPreviewSlug } from './preview';
 
 /**
  * Beginner is always unlocked. A later tier unlocks once every lesson in the
@@ -12,7 +13,6 @@ export function isTierUnlocked(tier: Tier, completedLessons: string[]): boolean 
   const previousTierLessons = lessons.filter((lesson) => lesson.meta.tier === previousTier);
 
   if (previousTierLessons.length === 0) {
-    // Nothing to complete in the previous tier — don't block on an empty tier.
     return isTierUnlocked(previousTier, completedLessons);
   }
 
@@ -23,4 +23,14 @@ export function isLessonUnlocked(lessonSlug: string, completedLessons: string[])
   const lesson = lessons.find((l) => l.meta.slug === lessonSlug);
   if (!lesson) return false;
   return isTierUnlocked(lesson.meta.tier, completedLessons);
+}
+
+/** Logged-out learners may open the preview lesson only. */
+export function canOpenLesson(
+  slug: string,
+  completedLessons: string[],
+  signedIn: boolean,
+): boolean {
+  if (!signedIn) return isPreviewSlug(slug);
+  return isLessonUnlocked(slug, completedLessons);
 }
