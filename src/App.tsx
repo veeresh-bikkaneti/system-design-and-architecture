@@ -1,7 +1,7 @@
 import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
 import { MDXProvider } from '@mdx-js/react';
 import { isValidElement, lazy, Suspense, useEffect } from 'react';
-import type { ComponentPropsWithoutRef, ComponentType, ReactNode } from 'react';
+import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
 import { RoadmapPage } from './pages/RoadmapPage';
@@ -15,36 +15,7 @@ import {
   slugifyHeading,
   useRegisterHeading,
 } from './components/headings';
-
-/**
- * Wrap a heavy MDX component in React.lazy + Suspense so interactive diagrams
- * ship as separate chunks instead of bloating the entry bundle. MDX pages
- * only pay for the diagrams they actually render.
- */
-// oxlint-disable-next-line no-explicit-any
-type AnyComponent = ComponentType<any>;
-// oxlint-disable-next-line no-explicit-any
-function lazyMdx(loader: () => Promise<{ default: AnyComponent }>, label: string): AnyComponent {
-  const Lazy = lazy(loader);
-  function LazyMdx(props: Record<string, unknown>) {
-    return (
-      <Suspense
-        fallback={
-          <div
-            className="my-6 rounded-2xl border border-dashed border-stone-300 p-8 text-center text-sm text-stone-400 dark:border-stone-700 dark:text-stone-500"
-            aria-hidden="true"
-          >
-            Loading {label}…
-          </div>
-        }
-      >
-        <Lazy {...props} />
-      </Suspense>
-    );
-  }
-  LazyMdx.displayName = `LazyMdx(${label})`;
-  return LazyMdx;
-}
+import { lazyMdx } from './components/lazyMdx';
 
 const MermaidDiagram = lazyMdx(
   () => import('./components/MermaidDiagram').then((m) => ({ default: m.MermaidDiagram })),

@@ -7,8 +7,15 @@ import { useProgressStore } from '../store/progress';
 import { Icon } from '../components/ui/Icon';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { buttonClasses } from '../components/ui/Button';
-import { PacketFlow } from '../components/diagrams/PacketFlow';
+import { lazyMdx } from '../components/lazyMdx';
 import { Seo } from '../components/Seo';
+
+// Lazy like every other diagram (App.tsx's MDX components): keeps PacketFlow
+// + its deps out of the entry chunk instead of a static import.
+const PacketFlow = lazyMdx(
+  () => import('../components/diagrams/PacketFlow').then((m) => ({ default: m.PacketFlow })),
+  'packet flow',
+);
 
 function StatCard({ value, label }: { value: string; label: string }) {
   return (
