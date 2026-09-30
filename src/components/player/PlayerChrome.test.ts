@@ -60,7 +60,7 @@ describe('PlayerChrome shared recipe', () => {
 
 describe('no duplicated player chrome in the players (P1-12)', () => {
   const dir = dirname(fileURLToPath(import.meta.url));
-  const sources = {
+  const sources: Record<string, string> = {
     'ListenButton.tsx': readFileSync(resolve(dir, '../ListenButton.tsx'), 'utf8'),
     'LessonNarrator.tsx': readFileSync(resolve(dir, '../LessonNarrator.tsx'), 'utf8'),
   };

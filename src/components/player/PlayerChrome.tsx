@@ -8,8 +8,10 @@ import { Icon } from '../ui/Icon';
  * (build-time AI narration) are different playback engines behind one
  * visual control: the header pill, the options chevron, the dismissible
  * options popover, the speed segments. This module owns that chrome so the
- * two players can't drift apart — one recipe for the pill, one for the
- * segments, one dismiss behavior, one contrast-checked label style.
+ * two players can't drift apart — one shared recipe for the pill, one for the
+ * segments, one dismiss behavior, one contrast-checked label style
+ * (this module covers the two listen players; ShareButtons reuses the same
+ * pill recipe separately — see P1-12 notes).
  */
 
 /** Playback speeds offered by every listen player. */
