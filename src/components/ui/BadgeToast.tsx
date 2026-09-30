@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { FocusEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { badgeIconUrl, getBadgesWithStatus, type BadgeDefinition } from '../../lib/badges';
+import { PausableTimer } from '../../lib/pausable-timer';
 import { useProgressStore } from '../../store/progress';
 import { Icon } from './Icon';
 
-/** How long a toast stays up before auto-dismissing. */
+/** How long a toast stays up before auto-dismissing (when untouched). */
 const TOAST_MS = 6000;
 /** Cap stacked toasts so a bulk unlock (e.g. finishing a tier) stays tidy. */
 const MAX_VISIBLE = 3;
@@ -13,14 +15,69 @@ interface Toast extends BadgeDefinition {
   key: number;
 }
 
-function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (key: number) => void }) {
+/**
+ * Auto-dismiss countdown that pauses while the user is engaged with the
+ * toast — pointer hovering or keyboard focus anywhere inside it — and
+ * restarts when they leave. A toast must never vanish from under a
+ * reader's cursor or a keyboard user's focus.
+ */
+function usePausableDismiss(delayMs: number, onDismiss: () => void) {
+  const timerRef = useRef<PausableTimer | null>(null);
+  const onDismissRef = useRef(onDismiss);
+
+  // Mirror the latest callback after render (never during render).
   useEffect(() => {
-    const timer = window.setTimeout(() => onDismiss(toast.key), TOAST_MS);
-    return () => window.clearTimeout(timer);
-  }, [toast.key, onDismiss]);
+    onDismissRef.current = onDismiss;
+  });
+
+  useEffect(() => {
+    const timer = new PausableTimer(
+      delayMs,
+      () => onDismissRef.current(),
+      (cb, ms) => {
+        const id = window.setTimeout(cb, ms);
+        return { clear: () => window.clearTimeout(id) };
+      },
+    );
+    timer.start();
+    timerRef.current = timer;
+    return () => {
+      timer.cancel();
+      timerRef.current = null;
+    };
+  }, [delayMs]);
+
+  return {
+    onMouseEnter: () => timerRef.current?.engage(),
+    onMouseLeave: () => timerRef.current?.release(),
+    onFocus: () => timerRef.current?.engage(),
+    onBlur: (event: FocusEvent<HTMLDivElement>) => {
+      // Focus moving between the toast's own link and dismiss button is
+      // still engagement — only release when focus leaves the toast.
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+        timerRef.current?.release();
+      }
+    },
+  };
+}
+
+function ToastItem({
+  toast,
+  onDismiss,
+  containerRef,
+}: {
+  toast: Toast;
+  onDismiss: () => void;
+  containerRef: (el: HTMLDivElement | null) => void;
+}) {
+  const interactionHandlers = usePausableDismiss(TOAST_MS, onDismiss);
 
   return (
-    <div className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border border-amber-200/80 bg-white/95 px-4 py-3 shadow-lift backdrop-blur dark:border-amber-900/60 dark:bg-stone-900/95">
+    <div
+      ref={containerRef}
+      {...interactionHandlers}
+      className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border border-amber-200/80 bg-white/95 px-4 py-3 shadow-lift backdrop-blur dark:border-amber-900/60 dark:bg-stone-900/95"
+    >
       <img
         src={badgeIconUrl(toast.iconFile)}
         alt=""
@@ -40,7 +97,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (key: number
       </div>
       <button
         type="button"
-        onClick={() => onDismiss(toast.key)}
+        onClick={onDismiss}
         aria-label={`Dismiss: ${toast.name}`}
         className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 dark:text-stone-500 dark:hover:bg-stone-800 dark:hover:text-stone-200"
       >
@@ -59,6 +116,17 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (key: number
  * baseline, so badges earned on previous visits never pop on page load.
  * Each badge is announced at most once per session.
  *
+ * Accessibility notes:
+ * - Screen-reader announcements live in a dedicated visually-hidden
+ *   `aria-live` region. The visual toasts are NOT a live region: their
+ *   link + dismiss button are interactive, and interactive controls
+ *   inside a live region get re-announced as the region updates.
+ * - The auto-dismiss timer pauses on hover and on focus-within, so a
+ *   toast never disappears from under the user.
+ * - If the user was focused inside a toast when it dismisses, focus moves
+ *   to the next remaining toast's controls, else the Badges nav link —
+ *   never dropped to <body>.
+ *
  * This is independent of the badge-detail celebration (confetti + the
  * `celebratedBadges` store slice) — that effect is untouched.
  */
@@ -69,6 +137,9 @@ export function BadgeToastHost() {
   const prevIdsRef = useRef<string[] | null>(null);
   const announcedRef = useRef<Set<string>>(new Set());
   const keyRef = useRef(0);
+  const toastElsRef = useRef(new Map<number, HTMLDivElement | null>());
+  /** Set when a dismiss removed the focused toast; consumed by the effect. */
+  const pendingFocusRef = useRef<{ afterKey: number } | null>(null);
 
   useEffect(() => {
     const unlocked = getBadgesWithStatus({ completedLessons, quizResults }).filter(
@@ -102,20 +173,55 @@ export function BadgeToastHost() {
     });
   }, [completedLessons, quizResults]);
 
+  const handleDismiss = useCallback((key: number) => {
+    const el = toastElsRef.current.get(key);
+    if (el?.contains(document.activeElement)) {
+      // Focus was inside the toast being removed — plan a move once the
+      // DOM has updated, instead of letting it drop to <body>.
+      pendingFocusRef.current = { afterKey: key };
+    }
+    toastElsRef.current.delete(key);
+    setToasts((prev) => prev.filter((t) => t.key !== key));
+  }, []);
+
+  // Runs after the toast list re-renders: relocate focus stranded by a
+  // dismiss. Preference order: next remaining toast's controls, first
+  // remaining toast's controls, the Badges nav link.
+  useEffect(() => {
+    const pending = pendingFocusRef.current;
+    if (!pending) return;
+    pendingFocusRef.current = null;
+    const next = toasts.find((t) => t.key > pending.afterKey) ?? toasts[0];
+    const container = next ? toastElsRef.current.get(next.key) : undefined;
+    const target =
+      (container?.querySelector('a, button') as HTMLElement | null) ??
+      (document.querySelector('a[href="/badges"]') as HTMLElement | null);
+    target?.focus({ preventScroll: true });
+  }, [toasts]);
+
   if (toasts.length === 0) return null;
 
   return (
-    <div
-      aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex flex-col items-center gap-2 px-4"
-    >
-      {toasts.map((toast) => (
-        <ToastItem
-          key={toast.key}
-          toast={toast}
-          onDismiss={(key) => setToasts((prev) => prev.filter((t) => t.key !== key))}
-        />
-      ))}
-    </div>
+    <>
+      {/* Announcement-only live region: plain text, no interactive content. */}
+      <div aria-live="polite" className="sr-only">
+        {toasts.map((toast) => (
+          <p key={toast.key}>Badge earned: {toast.name}</p>
+        ))}
+      </div>
+      <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex flex-col items-center gap-2 px-4">
+        {toasts.map((toast) => (
+          <ToastItem
+            key={toast.key}
+            toast={toast}
+            onDismiss={() => handleDismiss(toast.key)}
+            containerRef={(el) => {
+              if (el) toastElsRef.current.set(toast.key, el);
+              else toastElsRef.current.delete(toast.key);
+            }}
+          />
+        ))}
+      </div>
+    </>
   );
 }
