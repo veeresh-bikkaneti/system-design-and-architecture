@@ -175,12 +175,14 @@ try {
     check('neural player mounted', true);
 
     // Floating play button is visible while the neural player is mounted.
-    await page.getByRole('button', { name: 'Play lesson narration' })
+    // It shares its accessible name with the main player; .fixed isolates it
+    // (the Q&A button is also fixed but named "Open course Q&A").
+    await page.locator('button.fixed[aria-label="Listen to this lesson"]')
       .waitFor({ timeout: 15_000 });
     check('floating play button visible', true);
 
-    // Play: status flips to the neural "playing" state.
-    await page.getByRole('button', { name: 'Listen to this lesson' }).click();
+    // Play via the main player button (:not(.fixed) excludes the floating one).
+    await page.locator('button[aria-label="Listen to this lesson"]:not(.fixed)').click();
     await page.getByText(/Playing AI narration/).waitFor({ timeout: 15_000 });
     check('neural audio playing', true);
 
@@ -243,12 +245,14 @@ try {
 
     // Floating button shares the player's state and drives it: resume from
     // the main player's paused state through the floating control.
-    await page.getByRole('button', { name: 'Resume lesson narration' }).click();
+    // (The neural main button says "Resume narration" — only the floating
+    // button says "Resume listening".)
+    await page.locator('button.fixed[aria-label="Resume listening"]').click();
     await page.getByText(/Playing AI narration/).waitFor({ timeout: 15_000 });
     check('floating button resumes neural playback', true);
     check(
       'floating button agrees with player state',
-      (await page.getByRole('button', { name: 'Pause lesson narration' }).count()) === 1,
+      (await page.locator('button.fixed[aria-label="Pause listening"]').count()) === 1,
     );
 
     check('no page errors during neural playback', errors.length === 0, errors.join(' | ').slice(0, 200));
@@ -280,7 +284,7 @@ try {
     await page.goto(LESSON_URL, { waitUntil: 'networkidle' });
 
     // Fallback player UI: no neural options button, no karaoke word spans.
-    await page.getByRole('button', { name: 'Listen to this lesson' }).waitFor({ timeout: 15_000 });
+    await page.locator('button[aria-label="Listen to this lesson"]:not(.fixed)').waitFor({ timeout: 15_000 });
     const neuralOptions = await page
       .getByRole('button', { name: 'Narration options', exact: true })
       .count();
@@ -288,7 +292,7 @@ try {
     check('fallback renders (no neural UI)', neuralOptions === 0 && karaokeSpans === 0,
       `neuralOptions=${neuralOptions} narr-word spans=${karaokeSpans}`);
 
-    await page.getByRole('button', { name: 'Listen to this lesson' }).click();
+    await page.locator('button[aria-label="Listen to this lesson"]:not(.fixed)').click();
     // NOTE: this must match ListenButton's sr-only status text exactly.
     await page.getByText('Playing lesson audio.').waitFor({ timeout: 15_000 });
     const speakCalls = await page.evaluate(() => window.__speakCalls.length);
@@ -301,13 +305,14 @@ try {
     check('fallback highlights spoken block', activeBlocks > 0, `${activeBlocks} active block(s)`);
 
     // Floating button reflects and drives the fallback player too.
+    // (The fallback main button also says "Pause listening" — .fixed
+    // isolates the floating one.)
     check(
       'floating button reflects fallback playing state',
-      (await page.getByRole('button', { name: 'Pause lesson narration' }).count()) === 1,
+      (await page.locator('button.fixed[aria-label="Pause listening"]').count()) === 1,
     );
-    await page.getByRole('button', { name: 'Pause lesson narration' }).click();
-    // Exact match: the floating button's own live region says
-    // "Lesson narration paused." (substring match would hit both).
+    await page.locator('button.fixed[aria-label="Pause listening"]').click();
+    // NOTE: this must match ListenButton's sr-only status text exactly.
     await page.getByText('Paused.', { exact: true }).waitFor({ timeout: 10_000 });
     check('floating button pauses fallback speech', true);
 
