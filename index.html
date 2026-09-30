@@ -19,10 +19,13 @@
         if you ever drop custom endpoints.
       - img-src is tight ('self', data:, YouTube thumbnails): a prompt-
         injected mermaid diagram can't exfiltrate via a remote <image>.
+      - frame-src allows only youtube-nocookie.com (privacy-enhanced
+        embeds): VideoCard plays lessons' videos inline on click instead
+        of opening a new tab.
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-4YWKEnBPEY4KQC/Wysp30Oe7tbyGO3p48I87C3noELI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-4YWKEnBPEY4KQC/Wysp30Oe7tbyGO3p48I87C3noELI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://i.ytimg.com; frame-src https://www.youtube-nocookie.com; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"
     />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
