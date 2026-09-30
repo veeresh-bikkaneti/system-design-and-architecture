@@ -3,6 +3,7 @@ import mermaid from 'mermaid';
 import DOMPurify from 'dompurify';
 import { motion, useReducedMotion } from 'motion/react';
 import './diagrams/diagrams.css';
+import { describeDiagram } from '../lib/mermaid-label';
 import { useDiagramEntrance } from './diagrams/useDiagramEntrance';
 
 const MONO_STACK = '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
@@ -338,18 +339,36 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
   // via useDiagramEntrance. The in-SVG motion (flowing edges, node
   // cascade) lives in diagrams.css.
 
+  // The render region is role="img" with an aria-label derived from the
+  // diagram source: without it, the raw SVG exposes every node/edge
+  // <text> to assistive tech with no accessible name. The <details>
+  // block is the text alternative — the diagram source itself, toggleable
+  // and copyable (the error fallback already surfaces the source the
+  // same way).
   return (
-    <motion.div
-      ref={containerRef}
-      className="mermaid-diagram diagram-panel my-2 overflow-x-auto rounded-xl border border-stone-200 bg-stone-50 p-4 shadow-soft dark:border-stone-800 dark:bg-stone-950 [&_svg]:mx-auto [&_svg]:max-w-full"
-      {...entrance}
-      // eslint-disable-next-line react/no-danger
-      // The SVG comes from mermaid.render() with securityLevel 'strict',
-      // but mermaid has a recurring XSS CVE history and the diagram source
-      // can be AI-influenced (prompt-injected agent output). DOMPurify is
-      // the second layer: even a future mermaid sanitizer bypass can't
-      // execute here.
-      dangerouslySetInnerHTML={{ __html: svg ? DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true } }) : '' }}
-    />
+    <div className="my-2">
+      <motion.div
+        ref={containerRef}
+        role="img"
+        aria-label={describeDiagram(code)}
+        className="mermaid-diagram diagram-panel overflow-x-auto rounded-xl border border-stone-200 bg-stone-50 p-4 shadow-soft dark:border-stone-800 dark:bg-stone-950 [&_svg]:mx-auto [&_svg]:max-w-full"
+        {...entrance}
+        // eslint-disable-next-line react/no-danger
+        // The SVG comes from mermaid.render() with securityLevel 'strict',
+        // but mermaid has a recurring XSS CVE history and the diagram source
+        // can be AI-influenced (prompt-injected agent output). DOMPurify is
+        // the second layer: even a future mermaid sanitizer bypass can't
+        // execute here.
+        dangerouslySetInnerHTML={{ __html: svg ? DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true } }) : '' }}
+      />
+      <details className="mt-1.5 text-xs">
+        <summary className="cursor-pointer text-stone-500 underline-offset-2 hover:text-stone-700 hover:underline dark:text-stone-400 dark:hover:text-stone-200">
+          View diagram source
+        </summary>
+        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg border border-stone-200 bg-stone-100 p-3 font-mono text-[11px] leading-relaxed text-stone-700 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300">
+          {code}
+        </pre>
+      </details>
+    </div>
   );
 }

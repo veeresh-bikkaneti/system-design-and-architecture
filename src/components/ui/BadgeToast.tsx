@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { badgeIconUrl, getBadgesWithStatus, type BadgeDefinition } from '../../lib/badges';
+import { resolveDismissFocusTarget } from '../../lib/badge-toast-focus';
 import { useProgressStore } from '../../store/progress';
 import { Icon } from './Icon';
+import { usePausableDismiss } from './usePausableDismiss';
 
-/** How long a toast stays up before auto-dismissing. */
+/** How long a toast stays up before auto-dismissing (when untouched). */
 const TOAST_MS = 6000;
 /** Cap stacked toasts so a bulk unlock (e.g. finishing a tier) stays tidy. */
 const MAX_VISIBLE = 3;
@@ -13,14 +15,23 @@ interface Toast extends BadgeDefinition {
   key: number;
 }
 
-function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (key: number) => void }) {
-  useEffect(() => {
-    const timer = window.setTimeout(() => onDismiss(toast.key), TOAST_MS);
-    return () => window.clearTimeout(timer);
-  }, [toast.key, onDismiss]);
+function ToastItem({
+  toast,
+  onDismiss,
+  containerRef,
+}: {
+  toast: Toast;
+  onDismiss: () => void;
+  containerRef: (el: HTMLDivElement | null) => void;
+}) {
+  const interactionHandlers = usePausableDismiss(TOAST_MS, onDismiss);
 
   return (
-    <div className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border border-amber-200/80 bg-white/95 px-4 py-3 shadow-lift backdrop-blur dark:border-amber-900/60 dark:bg-stone-900/95">
+    <div
+      ref={containerRef}
+      {...interactionHandlers}
+      className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border border-amber-200/80 bg-white/95 px-4 py-3 shadow-lift backdrop-blur dark:border-amber-900/60 dark:bg-stone-900/95"
+    >
       <img
         src={badgeIconUrl(toast.iconFile)}
         alt=""
@@ -40,7 +51,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (key: number
       </div>
       <button
         type="button"
-        onClick={() => onDismiss(toast.key)}
+        onClick={onDismiss}
         aria-label={`Dismiss: ${toast.name}`}
         className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-200/60 hover:text-stone-700 dark:text-stone-500 dark:hover:bg-stone-800 dark:hover:text-stone-200"
       >
@@ -59,6 +70,17 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (key: number
  * baseline, so badges earned on previous visits never pop on page load.
  * Each badge is announced at most once per session.
  *
+ * Accessibility notes:
+ * - Screen-reader announcements live in a dedicated visually-hidden
+ *   `aria-live` region. The visual toasts are NOT a live region: their
+ *   link + dismiss button are interactive, and interactive controls
+ *   inside a live region get re-announced as the region updates.
+ * - The auto-dismiss timer pauses on hover and on focus-within, so a
+ *   toast never disappears from under the user.
+ * - If the user was focused inside a toast when it dismisses, focus moves
+ *   to the next remaining toast's controls, else the first *visible*
+ *   Badges nav link, else the main landmark — never dropped to <body>.
+ *
  * This is independent of the badge-detail celebration (confetti + the
  * `celebratedBadges` store slice) — that effect is untouched.
  */
@@ -69,6 +91,9 @@ export function BadgeToastHost() {
   const prevIdsRef = useRef<string[] | null>(null);
   const announcedRef = useRef<Set<string>>(new Set());
   const keyRef = useRef(0);
+  const toastElsRef = useRef(new Map<number, HTMLDivElement | null>());
+  /** Set when a dismiss removed the focused toast; consumed by the effect. */
+  const pendingFocusRef = useRef<{ afterKey: number } | null>(null);
 
   useEffect(() => {
     const unlocked = getBadgesWithStatus({ completedLessons, quizResults }).filter(
@@ -102,20 +127,53 @@ export function BadgeToastHost() {
     });
   }, [completedLessons, quizResults]);
 
+  const handleDismiss = useCallback((key: number) => {
+    const el = toastElsRef.current.get(key);
+    if (el?.contains(document.activeElement)) {
+      // Focus was inside the toast being removed — plan a move once the
+      // DOM has updated, instead of letting it drop to <body>.
+      pendingFocusRef.current = { afterKey: key };
+    }
+    toastElsRef.current.delete(key);
+    setToasts((prev) => prev.filter((t) => t.key !== key));
+  }, []);
+
+  // Runs after the toast list re-renders: relocate focus stranded by a
+  // dismiss. Preference order: next remaining toast's controls, first
+  // remaining toast's controls, the first visible Badges nav link, the
+  // main landmark — never dropped to <body>.
+  useEffect(() => {
+    const pending = pendingFocusRef.current;
+    if (!pending) return;
+    pendingFocusRef.current = null;
+    resolveDismissFocusTarget(document, toastElsRef.current, toasts, pending.afterKey)?.focus({
+      preventScroll: true,
+    });
+  }, [toasts]);
+
   if (toasts.length === 0) return null;
 
   return (
-    <div
-      aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex flex-col items-center gap-2 px-4"
-    >
-      {toasts.map((toast) => (
-        <ToastItem
-          key={toast.key}
-          toast={toast}
-          onDismiss={(key) => setToasts((prev) => prev.filter((t) => t.key !== key))}
-        />
-      ))}
-    </div>
+    <>
+      {/* Announcement-only live region: plain text, no interactive content. */}
+      <div aria-live="polite" className="sr-only">
+        {toasts.map((toast) => (
+          <p key={toast.key}>Badge earned: {toast.name}</p>
+        ))}
+      </div>
+      <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex flex-col items-center gap-2 px-4">
+        {toasts.map((toast) => (
+          <ToastItem
+            key={toast.key}
+            toast={toast}
+            onDismiss={() => handleDismiss(toast.key)}
+            containerRef={(el) => {
+              if (el) toastElsRef.current.set(toast.key, el);
+              else toastElsRef.current.delete(toast.key);
+            }}
+          />
+        ))}
+      </div>
+    </>
   );
 }

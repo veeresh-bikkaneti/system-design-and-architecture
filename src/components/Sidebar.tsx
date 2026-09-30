@@ -75,7 +75,7 @@ export function Sidebar() {
           </p>
           <p className="font-display text-2xl font-semibold text-stone-950 dark:text-stone-50">
             {percent}
-            <span className="text-sm font-medium text-stone-400">%</span>
+            <span className="text-sm font-medium text-stone-500 dark:text-stone-400">%</span>
           </p>
         </div>
         <div className="mt-3">
@@ -132,7 +132,7 @@ export function Sidebar() {
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                   {tierLabels[tier]}
                 </h3>
-                <span className="text-xs font-medium tabular-nums text-stone-400 dark:text-stone-400">
+                <span className="text-xs font-medium tabular-nums text-stone-500 dark:text-stone-400">
                   {tierCompleted}/{tierLessons.length}
                 </span>
               </div>

@@ -106,9 +106,11 @@ export function StepThrough({
       {...entrance}
     >
       {title && (
-        <h4 className="diagram-mono mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
+        // h3: the stepper renders directly under an MDX ## (h2) section,
+        // so this is the next level down; the step title below is an h4.
+        <h3 className="diagram-mono mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
           {title}
-        </h4>
+        </h3>
       )}
 
       {nodes.length > 0 && (
@@ -174,14 +176,16 @@ export function StepThrough({
         </svg>
       )}
 
-      {/* Step content */}
-      <div key={index} className="vs-panel-enter">
+      {/* Step content. The key remounts on step change so the entrance
+          animation replays; aria-live announces the new step to screen
+          readers (atomic so the whole step is read, not just the diff). */}
+      <div key={index} className="vs-panel-enter" aria-live="polite" aria-atomic="true">
         <p className="diagram-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-400">
           Step {index + 1} of {steps.length}
         </p>
-        <h5 className="mt-1 text-sm font-semibold text-stone-900 dark:text-stone-100">
+        <h4 className="mt-1 text-sm font-semibold text-stone-900 dark:text-stone-100">
           {step?.title}
-        </h5>
+        </h4>
         <p className="mt-1 min-h-12 text-sm leading-relaxed text-stone-600 dark:text-stone-300">
           {step?.caption}
         </p>
@@ -197,13 +201,15 @@ export function StepThrough({
         >
           ← Previous
         </button>
-        <div className="flex items-center gap-1.5" role="tablist" aria-label="Steps">
+        {/* Step dots: plain buttons in a group, not tabs — there is no
+            tabpanel and no arrow-key tablist behavior. The current step
+            is exposed via aria-current="step". */}
+        <div className="flex items-center gap-1.5" role="group" aria-label="Steps">
           {steps.map((s, i) => (
             <button
               key={i}
               type="button"
-              role="tab"
-              aria-selected={i === index}
+              aria-current={i === index ? 'step' : undefined}
               aria-label={`Go to step ${i + 1}: ${s.title}`}
               onClick={() => goTo(i)}
               className={`h-2 rounded-full transition-[width] ${

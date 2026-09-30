@@ -82,7 +82,7 @@ function CompleteButton({ slug, completed }: { slug: string; completed: boolean 
 function Breadcrumb({ tier, title }: { tier: Tier; title: string }) {
   return (
     <nav aria-label="Breadcrumb">
-      <ol className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium text-stone-400 dark:text-stone-500">
+      <ol className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium text-stone-500 dark:text-stone-400">
         <li>
           <Link to="/" className="rounded transition-colors hover:text-accent-700 dark:hover:text-accent-300">
             Home
@@ -322,7 +322,7 @@ export function LessonPage() {
                     to={`/lesson/${prevLesson.meta.slug}`}
                     className="group rounded-2xl border border-stone-200/80 bg-white p-4 shadow-soft transition-[transform,border-color,box-shadow] hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift active:translate-y-0 active:shadow-soft dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
                   >
-                    <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                       <Icon name="arrowLeft" className="h-3.5 w-3.5" />
                       Previous
                     </span>
@@ -338,7 +338,7 @@ export function LessonPage() {
                     to={`/lesson/${nextLesson.meta.slug}`}
                     className="group rounded-2xl border border-stone-200/80 bg-white p-4 text-right shadow-soft transition-[transform,border-color,box-shadow] hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-lift active:translate-y-0 active:shadow-soft dark:border-stone-800 dark:bg-stone-900 dark:hover:border-accent-800"
                   >
-                    <span className="flex items-center justify-end gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                    <span className="flex items-center justify-end gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                       Next
                       <Icon name="arrowRight" className="h-3.5 w-3.5" />
                     </span>
