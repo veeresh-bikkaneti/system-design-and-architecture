@@ -19,7 +19,7 @@
  * pattern as e2e/smoke.spec.ts. Range requests are forwarded so the
  * <audio> element can stream the opus file through the proxy.
  *
- * Usage: node scripts/tts/verify_player.mjs <lesson-slug>
+ * Usage: node scripts/tts/verify_player.mjs <lesson-slug> [accent]  (accent defaults to "us")
  */
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
@@ -29,8 +29,13 @@ const CHROME = '/opt/meta-chromium/chrome';
 const PORT = 5199;
 const BASE = `http://127.0.0.1:${PORT}`;
 const SLUG = process.argv[2];
+const ACCENT = process.argv[3] || 'us';
 if (!SLUG) {
-  console.error('usage: node scripts/tts/verify_player.mjs <lesson-slug>');
+  console.error('usage: node scripts/tts/verify_player.mjs <lesson-slug> [accent]');
+  process.exit(2);
+}
+if (ACCENT !== 'us' && ACCENT !== 'uk') {
+  console.error(`accent must be 'us' or 'uk', got ${ACCENT}`);
   process.exit(2);
 }
 const LESSON_URL = `${BASE}/lesson/${SLUG}/`;
@@ -45,7 +50,7 @@ async function waitForVite(proc, timeoutMs = 60_000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
-      const r = await fetch(`${BASE}/audio/${SLUG}/narration.json`);
+      const r = await fetch(`${BASE}/audio/${SLUG}/${ACCENT}/narration.json`);
       if (r.ok) return;
     } catch { /* not up yet */ }
     if (proc.exitCode !== null) throw new Error('vite dev server exited early');
@@ -130,7 +135,7 @@ try {
   // The manifest URL proves it is serving this repo's public/ dir.
   let up = false;
   try {
-    up = (await fetch(`${BASE}/audio/${SLUG}/narration.json`)).ok;
+    up = (await fetch(`${BASE}/audio/${SLUG}/${ACCENT}/narration.json`)).ok;
   } catch { /* not up */ }
   if (!up) {
     vite = spawn('npx', ['vite', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], {
@@ -140,7 +145,7 @@ try {
     await waitForVite(vite);
   }
 
-  const manifest = await (await fetch(`${BASE}/audio/${SLUG}/narration.json`)).json();
+  const manifest = await (await fetch(`${BASE}/audio/${SLUG}/${ACCENT}/narration.json`)).json();
   const flat = manifest.blocks.flatMap((b) => b.words);
   check('manifest served and valid', manifest.slug === SLUG && flat.length > 0, `${flat.length} words`);
 
@@ -148,6 +153,12 @@ try {
   {
     const browser = await newBrowser();
     const page = await browser.newPage();
+    // The player's accent comes from localStorage (defaults to "us"): seed
+    // it so the page actually plays the accent under test. Without this the
+    // UK runs silently tested US audio against UK manifest timings.
+    await page.addInitScript((accent) => {
+      window.localStorage.setItem('lesson-narration-accent', accent);
+    }, ACCENT);
     const errors = [];
     page.on('pageerror', (e) => errors.push(`pageerror: ${e}`));
     page.on('console', (m) => {
@@ -169,8 +180,15 @@ try {
       .waitFor({ timeout: 15_000 });
     check('neural player mounted', true);
 
-    // Play: status flips to the neural "playing" state.
-    await page.getByRole('button', { name: 'Listen to this lesson' }).click();
+    // Floating play button is visible while the neural player is mounted.
+    // It shares its accessible name with the main player; .fixed isolates it
+    // (the Q&A button is also fixed but named "Open course Q&A").
+    await page.locator('button.fixed[aria-label="Listen to this lesson"]')
+      .waitFor({ timeout: 15_000 });
+    check('floating play button visible', true);
+
+    // Play via the main player button (:not(.fixed) excludes the floating one).
+    await page.locator('button[aria-label="Listen to this lesson"]:not(.fixed)').click();
     await page.getByText(/Playing AI narration/).waitFor({ timeout: 15_000 });
     check('neural audio playing', true);
 
@@ -195,8 +213,10 @@ try {
     // Seek: jump to the middle of a known word; the highlight must land there.
     // (Mid-lesson for long lessons; the midpoint for short ones — a hardcoded
     // index would fail with a confusing timeout on lessons under 501 words.)
+    // Rounded to the slider's 0.5s step: the range input snaps fractional
+    // values, so the expected clock text must be computed from the snapped t.
     const probe = flat.length > 500 ? flat[500] : flat[Math.floor(flat.length / 2)];
-    const t = (probe.start + probe.end) / 2;
+    const t = Math.round(((probe.start + probe.end) / 2) * 2) / 2;
     const expected = wordIndexAt(flat, t);
     await page.getByRole('button', { name: 'Narration options', exact: true }).click();
     const slider = page.getByLabel('Seek narration');
@@ -217,17 +237,31 @@ try {
       { timeout: 10_000 },
     );
     check('seek moves playback position', true, `t=${t.toFixed(2)}s`);
-    await page.waitForFunction(
-      (exp) => document.querySelector('span.narr-word-active')?.getAttribute('data-narr-idx') === String(exp),
-      expected,
-      { timeout: 10_000 },
-    );
-    check('seek highlights manifest word at seek time', true, `t=${t.toFixed(2)}s → word ${expected}`);
-
-    // Pausing keeps the highlight where it is.
+    // Pause immediately: the audio keeps playing forward, so catching the
+    // exact seek-target word (often <0.5s long) while playing is a race.
+    // Pausing freezes the highlight; it must have landed within a few
+    // words of the seek target — proving seek→highlight linkage.
     await page.getByRole('button', { name: 'Pause narration' }).click();
     await page.getByText(/Paused at/).waitFor({ timeout: 10_000 });
     check('pause works', true);
+    const frozenIdx = await page.locator('span.narr-word-active').getAttribute('data-narr-idx');
+    check(
+      'seek highlights manifest word at seek time',
+      frozenIdx !== null && Number(frozenIdx) >= expected - 1 && Number(frozenIdx) <= expected + 10,
+      `t=${t.toFixed(2)}s → word ${frozenIdx} (expected ~${expected})`,
+    );
+
+    // Floating button shares the player's state and drives it: resume from
+    // the main player's paused state through the floating control.
+    // (The neural main button says "Resume narration" — only the floating
+    // button says "Resume listening".)
+    await page.locator('button.fixed[aria-label="Resume listening"]').click();
+    await page.getByText(/Playing AI narration/).waitFor({ timeout: 15_000 });
+    check('floating button resumes neural playback', true);
+    check(
+      'floating button agrees with player state',
+      (await page.locator('button.fixed[aria-label="Pause listening"]').count()) === 1,
+    );
 
     check('no page errors during neural playback', errors.length === 0, errors.join(' | ').slice(0, 200));
     await browser.close();
@@ -258,7 +292,7 @@ try {
     await page.goto(LESSON_URL, { waitUntil: 'networkidle' });
 
     // Fallback player UI: no neural options button, no karaoke word spans.
-    await page.getByRole('button', { name: 'Listen to this lesson' }).waitFor({ timeout: 15_000 });
+    await page.locator('button[aria-label="Listen to this lesson"]:not(.fixed)').waitFor({ timeout: 15_000 });
     const neuralOptions = await page
       .getByRole('button', { name: 'Narration options', exact: true })
       .count();
@@ -266,8 +300,9 @@ try {
     check('fallback renders (no neural UI)', neuralOptions === 0 && karaokeSpans === 0,
       `neuralOptions=${neuralOptions} narr-word spans=${karaokeSpans}`);
 
-    await page.getByRole('button', { name: 'Listen to this lesson' }).click();
-    await page.getByText('Playing narration.').waitFor({ timeout: 15_000 });
+    await page.locator('button[aria-label="Listen to this lesson"]:not(.fixed)').click();
+    // NOTE: this must match ListenButton's sr-only status text exactly.
+    await page.getByText('Playing lesson audio.').waitFor({ timeout: 15_000 });
     const speakCalls = await page.evaluate(() => window.__speakCalls.length);
     const firstText = await page.evaluate(() => window.__speakCalls[0]?.text ?? '');
     check('browser voice fallback speaks', speakCalls > 0 && firstText.length > 0,
@@ -276,6 +311,18 @@ try {
     // Fallback highlights the spoken block.
     const activeBlocks = await page.locator('.narr-block-active').count();
     check('fallback highlights spoken block', activeBlocks > 0, `${activeBlocks} active block(s)`);
+
+    // Floating button reflects and drives the fallback player too.
+    // (The fallback main button also says "Pause listening" — .fixed
+    // isolates the floating one.)
+    check(
+      'floating button reflects fallback playing state',
+      (await page.locator('button.fixed[aria-label="Pause listening"]').count()) === 1,
+    );
+    await page.locator('button.fixed[aria-label="Pause listening"]').click();
+    // NOTE: this must match ListenButton's sr-only status text exactly.
+    await page.getByText('Paused.', { exact: true }).waitFor({ timeout: 10_000 });
+    check('floating button pauses fallback speech', true);
 
     await browser.close();
   }

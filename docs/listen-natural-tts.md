@@ -1,7 +1,7 @@
 # Listen mode: natural AI narration
 
 Every lesson has a **Listen** button in its header. Press it and the lesson
-is read aloud while the exact word being spoken lights up in the text, so
+is read aloud while the word being spoken lights up in the text, so
 you can follow along — like karaoke for system design.
 
 ## How it works
@@ -14,20 +14,23 @@ flowchart TB
         KOK["Kokoro-82M neural TTS<br/>(Apache-2.0, CPU-only)"]
         SYN["synthesize.py<br/>audio + per-word timestamps"]
         MDX --> EXT --> KOK --> SYN
-        SYN --> OPUS["public/audio/&lt;slug&gt;/narration.opus"]
-        SYN --> JSON["public/audio/&lt;slug&gt;/narration.json"]
+        SYN --> OPUS["public/audio/&lt;slug&gt;/&lt;accent&gt;/narration.opus"]
+        SYN --> JSON["public/audio/&lt;slug&gt;/&lt;accent&gt;/narration.json"]
     end
 
     subgraph SITE["Learner's browser (GitHub Pages, static)"]
         BTN["Listen button<br/>(LessonNarrator)"]
-        PROBE{"narration.json<br/>exists?"}
+        INDEX["has-narration bitset<br/>(build-time index, ~1 KB)"]
+        FETCH["Fetch audio/&lt;slug&gt;/&lt;accent&gt;/narration.json<br/>on first Listen press"]
         PLAYER["Neural player<br/>HTMLAudio + rAF karaoke highlight"]
         FALLBACK["Browser voice fallback<br/>(Web Speech API, sentence highlight)"]
-        BTN --> PROBE
-        PROBE -->|yes| PLAYER
-        PROBE -->|no| FALLBACK
+        BTN --> INDEX
+        INDEX -->|yes| FETCH
+        INDEX -->|no| FALLBACK
+        FETCH -->|ok| PLAYER
+        FETCH -->|fails| FALLBACK
         OPUS -.->|lazy fetch on play| PLAYER
-        JSON -.->|probed on page load| PLAYER
+        JSON -.->|fetched on first Listen press| FETCH
     end
 
     style BUILD fill:#f5f3ff,stroke:#8b5cf6
@@ -36,11 +39,13 @@ flowchart TB
 
 **Two tiers, zero runtime cost:**
 
-1. **Neural narration (primary).** When a lesson has generated audio, you
+1. **AI narration (primary).** When a lesson has generated audio, you
    hear a natural AI voice and each word highlights as it's spoken. The
    audio and timing files are generated once at build time and served as
    static files — no API keys, no network calls beyond downloading the
-   audio itself, no cost per listen.
+   audio itself, no cost per listen. The timing manifest isn't even fetched
+   until you press Listen (hovering the button prefetches it); page views
+   cost zero narration network calls.
 2. **Browser voice (fallback).** If a lesson has no generated audio yet
    (or you choose "Use my browser's voice instead"), your device reads the
    lesson aloud with its built-in voices, highlighting the block — and,
@@ -49,6 +54,12 @@ flowchart TB
 ## Controls
 
 - **Play / pause / resume** — one pill button; nothing ever autoplays.
+- **US / UK accent picker** — switches between the two AI voices
+  (remembered per device); the next Listen press re-probes the new accent
+  and restarts cleanly.
+- **Floating pause/play** — a small button fixed to the bottom-right
+  corner, always in sync with the main player, so playback stays
+  reachable while scrolling.
 - **Seek bar** — jump to any point; highlighting follows automatically.
 - **Speed** — 0.9×, 1×, 1.25×, 1.5×. Highlighting stays in sync because
   word timings are measured in audio time.
@@ -97,23 +108,43 @@ Then:
 python3 scripts/tts/extract_narration.py
 
 # 2. Synthesize audio + word timings (CPU) and write
-#    public/audio/<slug>/{narration.opus,narration.json} directly.
+#    public/audio/<slug>/<accent>/{narration.opus,narration.json} directly.
+#    --voice selects the voice and the accent dir (af_heart -> us, bf_emma -> uk).
 python3 scripts/tts/synthesize.py --only-missing
 
-# 3. Validate every manifest against the player contract.
+# 3. Validate every manifest against the player contract (per accent).
 for slug in $(ls public/audio); do
-  python3 scripts/tts/validate_manifest.py "$slug" || break
+  for accent in us uk; do
+    [ -d "public/audio/$slug/$accent" ] || continue
+    python3 scripts/tts/validate_manifest.py "$slug" "$accent" || break 2
+  done
 done
 
 # 4. End-to-end player check in headless Chromium (needs node_modules).
-node scripts/tts/verify_player.mjs <lesson-slug>
+node scripts/tts/verify_player.mjs <lesson-slug> [accent]
+
+# 5. Regenerate the has-narration bitset so the site probes lazily and
+#    never probes lessons/accents with no narration at all. Run this
+#    after every synthesis batch (UK synthesis is in progress — the UK
+#    column of the bitset grows as accents land).
+python3 scripts/tts/generate_narration_index.py
+#    (or: npm run narration:index)
 ```
+
+The bitset (`src/lib/narration-index.generated.ts`, a ~1 KB Set of
+`"<slug>/<accent>"` keys) is consulted synchronously on lesson mount: the
+player fetches the 192 KB manifest only on the first Listen press
+(hover/focus prefetches), and lessons without narration never probe the
+network at all — no wasted 404s. It is generated, never hand-maintained:
+the vitest suite fails if the committed bitset drifts from
+`public/audio`.
 
 `synthesize.py` writes each lesson's opus + manifest as it finishes, logs
 failures per lesson without aborting the batch, and exits nonzero if any
 lesson failed — re-run with `--only-missing` to retry just those. To
-re-voice the course with a different Kokoro voice, change the `VOICE`
-constant in `synthesize.py` (see `VOICES.md` upstream) and re-run
+re-voice an accent with a different Kokoro voice, pass
+`--voice <voice-id>` (see the `VOICES` catalog in `synthesize.py`;
+`af_heart` writes to `us/`, `bf_emma` to `uk/`) and re-run
 steps 1–2. To smoke-test the pipeline, pass `--slugs <slug> --limit-blocks 3`.
 
 ### Read-along alignment
@@ -142,7 +173,7 @@ audio plays — the audio never depends on the highlighting.
   as the rest of the course.
 - **Word timestamps for read-along.** Kokoro's duration predictor gives
   per-token timings, which the pipeline maps to per-word timings, so the
-  highlight lands on the exact word being spoken.
+  highlight tracks the word being spoken.
 
 ### What the fallback still does well
 

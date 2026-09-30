@@ -276,6 +276,30 @@ describe('extractLessonBlocks', () => {
     ]);
     expect(extractLessonBlocks(asElement(root)).map((b) => b.text)).toEqual(['Kept.']);
   });
+
+  it('reads table rows inside the MDX table-scroll wrapper despite not-prose', () => {
+    // App.tsx wraps every MDX table in <div class="table-scroll not-prose">
+    // (Tailwind Typography opt-out). Tables are narrated — the build-time
+    // extractor includes their rows — so the DOM side must not skip them.
+    const root = new FakeEl('div', '', {}, [
+      new FakeEl('div', '', { class: 'table-scroll not-prose' }, [
+        new FakeEl('table', '', {}, [
+          new FakeEl('tr', '', {}, [
+            new FakeEl('th', 'Choice'),
+            new FakeEl('th', 'During a partition'),
+          ]),
+          new FakeEl('tr', '', {}, [
+            new FakeEl('td', 'CP'),
+            new FakeEl('td', 'Reject inconsistent writes.'),
+          ]),
+        ]),
+      ]),
+    ]);
+    expect(extractLessonBlocks(asElement(root)).map((b) => b.text)).toEqual([
+      'Choice, During a partition',
+      'CP, Reject inconsistent writes.',
+    ]);
+  });
 });
 
 describe('splitSentences', () => {

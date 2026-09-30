@@ -7,12 +7,6 @@ import type { OkfCard } from './types.ts';
  * of the full MDX. Live lessons:
  * https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson/<id>/
  */
-const COURSE = "https://veeresh-bikkaneti.github.io/system-design-and-architecture/lesson";
-
-export function lessonUrl(id: string): string {
-  return `${COURSE}/${id}/`;
-}
-
 export const OKF_CARDS: OkfCard[] = [
   {
     id: "okf",

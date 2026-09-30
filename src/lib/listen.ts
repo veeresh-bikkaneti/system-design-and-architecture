@@ -134,6 +134,10 @@ function shouldSkip(node: TextDomNode): boolean {
   const tag = node.tagName.toUpperCase();
   if (SKIP_TAGS.has(tag)) return true;
   const cls = (node.getAttribute('class') ?? '').toLowerCase();
+  // The MDX table wrapper reuses `not-prose` (a Tailwind Typography styling
+  // opt-out) — but tables ARE narrated: the build-time extractor includes
+  // their rows, so the DOM side must too for read-along highlighting.
+  if (cls.includes('table-scroll')) return false;
   if (SKIP_CLASS_PARTS.some((part) => cls.includes(part))) return true;
   if (node.getAttribute('aria-hidden') === 'true') return true;
   // Comparison tables read fine; tables *of code* don't.

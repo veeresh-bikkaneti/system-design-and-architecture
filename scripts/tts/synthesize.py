@@ -3,7 +3,8 @@
 
 Reads narration scripts produced by extract_narration.py
 (scripts/tts/narration/<slug>.json) and synthesizes one .opus file
-plus a word-timestamp manifest per lesson under public/audio/<slug>/.
+plus a word-timestamp manifest per lesson per accent under
+public/audio/<slug>/<accent>/ (accent "us" for af_heart, "uk" for bf_emma).
 
 Word timings come from Kokoro's own duration predictor: KPipeline populates
 misaki MToken.start_ts / end_ts via join_timestamps, so timings match the
@@ -164,12 +165,20 @@ def enforce_hf_offline_mode() -> None:
 # Synthesis
 # ---------------------------------------------------------------------------
 
-VOICE = "af_heart"  # natural American-English female voice used for all lessons
+# Voice catalog: Kokoro voice id -> (misaki lang_code, accent dir name).
+# af_* are American English (lang_code "a"), bf_* are British English
+# (lang_code "b"). The accent dir is the per-accent output layout under
+# public/audio/<slug>/<accent>/ and the player-facing accent id.
+VOICES: dict[str, tuple[str, str]] = {
+    "af_heart": ("a", "us"),
+    "bf_emma": ("b", "uk"),
+}
+DEFAULT_VOICE = "af_heart"
 SAMPLE_RATE = 24000
 
 
 class Synthesizer:
-    def __init__(self, device: str = "cpu", speed: float = 1.0):
+    def __init__(self, device: str = "cpu", speed: float = 1.0, voice: str = DEFAULT_VOICE):
         # Set BEFORE importing kokoro: huggingface_hub freezes HF_HUB_CACHE
         # at import time, so setdefault must run first or the cache dir is
         # silently ignored and every run re-downloads (or fails offline).
@@ -181,9 +190,14 @@ class Synthesizer:
         enforce_hf_offline_mode()
         from kokoro import KPipeline
 
+        if voice not in VOICES:
+            raise SystemExit(f"Unknown voice {voice!r}; choices: {sorted(VOICES)}")
+        lang_code, accent = VOICES[voice]
+        self.voice = voice
+        self.accent = accent
         self.speed = speed
-        print("Loading Kokoro pipeline (weights download on first run)...", flush=True)
-        self.pipeline = KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M", device=device)
+        print(f"Loading Kokoro pipeline (voice={voice}, lang={lang_code}) ...", flush=True)
+        self.pipeline = KPipeline(lang_code=lang_code, repo_id="hexgrad/Kokoro-82M", device=device)
         # This VM has few vCPUs and no swap: cap torch's thread pool so
         # inference doesn't oversubscribe the box (or balloon per-thread
         # workspace memory) while the agent runtime is also working.
@@ -200,7 +214,7 @@ class Synthesizer:
                 "Refusing to synthesize from unverified weights."
             )
         print(f"Weight SHA-256 verified: {digest[:16]}...", flush=True)
-        self.pack = self.pipeline.load_voice(VOICE)
+        self.pack = self.pipeline.load_voice(self.voice)
 
     # -- token -> word alignment -------------------------------------------
 
@@ -399,7 +413,8 @@ class Synthesizer:
         print(f"  [{slug}] contentHash: {chash}", flush=True)
         return {
             "slug": slug,
-            "voice": VOICE,
+            "voice": self.voice,
+            "accent": self.accent,
             "sampleRate": SAMPLE_RATE,
             "duration": round(duration, 3),
             "contentHash": chash,
@@ -446,7 +461,9 @@ def encode_concat_opus(wav_paths: list[str], out_path: Path) -> None:
 
 
 def write_lesson_package(synth: Synthesizer, slug: str, limit_blocks: int = 0) -> Path:
-    lesson_out = AUDIO_OUT / slug
+    # Per-accent layout: public/audio/<slug>/<accent>/{narration.opus,narration.json}.
+    # One manifest per accent; the player probes <accent>/narration.json.
+    lesson_out = AUDIO_OUT / slug / synth.accent
     lesson_out.mkdir(parents=True, exist_ok=True)
     # Block WAVs live in a temp dir that is always cleaned up, even when
     # synthesis or encoding fails mid-lesson.
@@ -482,23 +499,34 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--only-missing", action="store_true", help="Skip lessons that already have narration.opus + narration.json")
     p.add_argument("--device", default="cpu")
     p.add_argument("--speed", type=float, default=1.0)
+    p.add_argument(
+        "--voice",
+        default=DEFAULT_VOICE,
+        choices=sorted(VOICES),
+        help="Kokoro voice id; also selects the per-accent output dir (default: %(default)s)",
+    )
     return p.parse_args(argv)
 
 
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
     slugs = [s for s in args.slugs.split(",") if s] or list_slugs()
+    _, accent = VOICES[args.voice]
     if args.only_missing:
         slugs = [
-            s for s in slugs
-            if not ((AUDIO_OUT / s / "narration.opus").exists() and (AUDIO_OUT / s / "narration.json").exists())
+            s
+            for s in slugs
+            if not (
+                (AUDIO_OUT / s / accent / "narration.opus").exists()
+                and (AUDIO_OUT / s / accent / "narration.json").exists()
+            )
         ]
     if not slugs:
         print("Nothing to synthesize.")
         return 0
 
-    print(f"Synthesizing {len(slugs)} lesson(s): {', '.join(slugs)}")
-    synth = Synthesizer(device=args.device, speed=args.speed)
+    print(f"Synthesizing {len(slugs)} lesson(s) with voice {args.voice} (accent: {accent}): {', '.join(slugs)}")
+    synth = Synthesizer(device=args.device, speed=args.speed, voice=args.voice)
     failed: list[str] = []
     for slug in slugs:
         if not (NARRATION_DIR / f"{slug}.json").exists():

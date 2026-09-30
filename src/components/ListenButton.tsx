@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Icon } from './ui/Icon';
 import {
   chunkBlocks,
   extractLessonBlocks,
@@ -9,6 +8,14 @@ import {
   type VoicePreference,
 } from '../lib/listen';
 import { runChunk, type ChunkRun } from '../lib/listen-speak';
+import type { PlaybackShare } from '../lib/playback-share';
+import {
+  PlayerChrome,
+  PopoverLabel,
+  PopoverNote,
+  segmentClass,
+  SpeedSegments,
+} from './player/PlayerChrome';
 import {
   BLOCK_ACTIVE_CLASS,
   SENT_ACTIVE_CLASS,
@@ -18,8 +25,6 @@ import {
 } from '../lib/narrate-dom';
 
 type Status = 'idle' | 'playing' | 'paused';
-
-const SPEEDS = [0.9, 1, 1.25, 1.5] as const;
 
 /**
  * If an utterance hasn't fired `onstart` after this long, the platform
@@ -35,17 +40,6 @@ const VOICE_OPTIONS: { value: VoicePreference; label: string }[] = [
   { value: 'uk', label: 'UK' },
 ];
 
-/** Same pill recipe as ShareButtons — this is a secondary header action. */
-const pillClass =
-  'inline-flex items-center gap-1.5 border border-stone-200/80 bg-white px-3.5 py-2 text-sm font-semibold text-stone-600 shadow-soft transition-colors hover:border-accent-300 hover:text-accent-800 active:translate-y-px dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-accent-800 dark:hover:text-accent-300';
-
-const segmentClass = (active: boolean) =>
-  `rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-    active
-      ? 'bg-accent-700 text-white dark:bg-accent-400 dark:text-stone-950'
-      : 'text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100'
-  }`;
-
 /**
  * "Listen to this lesson" — browser speech-synthesis fallback.
  *
@@ -60,16 +54,26 @@ const segmentClass = (active: boolean) =>
  * so the learner can follow along in the text.
  *
  * Nothing autoplays, the text stays primary, and the control is one quiet
- * pill in the lesson header.
+ * pill in the lesson header. The pill chrome (play button, options chevron,
+ * dismissible popover) is the shared `PlayerChrome`; this component only
+ * owns the speech-synthesis engine behind it.
  */
 export function ListenButton({
   slug,
   articleSelector = '.lesson-prose',
+  share,
 }: {
   /** Current lesson slug — speech is cancelled when it changes. */
   slug: string;
   /** CSS selector for the element holding the lesson's rendered prose. */
   articleSelector?: string;
+  /**
+   * Optional shared playback state (see `src/lib/playback-share.ts`).
+   * When provided, status changes are published so the floating pause/play
+   * button agrees with this player, and the floating button's toggle
+   * drives this player's own toggle.
+   */
+  share?: PlaybackShare;
 }) {
   // SSR-safe: prerender.mjs runs this component in Node, where `window`
   // doesn't exist. Unsupported browsers get no button at all.
@@ -79,7 +83,6 @@ export function ListenButton({
   const [status, setStatus] = useState<Status>('idle');
   const [speed, setSpeed] = useState<number>(1);
   const [voicePref, setVoicePref] = useState<VoicePreference>('auto');
-  const [optionsOpen, setOptionsOpen] = useState(false);
 
   const statusRef = useRef<Status>(status);
   useEffect(() => {
@@ -90,7 +93,6 @@ export function ListenButton({
   const indexRef = useRef(0);
   const activeBlockRef = useRef<Element | null>(null);
   const activeSentRef = useRef<Element | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   const runRef = useRef<ChunkRun | null>(null);
   // Whether the current run's utterance had fired `onstart` at the moment
   // the user paused — decides the resume path (see toggle()).
@@ -133,25 +135,6 @@ export function ListenButton({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, articleSelector]);
-
-  // Close the options popover on outside click / Escape.
-  useEffect(() => {
-    if (!optionsOpen) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setOptionsOpen(false);
-      }
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOptionsOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [optionsOpen]);
 
   /** Highlight the sentence containing `charIndex` inside the chunk. */
   const highlightSentence = (chunk: BlockChunk, charIndex: number) => {
@@ -286,6 +269,18 @@ export function ListenButton({
     }
   };
 
+  // Shared playback state: publish status for the floating button and let
+  // it drive this player's toggle. Registered without a dep array so the
+  // floating button always calls the latest toggle closure.
+  useEffect(() => {
+    share?.setStatus(status);
+  }, [status, share]);
+  useEffect(() => {
+    if (!share) return;
+    share.registerToggle(toggle);
+    return () => share.registerToggle(null);
+  });
+
   if (!supported) return null;
 
   const mainLabel =
@@ -298,77 +293,36 @@ export function ListenButton({
         : 'Lesson audio stopped.';
 
   return (
-    <div ref={panelRef} className="relative inline-flex items-stretch">
-      <div className="inline-flex overflow-hidden rounded-full">
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={mainLabel}
-          aria-pressed={status === 'playing'}
-          className={`${pillClass} rounded-r-none border-r-0 pr-3`}
-        >
-          <Icon name={status === 'playing' ? 'pause' : 'play'} className="h-4 w-4" />
-          {status === 'playing' ? 'Listening…' : status === 'paused' ? 'Resume' : 'Listen'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setOptionsOpen((o) => !o)}
-          aria-expanded={optionsOpen}
-          aria-label="Listening options: speed and voice"
-          className={`${pillClass} rounded-l-none px-2.5`}
-        >
-          <Icon name="chevronDown" className="h-4 w-4" />
-        </button>
-      </div>
-
-      {optionsOpen && (
-        <div
-          role="dialog"
-          aria-label="Listening options"
-          className="absolute right-0 top-full z-30 mt-2 w-64 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-lift dark:border-stone-700 dark:bg-stone-900"
-        >
-          <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-            Speed
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-1" role="group" aria-label="Playback speed">
-            {SPEEDS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSpeed(s)}
-                aria-pressed={speed === s}
-                className={segmentClass(speed === s)}
-              >
-                {s}×
-              </button>
-            ))}
-          </div>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-            Voice
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-1" role="group" aria-label="Voice preference">
-            {VOICE_OPTIONS.map((o) => (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => setVoicePref(o.value)}
-                aria-pressed={voicePref === o.value}
-                className={segmentClass(voicePref === o.value)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-          <p className="mt-3 text-xs leading-relaxed text-stone-400 dark:text-stone-500">
-            Read aloud by your browser — voice quality varies by device. Speed
-            and voice apply the next time you press play.
-          </p>
+    <PlayerChrome
+      playLabel={mainLabel}
+      playText={status === 'playing' ? 'Listening…' : status === 'paused' ? 'Resume' : 'Listen'}
+      playing={status === 'playing'}
+      onToggle={toggle}
+      optionsLabel="Listening options: speed and voice"
+      popoverLabel="Listening options"
+      statusText={statusText}
+    >
+      <SpeedSegments speed={speed} onSelect={setSpeed} />
+      <div className="mt-3">
+        <PopoverLabel>Browser voice</PopoverLabel>
+        <div className="mt-1.5 flex flex-wrap gap-1" role="group" aria-label="Browser voice preference">
+          {VOICE_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => setVoicePref(o.value)}
+              aria-pressed={voicePref === o.value}
+              className={segmentClass(voicePref === o.value)}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
-      )}
-
-      <span aria-live="polite" className="sr-only">
-        {statusText}
-      </span>
-    </div>
+      </div>
+      <PopoverNote>
+        Read aloud by your browser — voice quality varies by device. Speed
+        and voice apply the next time you press play.
+      </PopoverNote>
+    </PlayerChrome>
   );
 }

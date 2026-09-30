@@ -1,16 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   alignBlocks,
   expandPunctWithMap,
   expandTokens,
+  fetchManifest,
   findActiveWordIndex,
   flattenWords,
   isValidManifest,
+  loadAccentPreference,
   narrationAudioUrl,
   narrationJsonUrl,
   normalizeWordToken,
   planWordSpans,
+  saveAccentPreference,
   speakablePunct,
   tokenizeWords,
   type FlatWord,
@@ -380,16 +383,107 @@ describe('isValidManifest', () => {
 /* ------------------------------------------------------------------ */
 
 describe('narration asset URLs', () => {
-  it('builds the manifest URL under the audio dir', () => {
-    expect(narrationJsonUrl('scaling-web-service')).toBe(
-      '/audio/scaling-web-service/narration.json',
+  it('builds the per-accent manifest URL', () => {
+    expect(narrationJsonUrl('scaling-web-service', 'us')).toBe(
+      '/audio/scaling-web-service/us/narration.json',
+    );
+    expect(narrationJsonUrl('scaling-web-service', 'uk')).toBe(
+      '/audio/scaling-web-service/uk/narration.json',
     );
   });
 
-  it('builds the audio URL from the manifest file name', () => {
+  it('builds the per-accent audio URL from the manifest file name', () => {
     const m = manifest([]);
-    expect(narrationAudioUrl('scaling-web-service', m)).toBe(
-      '/audio/scaling-web-service/narration.opus',
+    expect(narrationAudioUrl('scaling-web-service', 'us', m)).toBe(
+      '/audio/scaling-web-service/us/narration.opus',
     );
+    expect(narrationAudioUrl('scaling-web-service', 'uk', m)).toBe(
+      '/audio/scaling-web-service/uk/narration.opus',
+    );
+  });
+});
+
+describe('accent preference persistence', () => {
+  it('defaults to us and tolerates missing storage', () => {
+    expect(loadAccentPreference()).toBe('us');
+    expect(() => saveAccentPreference('uk')).not.toThrow();
+    // Without a DOM there is no localStorage: save is a no-op and the
+    // default holds. (In a browser, jsdom-style tests would round-trip.)
+    expect(['us', 'uk']).toContain(loadAccentPreference());
+  });
+});
+
+describe('isValidManifest accent field', () => {
+  it('accepts manifests with and without the accent field', () => {
+    const base = manifest([]);
+    expect(isValidManifest({ ...base, accent: 'us' })).toBe(true);
+    expect(isValidManifest({ ...base, accent: 'uk' })).toBe(true);
+    const { accent: _drop, ...noAccent } = { ...base, accent: 'us' };
+    expect(isValidManifest(noAccent)).toBe(true);
+  });
+
+  it('rejects manifests with an unknown accent', () => {
+    const base = manifest([]);
+    expect(isValidManifest({ ...base, accent: 'au' })).toBe(false);
+    expect(isValidManifest({ ...base, accent: '' })).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* fetchManifest (lazy probe)                                          */
+/* ------------------------------------------------------------------ */
+
+describe('fetchManifest', () => {
+  const realFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    vi.restoreAllMocks();
+  });
+
+  it('fetches the per-accent manifest URL and returns the validated manifest', async () => {
+    const m = manifest([]);
+    const seen: string[] = [];
+    globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+      seen.push(String(url));
+      return new Response(JSON.stringify(m), { status: 200 });
+    }) as typeof fetch;
+
+    const got = await fetchManifest('scaling-web-service', 'us');
+    expect(got).toEqual(m);
+    expect(seen).toEqual(['/audio/scaling-web-service/us/narration.json']);
+  });
+
+  it('rejects on a non-OK response (the caller falls back to Web Speech)', async () => {
+    globalThis.fetch = vi.fn(async () => new Response('nope', { status: 404 })) as typeof fetch;
+    await expect(fetchManifest('no-such-lesson', 'us')).rejects.toThrow('HTTP 404');
+  });
+
+  it('rejects an invalid manifest even when the fetch succeeds', async () => {
+    globalThis.fetch = vi.fn(
+      async () => new Response(JSON.stringify({ nope: true }), { status: 200 }),
+    ) as typeof fetch;
+    await expect(fetchManifest('scaling-web-service', 'us')).rejects.toThrow(
+      'invalid manifest',
+    );
+  });
+
+  it('rejects a mislabeled manifest whose accent does not match the request', async () => {
+    const m = { ...manifest([]), accent: 'uk' as const };
+    globalThis.fetch = vi.fn(
+      async () => new Response(JSON.stringify(m), { status: 200 }),
+    ) as typeof fetch;
+    await expect(fetchManifest('scaling-web-service', 'us')).rejects.toThrow(
+      'accent mismatch',
+    );
+  });
+
+  it('accepts a manifest that predates the optional accent field', async () => {
+    const { accent: _drop, ...noAccent } = { ...manifest([]), accent: 'us' as const };
+    globalThis.fetch = vi.fn(
+      async () => new Response(JSON.stringify(noAccent), { status: 200 }),
+    ) as typeof fetch;
+    const got = await fetchManifest('scaling-web-service', 'us');
+    expect(got.accent).toBeUndefined();
   });
 });

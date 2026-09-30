@@ -32,10 +32,6 @@ function publish(next: SemanticPhase) {
   for (const listener of listeners) listener(next);
 }
 
-export function getSemanticPhase(): SemanticPhase {
-  return phase;
-}
-
 export function subscribeSemantic(listener: (next: SemanticPhase) => void): () => void {
   listeners.add(listener);
   listener(phase);

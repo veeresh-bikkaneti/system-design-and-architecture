@@ -1,17 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './ui/Icon';
 import { ListenButton } from './ListenButton';
+import { FloatingPlaybackButton } from './FloatingPlaybackButton';
+import {
+  PlayerChrome,
+  pillClass,
+  PopoverLabel,
+  PopoverNote,
+  SpeedSegments,
+} from './player/PlayerChrome';
 import { extractLessonBlocks } from '../lib/listen';
+import { createPlaybackShare, type PlaybackShare } from '../lib/playback-share';
 import {
   alignBlocks,
   findActiveWordIndex,
   flattenWords,
-  isValidManifest,
+  loadAccentPreference,
+  NARRATION_ACCENTS,
   narrationAudioUrl,
-  narrationJsonUrl,
+  saveAccentPreference,
   type FlatWord,
+  type NarrationAccent,
   type NarrationManifest,
 } from '../lib/narration';
+import { useNarrationProbe } from './useNarrationProbe';
 import {
   BLOCK_ACTIVE_CLASS,
   WORD_ACTIVE_CLASS,
@@ -22,24 +34,12 @@ import {
 
 type Status = 'idle' | 'playing' | 'paused';
 
-const SPEEDS = [0.9, 1, 1.25, 1.5] as const;
-
 /**
  * Below this fraction of manifest blocks aligned to the rendered lesson,
  * the narration is treated as stale (prose edited after recording) and the
  * learner is told so, with a one-tap switch to the browser voice.
  */
 const STALE_ALIGNMENT_RATIO = 0.7;
-
-const pillClass =
-  'inline-flex items-center gap-1.5 border border-stone-200/80 bg-white px-3.5 py-2 text-sm font-semibold text-stone-600 shadow-soft transition-colors hover:border-accent-300 hover:text-accent-800 active:translate-y-px dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-accent-800 dark:hover:text-accent-300';
-
-const segmentClass = (active: boolean) =>
-  `rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-    active
-      ? 'bg-accent-700 text-white dark:bg-accent-400 dark:text-stone-950'
-      : 'text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100'
-  }`;
 
 const fmtTime = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -68,19 +68,36 @@ interface TaggedBlock {
  */
 function NeuralPlayer({
   slug,
+  accent,
   manifest,
   articleSelector,
   onUseBrowserVoice,
+  share,
+  startPlaying = false,
 }: {
   slug: string;
+  /** Accent whose manifest/audio this player instance is bound to. */
+  accent: NarrationAccent;
   manifest: NarrationManifest;
   articleSelector: string;
   onUseBrowserVoice: () => void;
+  /**
+   * Shared playback state (see `src/lib/playback-share.ts`): status
+   * changes are published so the floating pause/play button agrees with
+   * this player, and the floating button's toggle drives this player.
+   */
+  share: PlaybackShare;
+  /**
+   * Auto-start playback on mount. Set when the manifest arrived lazily
+   * from a Listen press, so one press both fetches and plays. If the
+   * browser blocks it (the async fetch left the user-gesture window),
+   * play()'s own catch leaves the pill idle and a second press plays.
+   */
+  startPlaying?: boolean;
 }) {
   const [status, setStatus] = useState<Status>('idle');
   const [speed, setSpeed] = useState<number>(1);
   const [progress, setProgress] = useState(0);
-  const [optionsOpen, setOptionsOpen] = useState(false);
   /**
    * One-line, non-blocking notices: untagged playback, stale narration,
    * audio load failure. `offerFallback` adds the "use my browser's voice
@@ -114,10 +131,12 @@ function NeuralPlayer({
   const rafRef = useRef(0);
   const lastProgressRef = useRef(-1);
   const statusRef = useRef<Status>(status);
-  const panelRef = useRef<HTMLDivElement>(null);
   const reducedMotionRef = useRef(false);
 
-  const audioUrl = useMemo(() => narrationAudioUrl(slug, manifest), [slug, manifest]);
+  const audioUrl = useMemo(
+    () => narrationAudioUrl(slug, accent, manifest),
+    [slug, accent, manifest],
+  );
 
   useEffect(() => {
     statusRef.current = status;
@@ -164,25 +183,6 @@ function NeuralPlayer({
 
   // Full teardown on slug change / unmount: no orphaned audio, DOM restored.
   useEffect(() => teardown, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Close the options popover on outside click / Escape.
-  useEffect(() => {
-    if (!optionsOpen) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setOptionsOpen(false);
-      }
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOptionsOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [optionsOpen]);
 
   /**
    * Wrap every manifest word in a span inside its rendered block.
@@ -389,6 +389,28 @@ function NeuralPlayer({
     else play();
   };
 
+  // Shared playback state: publish status for the floating button and let
+  // it drive this player's toggle. Registered without a dep array so the
+  // floating button always calls the latest toggle closure.
+  useEffect(() => {
+    share.setStatus(status);
+  }, [status, share]);
+  useEffect(() => {
+    share.registerToggle(toggle);
+    return () => share.registerToggle(null);
+  });
+
+  // Lazily-probed manifests (startPlaying) arrive after the learner
+  // pressed Listen: begin playback immediately so one press both fetches
+  // and plays. Guarded so a re-render never restarts a paused lesson.
+  const didAutoPlayRef = useRef(false);
+  useEffect(() => {
+    if (startPlaying && !didAutoPlayRef.current) {
+      didAutoPlayRef.current = true;
+      play();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const seek = (value: number) => {
     const audio = ensureAudio();
     if (!audio) return;
@@ -413,88 +435,50 @@ function NeuralPlayer({
 
   return (
     <div className="inline-flex flex-col items-start gap-1">
-      <div ref={panelRef} className="relative inline-flex items-stretch">
-      <div className="inline-flex overflow-hidden rounded-full">
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={mainLabel}
-          aria-pressed={status === 'playing'}
-          className={`${pillClass} rounded-r-none border-r-0 pr-3`}
-        >
-          <Icon name={status === 'playing' ? 'pause' : 'play'} className="h-4 w-4" />
-          {status === 'playing' ? 'Listening…' : status === 'paused' ? 'Resume' : 'Listen'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setOptionsOpen((o) => !o)}
-          aria-expanded={optionsOpen}
-          aria-label="Narration options"
-          className={`${pillClass} rounded-l-none px-2.5`}
-        >
-          <Icon name="chevronDown" className="h-4 w-4" />
-        </button>
-      </div>
-
-      {optionsOpen && (
-        <div
-          role="group"
-          aria-label="Narration options"
-          className="absolute right-0 top-full z-30 mt-2 w-72 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-lift dark:border-stone-700 dark:bg-stone-900"
-        >
-          <div className="flex items-baseline justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-              Progress
-            </p>
-            <p className="text-xs tabular-nums text-stone-500 dark:text-stone-400">
-              {fmtTime(progress)} / {fmtTime(manifest.duration)}
-            </p>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={manifest.duration}
-            step={0.5}
-            value={Math.min(progress, manifest.duration)}
-            onChange={(e) => seek(Number(e.target.value))}
-            aria-label="Seek narration"
-            className="mt-2 w-full accent-accent-700 dark:accent-accent-400"
-          />
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-            Speed
+      <PlayerChrome
+        playLabel={mainLabel}
+        playText={status === 'playing' ? 'Listening…' : status === 'paused' ? 'Resume' : 'Listen'}
+        playing={status === 'playing'}
+        onToggle={toggle}
+        optionsLabel="Narration options"
+        popoverLabel="Narration options"
+        popoverWidthClass="w-72"
+        statusText={statusText}
+      >
+        <div className="flex items-baseline justify-between">
+          <PopoverLabel>Progress</PopoverLabel>
+          <p className="text-xs tabular-nums text-stone-500 dark:text-stone-400">
+            {fmtTime(progress)} / {fmtTime(manifest.duration)}
           </p>
-          <div className="mt-1.5 flex flex-wrap gap-1" role="group" aria-label="Playback speed">
-            {SPEEDS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => changeSpeed(s)}
-                aria-pressed={speed === s}
-                className={segmentClass(speed === s)}
-              >
-                {s}×
-              </button>
-            ))}
-          </div>
-          <p className="mt-3 text-xs leading-relaxed text-stone-400 dark:text-stone-500">
-            Narrated by an AI voice — recorded when the course was built, so
-            there&apos;s no account, no API key, and no cost. The audio downloads
-            once as it plays, and the highlighting follows the words automatically.
-          </p>
-          <button
-            type="button"
-            onClick={onUseBrowserVoice}
-            className="mt-2 text-xs font-semibold text-accent-700 underline-offset-2 hover:underline dark:text-accent-400"
-          >
-            Use my browser&apos;s voice instead
-          </button>
         </div>
-      )}
-
-      <span aria-live="polite" className="sr-only">
-        {statusText}
-      </span>
-      </div>
+        <input
+          type="range"
+          min={0}
+          max={manifest.duration}
+          step={0.5}
+          value={Math.min(progress, manifest.duration)}
+          onChange={(e) => seek(Number(e.target.value))}
+          aria-label="Seek narration"
+          className="mt-2 w-full accent-accent-700 dark:accent-accent-400"
+        />
+        <div className="mt-3">
+          <SpeedSegments speed={speed} onSelect={changeSpeed} />
+        </div>
+        <PopoverNote>
+          Narrated by an AI voice (
+          {accent === 'uk' ? 'UK English' : 'US English'}) — recorded when
+          the course was built, so there&apos;s no account, no API key, and
+          no cost. The audio downloads once as it plays, and the
+          highlighting follows the words automatically.
+        </PopoverNote>
+        <button
+          type="button"
+          onClick={onUseBrowserVoice}
+          className="mt-2 text-xs font-semibold text-accent-700 underline-offset-2 hover:underline dark:text-accent-400"
+        >
+          Use my browser&apos;s voice instead
+        </button>
+      </PlayerChrome>
 
       {notice && (
         <p
@@ -527,11 +511,14 @@ function NeuralPlayer({
  * "Listen to this lesson" — neural narration when available, browser speech
  * synthesis otherwise.
  *
- * On mount it probes `public/audio/<slug>/narration.json`. When the
- * build-time narration exists, the learner gets the AI voice with
- * word-by-word read-along highlighting; when it doesn't (or the probe
- * fails), the proven Web Speech fallback renders instead — so listen mode
- * never breaks, even for lessons generated later.
+ * The manifest (`public/audio/<slug>/<accent>/narration.json`) is fetched
+ * lazily: a build-time index (`src/lib/narration-index.ts`) is consulted
+ * synchronously on mount, and the manifest is requested only on the first
+ * Listen press (hover/focus prefetches). Lessons and accents with no
+ * narration never probe the network at all — when the index says no (or
+ * the fetch fails), the proven Web Speech fallback renders instead, so
+ * listen mode never breaks, even for lessons generated later or accents
+ * not yet recorded.
  */
 export function LessonNarrator({
   slug,
@@ -540,43 +527,122 @@ export function LessonNarrator({
   slug: string;
   articleSelector?: string;
 }) {
-  const [manifest, setManifest] = useState<NarrationManifest | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [accent, setAccent] = useState<NarrationAccent>(loadAccentPreference);
   const [browserVoice, setBrowserVoice] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(narrationJsonUrl(slug))
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((json: unknown) => {
-        if (!cancelled && isValidManifest(json)) setManifest(json);
-        else if (!cancelled) setFailed(true);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [slug]);
+  // Lazy manifest probe: no network on mount; the first Listen press
+  // fetches (hover/focus prefetches) and plays.
+  const probe = useNarrationProbe(slug, accent);
 
-  if (failed || browserVoice) {
-    return <ListenButton slug={slug} articleSelector={articleSelector} />;
-  }
-  if (!manifest) {
-    // Manifest still loading: the fallback works immediately, and is
-    // replaced by the neural player the moment the manifest arrives.
-    return <ListenButton slug={slug} articleSelector={articleSelector} />;
-  }
+  // One shared playback state per lesson mount: the active player (neural
+  // or the Web Speech fallback) publishes its status here, and the
+  // floating pause/play button drives playback through it — both controls
+  // always agree. See `src/lib/playback-share.ts`.
+  const [share] = useState(() => createPlaybackShare());
+
+  // Drop any stale shared status on slug/accent change so the floating
+  // button can never show "playing" for a dead player. (The probe hook
+  // resets its own state on the same change.)
+  useEffect(() => {
+    share.setStatus('idle');
+  }, [slug, accent, share]);
+
+  const changeAccent = (next: NarrationAccent) => {
+    if (next === accent) return;
+    saveAccentPreference(next);
+    setAccent(next);
+    // Fresh accent: the probe hook resets to idle (the next Listen press
+    // re-probes the new accent), and any fallback state is cleared so the
+    // neural player gets its chance first.
+    setBrowserVoice(false);
+    share.setStatus('idle');
+  };
+
+  // The floating button appears only when narration is available: the
+  // neural player is up, or the Web Speech fallback can render — the same
+  // support gating as the main player.
+  const speechSupported =
+    typeof window !== 'undefined' && 'speechSynthesis' in window;
+  const neuralReady =
+    probe.state === 'ready' && probe.manifest !== null && !browserVoice;
+  const floatingVisible = neuralReady || (!neuralReady && speechSupported);
+
+  // Branch order is a race-safety invariant (P0-5): the Web Speech fallback
+  // mounts only in terminal states for this slug+accent — the build-time
+  // index said no narration, the probe already failed, or the learner
+  // explicitly chose the browser voice. While the manifest is merely
+  // unresolved the inert pill renders instead, so a *playing* ListenButton
+  // can never be unmounted by a NeuralPlayer mount (the unmount cleanup
+  // calls speechSynthesis.cancel(), which would kill speech mid-sentence).
+  const player =
+    browserVoice || !probe.narratable || probe.state === 'failed' ? (
+      // No build-time narration for this lesson/accent (the index said no,
+      // so nothing was ever probed), the probe failed, or the learner chose
+      // the browser voice: the Web Speech fallback.
+      <ListenButton
+        key={`${slug}:${accent}`}
+        slug={slug}
+        articleSelector={articleSelector}
+        share={share}
+      />
+    ) : probe.state === 'ready' && probe.manifest ? (
+      <NeuralPlayer
+        key={`${slug}:${accent}`}
+        slug={slug}
+        accent={accent}
+        manifest={probe.manifest}
+        articleSelector={articleSelector}
+        onUseBrowserVoice={() => setBrowserVoice(true)}
+        share={share}
+        startPlaying={probe.autoplay}
+      />
+    ) : (
+      // Manifest not fetched yet: a Listen pill that fetches on press and
+      // plays when the manifest lands; hover/focus prefetches silently.
+      <button
+        type="button"
+        onClick={() => probe.probe({ autoplay: true })}
+        onMouseEnter={() => probe.probe()}
+        onFocus={() => probe.probe()}
+        aria-label="Listen to this lesson"
+        aria-busy={probe.state === 'loading'}
+        className={pillClass}
+      >
+        <Icon
+          name="play"
+          className={`h-4 w-4 ${probe.state === 'loading' ? 'animate-pulse' : ''}`}
+        />
+        {probe.state === 'loading' ? 'Loading…' : 'Listen'}
+      </button>
+    );
+
   return (
-    <NeuralPlayer
-      slug={slug}
-      manifest={manifest}
-      articleSelector={articleSelector}
-      onUseBrowserVoice={() => setBrowserVoice(true)}
-    />
+    <div className="inline-flex items-center gap-1.5">
+      {player}
+      <div
+        role="group"
+        aria-label="Narration voice: US or UK English"
+        className="inline-flex overflow-hidden rounded-full border border-stone-200/80 bg-white shadow-soft dark:border-stone-700 dark:bg-stone-900"
+      >
+        {NARRATION_ACCENTS.map((a) => (
+          <button
+            key={a}
+            type="button"
+            onClick={() => changeAccent(a)}
+            aria-pressed={accent === a}
+            aria-label={`${a === 'us' ? 'US' : 'UK'} English narration`}
+            title={`${a === 'us' ? 'US' : 'UK'} English narration`}
+            className={`px-2.5 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
+              accent === a
+                ? 'bg-accent-700 text-white dark:bg-accent-400 dark:text-stone-950'
+                : 'text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100'
+            }`}
+          >
+            {a === 'us' ? 'US' : 'UK'}
+          </button>
+        ))}
+      </div>
+      <FloatingPlaybackButton share={share} visible={floatingVisible} />
+    </div>
   );
 }
