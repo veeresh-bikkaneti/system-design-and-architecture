@@ -149,6 +149,26 @@ test('every mermaid node/actor renders inside its SVG viewport', async ({
 
   for (const { slug, diagramCount } of lessons) {
     await page.goto(`${TARGET}/lesson/${slug}`, { timeout: 60_000 });
+    // Diagrams are viewport-gated (lazyMdx + IntersectionObserver, PR #44):
+    // placeholders below the fold never load until scrolled near. Sweep the
+    // page top-to-bottom so every placeholder's observer fires, then count.
+    await page.evaluate(async () => {
+      await new Promise<void>((resolve) => {
+        const tick = () => {
+          window.scrollBy(0, 600);
+          if (
+            window.scrollY + window.innerHeight >=
+            document.body.scrollHeight - 1
+          ) {
+            window.scrollTo(0, 0);
+            resolve();
+          } else {
+            setTimeout(tick, 50);
+          }
+        };
+        tick();
+      });
+    });
     const diagrams = page.locator('.mermaid-diagram');
     await expect(diagrams).toHaveCount(diagramCount, { timeout: 45_000 });
     await page.waitForTimeout(SETTLE_MS); // let entrance animations finish
