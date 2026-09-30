@@ -1,8 +1,9 @@
 import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
 import { MDXProvider } from '@mdx-js/react';
-import { isValidElement, lazy, Suspense, useEffect } from 'react';
+import { isValidElement, lazy, Suspense, useEffect, useRef } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { Layout } from './components/Layout';
+import { focusMainContent } from './lib/focus';
 import { OauthCallbackPage } from './components/AuthBar';
 
 // Route-level code splitting: every page ships as its own chunk so the entry
@@ -156,10 +157,22 @@ const QaWidget = lazy(() =>
   import('./components/qa/QaWidget').then((m) => ({ default: m.QaWidget })),
 );
 
-function ScrollToTop() {
+// Keep the viewport at the top when the route changes (e.g. Home -> lesson),
+// and move focus into the main landmark so screen-reader users get a "new
+// page" cue (alongside the document.title change Seo.tsx applies) instead of
+// staying stranded on the unmounted link of the previous page. Exported for
+// the a11y test suite.
+export function ScrollToTop() {
   const { pathname } = useLocation();
+  const firstRender = useRef(true);
   useEffect(() => {
     window.scrollTo({ top: 0 });
+    if (firstRender.current) {
+      // Initial page load: the browser already owns the focus context.
+      firstRender.current = false;
+      return;
+    }
+    focusMainContent();
   }, [pathname]);
   return null;
 }
