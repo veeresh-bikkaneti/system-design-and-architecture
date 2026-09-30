@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   alignBlocks,
   expandPunctWithMap,
   expandTokens,
+  fetchManifest,
   findActiveWordIndex,
   flattenWords,
   isValidManifest,
@@ -425,5 +426,45 @@ describe('isValidManifest accent field', () => {
     const base = manifest([]);
     expect(isValidManifest({ ...base, accent: 'au' })).toBe(false);
     expect(isValidManifest({ ...base, accent: '' })).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* fetchManifest (lazy probe)                                          */
+/* ------------------------------------------------------------------ */
+
+describe('fetchManifest', () => {
+  const realFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    vi.restoreAllMocks();
+  });
+
+  it('fetches the per-accent manifest URL and returns the validated manifest', async () => {
+    const m = manifest([]);
+    const seen: string[] = [];
+    globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+      seen.push(String(url));
+      return new Response(JSON.stringify(m), { status: 200 });
+    }) as typeof fetch;
+
+    const got = await fetchManifest('scaling-web-service', 'us');
+    expect(got).toEqual(m);
+    expect(seen).toEqual(['/audio/scaling-web-service/us/narration.json']);
+  });
+
+  it('rejects on a non-OK response (the caller falls back to Web Speech)', async () => {
+    globalThis.fetch = vi.fn(async () => new Response('nope', { status: 404 })) as typeof fetch;
+    await expect(fetchManifest('no-such-lesson', 'us')).rejects.toThrow('HTTP 404');
+  });
+
+  it('rejects an invalid manifest even when the fetch succeeds', async () => {
+    globalThis.fetch = vi.fn(
+      async () => new Response(JSON.stringify({ nope: true }), { status: 200 }),
+    ) as typeof fetch;
+    await expect(fetchManifest('scaling-web-service', 'us')).rejects.toThrow(
+      'invalid manifest',
+    );
   });
 });

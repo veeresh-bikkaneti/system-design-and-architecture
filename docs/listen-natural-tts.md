@@ -20,14 +20,17 @@ flowchart TB
 
     subgraph SITE["Learner's browser (GitHub Pages, static)"]
         BTN["Listen button<br/>(LessonNarrator)"]
-        PROBE{"audio/&lt;slug&gt;/&lt;accent&gt;/narration.json<br/>exists?"}
+        INDEX["has-narration bitset<br/>(build-time index, ~1 KB)"]
+        FETCH["Fetch audio/&lt;slug&gt;/&lt;accent&gt;/narration.json<br/>on first Listen press"]
         PLAYER["Neural player<br/>HTMLAudio + rAF karaoke highlight"]
         FALLBACK["Browser voice fallback<br/>(Web Speech API, sentence highlight)"]
-        BTN --> PROBE
-        PROBE -->|yes| PLAYER
-        PROBE -->|no| FALLBACK
+        BTN --> INDEX
+        INDEX -->|yes| FETCH
+        INDEX -->|no| FALLBACK
+        FETCH -->|ok| PLAYER
+        FETCH -->|fails| FALLBACK
         OPUS -.->|lazy fetch on play| PLAYER
-        JSON -.->|probed on page load| PLAYER
+        JSON -.->|fetched on first Listen press| FETCH
     end
 
     style BUILD fill:#f5f3ff,stroke:#8b5cf6
@@ -40,7 +43,9 @@ flowchart TB
    hear a natural AI voice and each word highlights as it's spoken. The
    audio and timing files are generated once at build time and served as
    static files — no API keys, no network calls beyond downloading the
-   audio itself, no cost per listen.
+   audio itself, no cost per listen. The timing manifest isn't even fetched
+   until you press Listen (hovering the button prefetches it); page views
+   cost zero narration network calls.
 2. **Browser voice (fallback).** If a lesson has no generated audio yet
    (or you choose "Use my browser's voice instead"), your device reads the
    lesson aloud with its built-in voices, highlighting the block — and,
@@ -50,7 +55,8 @@ flowchart TB
 
 - **Play / pause / resume** — one pill button; nothing ever autoplays.
 - **US / UK accent picker** — switches between the two neural voices
-  (remembered per device); the player re-probes and restarts cleanly.
+  (remembered per device); the next Listen press re-probes the new accent
+  and restarts cleanly.
 - **Floating pause/play** — a small button fixed to the bottom-right
   corner, always in sync with the main player, so playback stays
   reachable while scrolling.
@@ -116,7 +122,22 @@ done
 
 # 4. End-to-end player check in headless Chromium (needs node_modules).
 node scripts/tts/verify_player.mjs <lesson-slug> [accent]
+
+# 5. Regenerate the has-narration bitset so the site probes lazily and
+#    never probes lessons/accents with no narration at all. Run this
+#    after every synthesis batch (UK synthesis is in progress — the UK
+#    column of the bitset grows as accents land).
+python3 scripts/tts/generate_narration_index.py
+#    (or: npm run narration:index)
 ```
+
+The bitset (`src/lib/narration-index.generated.ts`, a ~1 KB Set of
+`"<slug>/<accent>"` keys) is consulted synchronously on lesson mount: the
+player fetches the 192 KB manifest only on the first Listen press
+(hover/focus prefetches), and lessons without narration never probe the
+network at all — no wasted 404s. It is generated, never hand-maintained:
+the vitest suite fails if the committed bitset drifts from
+`public/audio`.
 
 `synthesize.py` writes each lesson's opus + manifest as it finishes, logs
 failures per lesson without aborting the batch, and exits nonzero if any
