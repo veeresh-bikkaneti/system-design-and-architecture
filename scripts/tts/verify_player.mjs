@@ -19,7 +19,7 @@
  * pattern as e2e/smoke.spec.ts. Range requests are forwarded so the
  * <audio> element can stream the opus file through the proxy.
  *
- * Usage: node scripts/tts/verify_player.mjs <lesson-slug>
+ * Usage: node scripts/tts/verify_player.mjs <lesson-slug> [accent]  (accent defaults to "us")
  */
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
@@ -29,8 +29,13 @@ const CHROME = '/opt/meta-chromium/chrome';
 const PORT = 5199;
 const BASE = `http://127.0.0.1:${PORT}`;
 const SLUG = process.argv[2];
+const ACCENT = process.argv[3] || 'us';
 if (!SLUG) {
-  console.error('usage: node scripts/tts/verify_player.mjs <lesson-slug>');
+  console.error('usage: node scripts/tts/verify_player.mjs <lesson-slug> [accent]');
+  process.exit(2);
+}
+if (ACCENT !== 'us' && ACCENT !== 'uk') {
+  console.error(`accent must be 'us' or 'uk', got ${ACCENT}`);
   process.exit(2);
 }
 const LESSON_URL = `${BASE}/lesson/${SLUG}/`;
@@ -45,7 +50,7 @@ async function waitForVite(proc, timeoutMs = 60_000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
-      const r = await fetch(`${BASE}/audio/${SLUG}/narration.json`);
+      const r = await fetch(`${BASE}/audio/${SLUG}/${ACCENT}/narration.json`);
       if (r.ok) return;
     } catch { /* not up yet */ }
     if (proc.exitCode !== null) throw new Error('vite dev server exited early');
@@ -130,7 +135,7 @@ try {
   // The manifest URL proves it is serving this repo's public/ dir.
   let up = false;
   try {
-    up = (await fetch(`${BASE}/audio/${SLUG}/narration.json`)).ok;
+    up = (await fetch(`${BASE}/audio/${SLUG}/${ACCENT}/narration.json`)).ok;
   } catch { /* not up */ }
   if (!up) {
     vite = spawn('npx', ['vite', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], {
@@ -140,7 +145,7 @@ try {
     await waitForVite(vite);
   }
 
-  const manifest = await (await fetch(`${BASE}/audio/${SLUG}/narration.json`)).json();
+  const manifest = await (await fetch(`${BASE}/audio/${SLUG}/${ACCENT}/narration.json`)).json();
   const flat = manifest.blocks.flatMap((b) => b.words);
   check('manifest served and valid', manifest.slug === SLUG && flat.length > 0, `${flat.length} words`);
 

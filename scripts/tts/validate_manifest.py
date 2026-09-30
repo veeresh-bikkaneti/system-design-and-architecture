@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """Validate a generated narration package against the player contract.
 
-Checks public/audio/<slug>/narration.json + narration.opus against every
-assumption in src/lib/narration.ts / src/components/LessonNarrator.tsx:
+Checks public/audio/<slug>/<accent>/narration.json + narration.opus against
+every assumption in src/lib/narration.ts / src/components/LessonNarrator.tsx:
 
-- manifest has slug/voice/sampleRate/duration/audio/blocks
+- manifest has slug/voice/accent/sampleRate/duration/audio/blocks
 - manifest.audio == "narration.opus" and the file exists and is non-empty
 - every block has kind in {title, summary, prose}, text, and words
 - every word has text (NOT "t"), start, end with 0 <= start <= end <= duration
 - word start times are non-decreasing within the lesson
 - block [start, end] spans cover their words
 
-Usage: .venv/bin/python scripts/tts/validate_manifest.py <slug>
+Usage: .venv/bin/python scripts/tts/validate_manifest.py <slug> [accent]
+       (accent defaults to "us")
 """
 
 from __future__ import annotations
@@ -30,8 +31,8 @@ def fail(msg: str) -> int:
     return 1
 
 
-def main(slug: str) -> int:
-    out_dir = AUDIO_OUT / slug
+def main(slug: str, accent: str = "us") -> int:
+    out_dir = AUDIO_OUT / slug / accent
     manifest_path = out_dir / "narration.json"
     opus_path = out_dir / "narration.opus"
     if not manifest_path.exists():
@@ -40,9 +41,11 @@ def main(slug: str) -> int:
         return fail(f"{opus_path} missing or empty")
 
     m = json.loads(manifest_path.read_text(encoding="utf-8"))
-    for key in ("slug", "voice", "sampleRate", "duration", "audio", "blocks"):
+    for key in ("slug", "voice", "accent", "sampleRate", "duration", "audio", "blocks"):
         if key not in m:
             return fail(f"manifest missing key '{key}'")
+    if m["accent"] != accent:
+        return fail(f"manifest.accent = {m['accent']!r}, expected {accent!r}")
     if m["audio"] != "narration.opus":
         return fail(f"manifest.audio = {m['audio']!r}, player expects 'narration.opus'")
     if m["slug"] != slug:
@@ -82,11 +85,16 @@ def main(slug: str) -> int:
                 return fail(f"block {i}: block span [{b_start}, {b_end}] does not cover words")
 
     print(
-        f"VALID: {slug}: {len(m['blocks'])} blocks, {total_words} words, "
+        f"VALID: {slug}/{accent}: {len(m['blocks'])} blocks, {total_words} words, "
         f"{duration:.1f}s audio, {opus_path.stat().st_size / 1024:.0f} KiB opus"
     )
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1]))
+    slug_arg = sys.argv[1]
+    accent_arg = sys.argv[2] if len(sys.argv) > 2 else "us"
+    if accent_arg not in ("us", "uk"):
+        print(f"INVALID: accent must be 'us' or 'uk', got {accent_arg!r}")
+        sys.exit(1)
+    sys.exit(main(slug_arg, accent_arg))

@@ -7,9 +7,13 @@ import {
   findActiveWordIndex,
   flattenWords,
   isValidManifest,
+  loadAccentPreference,
+  NARRATION_ACCENTS,
   narrationAudioUrl,
   narrationJsonUrl,
+  saveAccentPreference,
   type FlatWord,
+  type NarrationAccent,
   type NarrationManifest,
 } from '../lib/narration';
 import {
@@ -68,11 +72,14 @@ interface TaggedBlock {
  */
 function NeuralPlayer({
   slug,
+  accent,
   manifest,
   articleSelector,
   onUseBrowserVoice,
 }: {
   slug: string;
+  /** Accent whose manifest/audio this player instance is bound to. */
+  accent: NarrationAccent;
   manifest: NarrationManifest;
   articleSelector: string;
   onUseBrowserVoice: () => void;
@@ -117,7 +124,10 @@ function NeuralPlayer({
   const panelRef = useRef<HTMLDivElement>(null);
   const reducedMotionRef = useRef(false);
 
-  const audioUrl = useMemo(() => narrationAudioUrl(slug, manifest), [slug, manifest]);
+  const audioUrl = useMemo(
+    () => narrationAudioUrl(slug, accent, manifest),
+    [slug, accent, manifest],
+  );
 
   useEffect(() => {
     statusRef.current = status;
@@ -477,9 +487,11 @@ function NeuralPlayer({
             ))}
           </div>
           <p className="mt-3 text-xs leading-relaxed text-stone-400 dark:text-stone-500">
-            Narrated by an AI voice — recorded when the course was built, so
-            there&apos;s no account, no API key, and no cost. The audio downloads
-            once as it plays, and the highlighting follows the words automatically.
+            Narrated by an AI voice (
+            {accent === 'uk' ? 'UK English' : 'US English'}) — recorded when
+            the course was built, so there&apos;s no account, no API key, and
+            no cost. The audio downloads once as it plays, and the
+            highlighting follows the words automatically.
           </p>
           <button
             type="button"
@@ -527,11 +539,13 @@ function NeuralPlayer({
  * "Listen to this lesson" — neural narration when available, browser speech
  * synthesis otherwise.
  *
- * On mount it probes `public/audio/<slug>/narration.json`. When the
- * build-time narration exists, the learner gets the AI voice with
- * word-by-word read-along highlighting; when it doesn't (or the probe
+ * On mount (and whenever the accent changes) it probes
+ * `public/audio/<slug>/<accent>/narration.json`. When the build-time
+ * narration exists for the chosen accent, the learner gets the AI voice
+ * with word-by-word read-along highlighting; when it doesn't (or the probe
  * fails), the proven Web Speech fallback renders instead — so listen mode
- * never breaks, even for lessons generated later.
+ * never breaks, even for lessons generated later or accents not yet
+ * recorded.
  */
 export function LessonNarrator({
   slug,
@@ -540,13 +554,14 @@ export function LessonNarrator({
   slug: string;
   articleSelector?: string;
 }) {
+  const [accent, setAccent] = useState<NarrationAccent>(loadAccentPreference);
   const [manifest, setManifest] = useState<NarrationManifest | null>(null);
   const [failed, setFailed] = useState(false);
   const [browserVoice, setBrowserVoice] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(narrationJsonUrl(slug))
+    fetch(narrationJsonUrl(slug, accent))
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -561,22 +576,63 @@ export function LessonNarrator({
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, accent]);
 
-  if (failed || browserVoice) {
-    return <ListenButton slug={slug} articleSelector={articleSelector} />;
-  }
-  if (!manifest) {
-    // Manifest still loading: the fallback works immediately, and is
-    // replaced by the neural player the moment the manifest arrives.
-    return <ListenButton slug={slug} articleSelector={articleSelector} />;
-  }
+  const changeAccent = (next: NarrationAccent) => {
+    if (next === accent) return;
+    saveAccentPreference(next);
+    setAccent(next);
+    // Fresh probe for the new accent: drop the old manifest, clear any
+    // fallback state so the neural player gets its chance first.
+    setManifest(null);
+    setFailed(false);
+    setBrowserVoice(false);
+  };
+
+  const player =
+    failed || browserVoice ? (
+      <ListenButton slug={slug} articleSelector={articleSelector} />
+    ) : !manifest ? (
+      // Manifest still loading: the fallback works immediately, and is
+      // replaced by the neural player the moment the manifest arrives.
+      <ListenButton slug={slug} articleSelector={articleSelector} />
+    ) : (
+      <NeuralPlayer
+        key={`${slug}:${accent}`}
+        slug={slug}
+        accent={accent}
+        manifest={manifest}
+        articleSelector={articleSelector}
+        onUseBrowserVoice={() => setBrowserVoice(true)}
+      />
+    );
+
   return (
-    <NeuralPlayer
-      slug={slug}
-      manifest={manifest}
-      articleSelector={articleSelector}
-      onUseBrowserVoice={() => setBrowserVoice(true)}
-    />
+    <div className="inline-flex items-center gap-1.5">
+      {player}
+      <div
+        role="group"
+        aria-label="Narration voice: US or UK English"
+        className="inline-flex overflow-hidden rounded-full border border-stone-200/80 bg-white shadow-soft dark:border-stone-700 dark:bg-stone-900"
+      >
+        {NARRATION_ACCENTS.map((a) => (
+          <button
+            key={a}
+            type="button"
+            onClick={() => changeAccent(a)}
+            aria-pressed={accent === a}
+            aria-label={`${a === 'us' ? 'US' : 'UK'} English narration`}
+            title={`${a === 'us' ? 'US' : 'UK'} English narration`}
+            className={`px-2.5 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
+              accent === a
+                ? 'bg-accent-700 text-white dark:bg-accent-400 dark:text-stone-950'
+                : 'text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100'
+            }`}
+          >
+            {a === 'us' ? 'US' : 'UK'}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

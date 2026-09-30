@@ -344,9 +344,9 @@ export function ListenButton({
             ))}
           </div>
           <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-            Voice
+            Browser voice
           </p>
-          <div className="mt-1.5 flex flex-wrap gap-1" role="group" aria-label="Voice preference">
+          <div className="mt-1.5 flex flex-wrap gap-1" role="group" aria-label="Browser voice preference">
             {VOICE_OPTIONS.map((o) => (
               <button
                 key={o.value}

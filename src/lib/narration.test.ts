@@ -7,10 +7,12 @@ import {
   findActiveWordIndex,
   flattenWords,
   isValidManifest,
+  loadAccentPreference,
   narrationAudioUrl,
   narrationJsonUrl,
   normalizeWordToken,
   planWordSpans,
+  saveAccentPreference,
   speakablePunct,
   tokenizeWords,
   type FlatWord,
@@ -380,16 +382,48 @@ describe('isValidManifest', () => {
 /* ------------------------------------------------------------------ */
 
 describe('narration asset URLs', () => {
-  it('builds the manifest URL under the audio dir', () => {
-    expect(narrationJsonUrl('scaling-web-service')).toBe(
-      '/audio/scaling-web-service/narration.json',
+  it('builds the per-accent manifest URL', () => {
+    expect(narrationJsonUrl('scaling-web-service', 'us')).toBe(
+      '/audio/scaling-web-service/us/narration.json',
+    );
+    expect(narrationJsonUrl('scaling-web-service', 'uk')).toBe(
+      '/audio/scaling-web-service/uk/narration.json',
     );
   });
 
-  it('builds the audio URL from the manifest file name', () => {
+  it('builds the per-accent audio URL from the manifest file name', () => {
     const m = manifest([]);
-    expect(narrationAudioUrl('scaling-web-service', m)).toBe(
-      '/audio/scaling-web-service/narration.opus',
+    expect(narrationAudioUrl('scaling-web-service', 'us', m)).toBe(
+      '/audio/scaling-web-service/us/narration.opus',
     );
+    expect(narrationAudioUrl('scaling-web-service', 'uk', m)).toBe(
+      '/audio/scaling-web-service/uk/narration.opus',
+    );
+  });
+});
+
+describe('accent preference persistence', () => {
+  it('defaults to us and tolerates missing storage', () => {
+    expect(loadAccentPreference()).toBe('us');
+    expect(() => saveAccentPreference('uk')).not.toThrow();
+    // Without a DOM there is no localStorage: save is a no-op and the
+    // default holds. (In a browser, jsdom-style tests would round-trip.)
+    expect(['us', 'uk']).toContain(loadAccentPreference());
+  });
+});
+
+describe('isValidManifest accent field', () => {
+  it('accepts manifests with and without the accent field', () => {
+    const base = manifest([]);
+    expect(isValidManifest({ ...base, accent: 'us' })).toBe(true);
+    expect(isValidManifest({ ...base, accent: 'uk' })).toBe(true);
+    const { accent: _drop, ...noAccent } = { ...base, accent: 'us' };
+    expect(isValidManifest(noAccent)).toBe(true);
+  });
+
+  it('rejects manifests with an unknown accent', () => {
+    const base = manifest([]);
+    expect(isValidManifest({ ...base, accent: 'au' })).toBe(false);
+    expect(isValidManifest({ ...base, accent: '' })).toBe(false);
   });
 });
