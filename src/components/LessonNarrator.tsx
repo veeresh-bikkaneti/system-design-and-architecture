@@ -596,7 +596,11 @@ export function LessonNarrator({
         return res.json();
       })
       .then((json: unknown) => {
-        if (!cancelled && isValidManifest(json)) setManifest(json);
+        // Defense-in-depth: a mislabeled manifest (right schema, wrong
+        // accent) would play audio with wrong highlight timings. The build
+        // validator enforces this too; reject it here as well.
+        if (!cancelled && isValidManifest(json) && json.accent === accent)
+          setManifest(json);
         else if (!cancelled) setFailed(true);
       })
       .catch(() => {
