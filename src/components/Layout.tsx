@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Icon } from './ui/Icon';
 import { BadgeToastHost } from './ui/BadgeToast';
 import { useDisplayStore, resolveTheme } from '../store/display';
 import { AuthBar } from './AuthBar';
+import { focusMainContent, useModalFocus } from '../lib/focus';
 
 function BrandMark({ className = 'h-9 w-9' }: { className?: string }) {
   return (
@@ -55,6 +56,19 @@ function ThemeToggle() {
 
 export function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  // Focus into the drawer on open, back to the menu button on close,
+  // Escape-to-close, and a Tab trap while open (see src/lib/focus.ts).
+  useModalFocus({
+    open: drawerOpen,
+    dialogRef,
+    returnFocusRef: menuButtonRef,
+    onClose: closeDrawer,
+  });
+
+  // Lock body scroll while the drawer is open.
   useEffect(() => {
     document.body.style.overflow = drawerOpen ? 'hidden' : '';
     return () => {
@@ -64,8 +78,12 @@ export function Layout() {
 
   return (
     <div className="flex min-h-svh flex-col">
+      {/* Skip link for keyboard / screen-reader users. The explicit focus()
+          call is the part that moves the keyboard cursor — a bare #hash
+          navigation only scrolls when the target is not natively focusable. */}
       <a
         href="#main-content"
+        onClick={() => focusMainContent()}
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-xl focus:bg-accent-700 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
       >
         Skip to main content
@@ -74,6 +92,7 @@ export function Layout() {
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
           <button
             type="button"
+            ref={menuButtonRef}
             onClick={() => setDrawerOpen(true)}
             aria-label="Open course navigation"
             aria-expanded={drawerOpen}
@@ -101,20 +120,60 @@ export function Layout() {
             <Sidebar />
           </div>
         </aside>
-        <main id="main-content" className="min-w-0 flex-1 px-4 py-8 sm:px-8 sm:py-10 lg:px-12">
+        {/* Page content. tabindex={-1} makes it a programmatic focus target
+            for the skip link and SPA route changes; focus:outline-none keeps
+            the programmatic focus ring off since it is not a keyboard stop. */}
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="min-w-0 flex-1 px-4 py-8 focus:outline-none sm:px-8 sm:py-10 lg:px-12"
+        >
           <Outlet />
         </main>
       </div>
-      <div className={`fixed inset-0 z-50 lg:hidden ${drawerOpen ? '' : 'pointer-events-none'}`} aria-hidden={!drawerOpen}>
-        <div className={`absolute inset-0 bg-stone-950/40 transition-opacity duration-300 ${drawerOpen ? 'opacity-100' : 'opacity-0'}`} onClick={() => setDrawerOpen(false)} />
-        <div role="dialog" aria-modal="true" aria-label="Course navigation" className={`absolute inset-y-0 left-0 flex w-80 max-w-[85vw] flex-col border-r border-stone-200 bg-stone-50 shadow-lift transition-transform duration-300 dark:border-stone-800 dark:bg-stone-950 ${drawerOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+
+      {/* Mobile navigation drawer. `inert` (not just -translate-x-full)
+          keeps the closed drawer out of the tab order and the accessibility
+          tree, so keyboard focus can never land inside aria-hidden content. */}
+      <div
+        className={`fixed inset-0 z-50 lg:hidden ${drawerOpen ? '' : 'pointer-events-none'}`}
+        aria-hidden={!drawerOpen}
+        inert={!drawerOpen}
+      >
+        <div
+          className={`absolute inset-0 bg-stone-950/40 transition-opacity duration-300 dark:bg-stone-950/70 ${
+            drawerOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={closeDrawer}
+        />
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Course navigation"
+          tabIndex={-1}
+          className={`absolute inset-y-0 left-0 flex w-80 max-w-[85vw] flex-col border-r border-stone-200 bg-stone-50 shadow-lift transition-transform duration-300 ease-out dark:border-stone-800 dark:bg-stone-950 ${
+            drawerOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
           <div className="flex items-center justify-between border-b border-stone-200/70 px-4 py-3 dark:border-stone-800">
-            <span className="font-display text-base font-semibold tracking-tight text-stone-950 dark:text-stone-50">Course contents</span>
-            <button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close course navigation" className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-stone-600 hover:bg-stone-200/60 dark:text-stone-300 dark:hover:bg-stone-800">
+            <span className="font-display text-base font-semibold tracking-tight text-stone-950 dark:text-stone-50">
+              Course contents
+            </span>
+            <button
+              type="button"
+              onClick={closeDrawer}
+              aria-label="Close course navigation"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-stone-600 transition-colors hover:bg-stone-200/60 hover:text-stone-950 active:bg-stone-200 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-50 dark:active:bg-stone-700"
+            >
               <Icon name="x" className="h-5 w-5" />
             </button>
           </div>
-          <div className="min-h-0 flex-1" onClick={() => setDrawerOpen(false)}>
+          <div
+            className="min-h-0 flex-1"
+            // Close the drawer when the user picks a destination.
+            onClick={closeDrawer}
+          >
             <Sidebar />
           </div>
         </div>
