@@ -252,6 +252,16 @@
   animation: stepthrough-glow-amber 2.4s ease-in-out infinite;
 }
 
+/* StepThrough: let the highlight glow paint past the 480x300 viewBox.
+   The outer <svg> clips at its bounds by default, which sliced the
+   pulsing amber drop-shadow on edge nodes (seen live: consensus-raft
+   "Client" at x=0, mvc-to-react "Plate (View)", observability
+   "fraud check", domain-driven-design "Policies"). overflow: visible
+   is safe here — the panel's p-5 padding absorbs the ~7px halo. */
+.stepthrough-svg {
+  overflow: visible;
+}
+
 /* ------------------------------------------------------------------ */
 /* MermaidDiagram: make flowcharts, sequence diagrams, and state        */
 /* diagrams feel alive. Scoped under .mermaid-diagram (set on the       */
@@ -313,6 +323,17 @@
 
 /* Nodes fade and rise in on render, with a gentle cascade so the       */
 /* diagram draws itself in reading order.                               */
+/*                                                                      */
+/* CRITICAL: the rise MUST use the individual `translate` property,     */
+/* never the `transform` shorthand. Mermaid v12 positions every         */
+/* flowchart/state node via a `transform="translate(x, y)"` attribute   */
+/* on the node <g>; a CSS `transform` animation overrides that          */
+/* attribute for the animation's whole fill window and piles every      */
+/* node at the origin — clipped slivers at the container's top-left     */
+/* with edges dangling between the intended positions (seen live on     */
+/* every flowchart after the mermaid 11 -> 12 bump, 2026-09-24). The    */
+/* `translate` property composes *with* the attribute instead of        */
+/* replacing it, so nodes keep their laid-out positions while rising.   */
 .mermaid-diagram .node,
 .mermaid-diagram .actor {
   animation: mermaid-node-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
@@ -321,11 +342,11 @@
 @keyframes mermaid-node-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    translate: 0 8px;
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    translate: 0 0;
   }
 }
 

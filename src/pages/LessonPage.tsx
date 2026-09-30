@@ -9,7 +9,7 @@ import { Button } from '../components/ui/Button';
 import { HeadingsProvider, OnThisPage } from '../components/OnThisPage';
 import { Seo, JsonLd } from '../components/Seo';
 import { ShareButtons } from '../components/ShareButtons';
-import { ListenButton } from '../components/ListenButton';
+import { LessonNarrator } from '../components/LessonNarrator';
 
 /** Thin reading-progress bar pinned to the top of the viewport. */
 function ReadingProgressBar() {
@@ -258,17 +258,25 @@ export function LessonPage() {
                 </span>
               </div>
 
-              <h1 className="mt-4 font-display text-3xl font-semibold leading-[1.08] tracking-tight text-stone-950 text-balance sm:text-5xl dark:text-stone-50">
+              <h1
+                data-narrate="title"
+                className="mt-4 font-display text-3xl font-semibold leading-[1.08] tracking-tight text-stone-950 text-balance sm:text-5xl dark:text-stone-50"
+              >
                 {lesson.meta.title}
               </h1>
 
-              <p className="mt-4 max-w-[60ch] text-lg leading-relaxed text-stone-600 dark:text-stone-400">
+              <p
+                data-narrate="summary"
+                className="mt-4 max-w-[60ch] text-lg leading-relaxed text-stone-600 dark:text-stone-400"
+              >
                 {lesson.meta.summary}
               </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <CompleteButton slug={lesson.meta.slug} completed={completed} />
-                <ListenButton slug={lesson.meta.slug} />
+                {/* key remounts the narrator per lesson: fresh manifest probe,
+                    no stale audio or highlight state carries over. */}
+                <LessonNarrator key={lesson.meta.slug} slug={lesson.meta.slug} />
               </div>
             </header>
 

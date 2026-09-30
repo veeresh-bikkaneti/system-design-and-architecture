@@ -114,7 +114,7 @@ export function StepThrough({
       {nodes.length > 0 && (
         <svg
           viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
-          className="mx-auto mb-4 block w-full max-w-xl"
+          className="stepthrough-svg mx-auto mb-4 block w-full max-w-xl"
           role="img"
           aria-label={title ?? 'Step diagram'}
         >

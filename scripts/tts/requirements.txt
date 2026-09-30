@@ -1,0 +1,18 @@
+# Build-time TTS toolchain (pinned). Install into scripts/tts/.venv:
+#   python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# torch: CPU-only wheel from the official PyTorch index (much smaller than
+# the CUDA bundle; inference here is CPU-only by design).
+--index-url https://download.pytorch.org/whl/cpu
+torch==2.14.0+cpu
+--extra-index-url https://pypi.org/simple
+kokoro==0.9.4
+misaki[en]==0.9.4
+soundfile==0.13.1
+# num2words: MIT. Used by synthesize.py expand_number() so digit words ("3",
+# "120") can fuzzy-match misaki's spoken forms ("three", "one hundred twenty")
+# during word-timestamp alignment. Without it, expand_number() silently
+# degrades to None and digit words get zero-length spans.
+num2words==0.5.14
+# pip-audit 2026-09-29: setuptools<83 has known vulns (PYSEC-2025-49,
+# PYSEC-2026-3447); floor it even though it's install-time only.
+setuptools>=83.0.0
