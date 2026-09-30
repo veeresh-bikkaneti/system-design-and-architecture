@@ -138,6 +138,25 @@ test.describe('production build smoke test', () => {
     await page.goto(`${TARGET}/lesson/${LESSON_SLUG}`);
     // The read-replica diagram exercises node labels, <br/> multiline
     // labels, edge labels, and semantic class colors.
+    // Diagrams are viewport-gated (lazyMdx + IntersectionObserver, PR #44):
+    // sweep the page so the placeholder's observer fires before asserting.
+    await page.evaluate(async () => {
+      await new Promise<void>((resolve) => {
+        const tick = () => {
+          window.scrollBy(0, 600);
+          if (
+            window.scrollY + window.innerHeight >=
+            document.body.scrollHeight - 1
+          ) {
+            window.scrollTo(0, 0);
+            resolve();
+          } else {
+            setTimeout(tick, 50);
+          }
+        };
+        tick();
+      });
+    });
     const diagram = page.locator('.mermaid-diagram', { hasText: 'Photocopy' });
     await expect(diagram.locator('svg')).toBeAttached({ timeout: 15000 });
 
