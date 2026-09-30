@@ -2,6 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './ui/Icon';
 import { ListenButton } from './ListenButton';
 import { FloatingPlaybackButton } from './FloatingPlaybackButton';
+import {
+  PlayerChrome,
+  pillClass,
+  PopoverLabel,
+  PopoverNote,
+  SpeedSegments,
+} from './player/PlayerChrome';
 import { extractLessonBlocks } from '../lib/listen';
 import { createPlaybackShare, type PlaybackShare } from '../lib/playback-share';
 import {
@@ -27,24 +34,12 @@ import {
 
 type Status = 'idle' | 'playing' | 'paused';
 
-const SPEEDS = [0.9, 1, 1.25, 1.5] as const;
-
 /**
  * Below this fraction of manifest blocks aligned to the rendered lesson,
  * the narration is treated as stale (prose edited after recording) and the
  * learner is told so, with a one-tap switch to the browser voice.
  */
 const STALE_ALIGNMENT_RATIO = 0.7;
-
-const pillClass =
-  'inline-flex items-center gap-1.5 border border-stone-200/80 bg-white px-3.5 py-2 text-sm font-semibold text-stone-600 shadow-soft transition-colors hover:border-accent-300 hover:text-accent-800 active:translate-y-px dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-accent-800 dark:hover:text-accent-300';
-
-const segmentClass = (active: boolean) =>
-  `rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-    active
-      ? 'bg-accent-700 text-white dark:bg-accent-400 dark:text-stone-950'
-      : 'text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100'
-  }`;
 
 const fmtTime = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -103,7 +98,6 @@ function NeuralPlayer({
   const [status, setStatus] = useState<Status>('idle');
   const [speed, setSpeed] = useState<number>(1);
   const [progress, setProgress] = useState(0);
-  const [optionsOpen, setOptionsOpen] = useState(false);
   /**
    * One-line, non-blocking notices: untagged playback, stale narration,
    * audio load failure. `offerFallback` adds the "use my browser's voice
@@ -137,7 +131,6 @@ function NeuralPlayer({
   const rafRef = useRef(0);
   const lastProgressRef = useRef(-1);
   const statusRef = useRef<Status>(status);
-  const panelRef = useRef<HTMLDivElement>(null);
   const reducedMotionRef = useRef(false);
 
   const audioUrl = useMemo(
@@ -190,25 +183,6 @@ function NeuralPlayer({
 
   // Full teardown on slug change / unmount: no orphaned audio, DOM restored.
   useEffect(() => teardown, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Close the options popover on outside click / Escape.
-  useEffect(() => {
-    if (!optionsOpen) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setOptionsOpen(false);
-      }
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOptionsOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [optionsOpen]);
 
   /**
    * Wrap every manifest word in a span inside its rendered block.
@@ -461,90 +435,50 @@ function NeuralPlayer({
 
   return (
     <div className="inline-flex flex-col items-start gap-1">
-      <div ref={panelRef} className="relative inline-flex items-stretch">
-      <div className="inline-flex overflow-hidden rounded-full">
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={mainLabel}
-          aria-pressed={status === 'playing'}
-          className={`${pillClass} rounded-r-none border-r-0 pr-3`}
-        >
-          <Icon name={status === 'playing' ? 'pause' : 'play'} className="h-4 w-4" />
-          {status === 'playing' ? 'Listening…' : status === 'paused' ? 'Resume' : 'Listen'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setOptionsOpen((o) => !o)}
-          aria-expanded={optionsOpen}
-          aria-label="Narration options"
-          className={`${pillClass} rounded-l-none px-2.5`}
-        >
-          <Icon name="chevronDown" className="h-4 w-4" />
-        </button>
-      </div>
-
-      {optionsOpen && (
-        <div
-          role="group"
-          aria-label="Narration options"
-          className="absolute right-0 top-full z-30 mt-2 w-72 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-lift dark:border-stone-700 dark:bg-stone-900"
-        >
-          <div className="flex items-baseline justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-              Progress
-            </p>
-            <p className="text-xs tabular-nums text-stone-500 dark:text-stone-400">
-              {fmtTime(progress)} / {fmtTime(manifest.duration)}
-            </p>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={manifest.duration}
-            step={0.5}
-            value={Math.min(progress, manifest.duration)}
-            onChange={(e) => seek(Number(e.target.value))}
-            aria-label="Seek narration"
-            className="mt-2 w-full accent-accent-700 dark:accent-accent-400"
-          />
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">
-            Speed
+      <PlayerChrome
+        playLabel={mainLabel}
+        playText={status === 'playing' ? 'Listening…' : status === 'paused' ? 'Resume' : 'Listen'}
+        playing={status === 'playing'}
+        onToggle={toggle}
+        optionsLabel="Narration options"
+        popoverLabel="Narration options"
+        popoverWidthClass="w-72"
+        statusText={statusText}
+      >
+        <div className="flex items-baseline justify-between">
+          <PopoverLabel>Progress</PopoverLabel>
+          <p className="text-xs tabular-nums text-stone-500 dark:text-stone-400">
+            {fmtTime(progress)} / {fmtTime(manifest.duration)}
           </p>
-          <div className="mt-1.5 flex flex-wrap gap-1" role="group" aria-label="Playback speed">
-            {SPEEDS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => changeSpeed(s)}
-                aria-pressed={speed === s}
-                className={segmentClass(speed === s)}
-              >
-                {s}×
-              </button>
-            ))}
-          </div>
-          <p className="mt-3 text-xs leading-relaxed text-stone-400 dark:text-stone-500">
-            Narrated by an AI voice (
-            {accent === 'uk' ? 'UK English' : 'US English'}) — recorded when
-            the course was built, so there&apos;s no account, no API key, and
-            no cost. The audio downloads once as it plays, and the
-            highlighting follows the words automatically.
-          </p>
-          <button
-            type="button"
-            onClick={onUseBrowserVoice}
-            className="mt-2 text-xs font-semibold text-accent-700 underline-offset-2 hover:underline dark:text-accent-400"
-          >
-            Use my browser&apos;s voice instead
-          </button>
         </div>
-      )}
-
-      <span aria-live="polite" className="sr-only">
-        {statusText}
-      </span>
-      </div>
+        <input
+          type="range"
+          min={0}
+          max={manifest.duration}
+          step={0.5}
+          value={Math.min(progress, manifest.duration)}
+          onChange={(e) => seek(Number(e.target.value))}
+          aria-label="Seek narration"
+          className="mt-2 w-full accent-accent-700 dark:accent-accent-400"
+        />
+        <div className="mt-3">
+          <SpeedSegments speed={speed} onSelect={changeSpeed} />
+        </div>
+        <PopoverNote>
+          Narrated by an AI voice (
+          {accent === 'uk' ? 'UK English' : 'US English'}) — recorded when
+          the course was built, so there&apos;s no account, no API key, and
+          no cost. The audio downloads once as it plays, and the
+          highlighting follows the words automatically.
+        </PopoverNote>
+        <button
+          type="button"
+          onClick={onUseBrowserVoice}
+          className="mt-2 text-xs font-semibold text-accent-700 underline-offset-2 hover:underline dark:text-accent-400"
+        >
+          Use my browser&apos;s voice instead
+        </button>
+      </PlayerChrome>
 
       {notice && (
         <p
@@ -633,6 +567,13 @@ export function LessonNarrator({
     probe.state === 'ready' && probe.manifest !== null && !browserVoice;
   const floatingVisible = neuralReady || (!neuralReady && speechSupported);
 
+  // Branch order is a race-safety invariant (P0-5): the Web Speech fallback
+  // mounts only in terminal states for this slug+accent — the build-time
+  // index said no narration, the probe already failed, or the learner
+  // explicitly chose the browser voice. While the manifest is merely
+  // unresolved the inert pill renders instead, so a *playing* ListenButton
+  // can never be unmounted by a NeuralPlayer mount (the unmount cleanup
+  // calls speechSynthesis.cancel(), which would kill speech mid-sentence).
   const player =
     browserVoice || !probe.narratable || probe.state === 'failed' ? (
       // No build-time narration for this lesson/accent (the index said no,

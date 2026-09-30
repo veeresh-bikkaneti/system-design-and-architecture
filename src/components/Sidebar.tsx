@@ -17,18 +17,6 @@ export function LockIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return <Icon name="lock" className={className} />;
 }
 
-export function ClockIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return <Icon name="clock" className={className} />;
-}
-
-export function ArrowRightIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return <Icon name="arrowRight" className={className} />;
-}
-
-export function ArrowLeftIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return <Icon name="arrowLeft" className={className} />;
-}
-
 export function MedalIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return <Icon name="medal" className={className} />;
 }
