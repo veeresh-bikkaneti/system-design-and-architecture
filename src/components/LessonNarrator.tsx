@@ -91,6 +91,21 @@ function NeuralPlayer({
     offerFallback: boolean;
   } | null>(null);
 
+  /**
+   * Cached staleness verdict from the last full tagging pass (null = not
+   * yet evaluated). ensureTagged() short-circuits on repeat plays, but
+   * play() clears the notice on every fresh attempt — without the cache,
+   * pause→resume would silently drop a stale-alignment notice whose
+   * condition still holds.
+   */
+  const staleRef = useRef<boolean | null>(null);
+
+  /** Notice shown when the lesson prose changed after recording. */
+  const STALE_NOTICE = {
+    text: 'This lesson\u2019s text has changed since its narration was recorded, so the highlighting may not match the words you hear.',
+    offerFallback: true,
+  };
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const flatRef = useRef<FlatWord[]>([]);
   const taggedRef = useRef<Array<TaggedBlock | null>>([]);
@@ -144,6 +159,7 @@ function NeuralPlayer({
     taggedRef.current = [];
     spansRef.current = [];
     flatRef.current = [];
+    staleRef.current = null;
   };
 
   // Full teardown on slug change / unmount: no orphaned audio, DOM restored.
@@ -179,7 +195,14 @@ function NeuralPlayer({
    * notice instead of leaving a dead button.
    */
   const ensureTagged = (): boolean => {
-    if (taggedRef.current.some(Boolean)) return true;
+    if (taggedRef.current.some(Boolean)) {
+      // Repeat play (e.g. pause→resume): tagging persists, so the cached
+      // staleness verdict is re-applied — play() clears the notice on every
+      // fresh attempt, and without this the stale notice would vanish even
+      // though the prose is still stale.
+      if (staleRef.current) setNotice(STALE_NOTICE);
+      return true;
+    };
     const flat = flattenWords(manifest);
     flatRef.current = flat;
 
@@ -243,12 +266,12 @@ function NeuralPlayer({
     if (alignedCount === 0) return false;
     // Staleness signal: the lesson prose was edited after the narration
     // was recorded. The audio still plays; the learner gets an honest note
-    // and a one-tap switch to the browser voice.
-    if (alignedCount < manifest.blocks.length * STALE_ALIGNMENT_RATIO) {
-      setNotice({
-        text: 'This lesson\u2019s text has changed since its narration was recorded, so the highlighting may not match the words you hear.',
-        offerFallback: true,
-      });
+    // and a one-tap switch to the browser voice. Cached so repeat plays
+    // (which short-circuit above) keep the notice.
+    const stale = alignedCount < manifest.blocks.length * STALE_ALIGNMENT_RATIO;
+    staleRef.current = stale;
+    if (stale) {
+      setNotice(STALE_NOTICE);
     }
     return true;
   };

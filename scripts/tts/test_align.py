@@ -178,6 +178,11 @@ class OfflineShimTest(unittest.TestCase):
         from huggingface_hub import hf_hub_download
         from huggingface_hub.utils import _http as hf_http
 
+        # Cache dir derived from this file's location, not the CWD, so the
+        # test works however it is invoked. Passed as a parameter (not via
+        # the HF_HUB_CACHE env var) because huggingface_hub freezes the env
+        # value at import time.
+        cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", "hf")
         real = hf_http.get_session
         try:
             with unittest.mock.patch.dict(os.environ, {"HF_HUB_OFFLINE": "1"}):
@@ -185,9 +190,7 @@ class OfflineShimTest(unittest.TestCase):
                 path = hf_hub_download(
                     repo_id="hexgrad/Kokoro-82M",
                     filename="config.json",
-                    # cache_dir is a parameter (not env) because
-                    # huggingface_hub freezes HF_HUB_CACHE at import time.
-                    cache_dir=os.path.abspath(".cache/hf"),
+                    cache_dir=cache_dir,
                 )
                 self.assertTrue(path.endswith("config.json"))
                 self.assertTrue(os.path.exists(path))
