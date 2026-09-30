@@ -252,6 +252,16 @@
   animation: stepthrough-glow-amber 2.4s ease-in-out infinite;
 }
 
+/* StepThrough: let the highlight glow paint past the 480x300 viewBox.
+   The outer <svg> clips at its bounds by default, which sliced the
+   pulsing amber drop-shadow on edge nodes (seen live: consensus-raft
+   "Client" at x=0, mvc-to-react "Plate (View)", observability
+   "fraud check", domain-driven-design "Policies"). overflow: visible
+   is safe here — the panel's p-5 padding absorbs the ~7px halo. */
+.stepthrough-svg {
+  overflow: visible;
+}
+
 /* ------------------------------------------------------------------ */
 /* MermaidDiagram: make flowcharts, sequence diagrams, and state        */
 /* diagrams feel alive. Scoped under .mermaid-diagram (set on the       */
