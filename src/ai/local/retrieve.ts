@@ -100,7 +100,3 @@ export function distinctiveOverlap(query: string, card: OkfCard, cards: OkfCard[
 
 /** Questions with almost no overlap are off the course. Tuned against the bundle. */
 export const SCOPE_FLOOR = 1.15;
-
-export function bestScore(hits: ScoredCard[]): number {
-  return hits[0]?.score ?? 0;
-}
