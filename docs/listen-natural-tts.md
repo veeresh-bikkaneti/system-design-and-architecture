@@ -1,7 +1,7 @@
 # Listen mode: natural AI narration
 
 Every lesson has a **Listen** button in its header. Press it and the lesson
-is read aloud while the exact word being spoken lights up in the text, so
+is read aloud while the word being spoken lights up in the text, so
 you can follow along — like karaoke for system design.
 
 ## How it works
@@ -36,7 +36,7 @@ flowchart TB
 
 **Two tiers, zero runtime cost:**
 
-1. **Neural narration (primary).** When a lesson has generated audio, you
+1. **AI narration (primary).** When a lesson has generated audio, you
    hear a natural AI voice and each word highlights as it's spoken. The
    audio and timing files are generated once at build time and served as
    static files — no API keys, no network calls beyond downloading the
@@ -49,8 +49,9 @@ flowchart TB
 ## Controls
 
 - **Play / pause / resume** — one pill button; nothing ever autoplays.
-- **US / UK accent picker** — switches between the two neural voices
-  (remembered per device); the player re-probes and restarts cleanly.
+- **US / UK accent picker** — switches between the two AI voices
+  (remembered per device); pick whichever accent you prefer to learn
+  from. The player re-probes and restarts cleanly.
 - **Floating pause/play** — a small button fixed to the bottom-right
   corner, always in sync with the main player, so playback stays
   reachable while scrolling.
@@ -152,7 +153,7 @@ audio plays — the audio never depends on the highlighting.
   as the rest of the course.
 - **Word timestamps for read-along.** Kokoro's duration predictor gives
   per-token timings, which the pipeline maps to per-word timings, so the
-  highlight lands on the exact word being spoken.
+  highlight tracks the word being spoken.
 
 ### What the fallback still does well
 

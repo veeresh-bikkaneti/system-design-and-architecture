@@ -104,7 +104,7 @@ game loop.
   playgrounds) are React components with local state; motion is CSS
   transitions on state change.
 
-## 5. Listen mode (neural narration)
+## 5. Listen mode (AI narration)
 
 Every lesson has a Listen button. Press it and the lesson is read aloud
 while the exact word being spoken lights up — karaoke for system design.
@@ -127,8 +127,9 @@ public/audio/<slug>/<accent>/narration.json    # word-level timestamps
 - The manifest records its `accent` and `voice`; the player validates
   the manifest schema (including `accent`) before trusting it.
 - Audio is Opus — small enough to ship the full corpus statically:
-  36 lessons × 2 accents = 72 packages. (US packages are being generated
-  first; until the UK run completes, UK probes fall back to Web Speech.)
+  36 lessons × 2 accents = 72 packages. (A lesson added later with no
+  recorded package for the chosen accent falls back to Web Speech for
+  that accent.)
 
 ### The player
 
