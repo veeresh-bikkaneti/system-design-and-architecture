@@ -8,16 +8,15 @@ import {
   alignBlocks,
   findActiveWordIndex,
   flattenWords,
-  isValidManifest,
   loadAccentPreference,
   NARRATION_ACCENTS,
   narrationAudioUrl,
-  narrationJsonUrl,
   saveAccentPreference,
   type FlatWord,
   type NarrationAccent,
   type NarrationManifest,
 } from '../lib/narration';
+import { useNarrationProbe } from './useNarrationProbe';
 import {
   BLOCK_ACTIVE_CLASS,
   WORD_ACTIVE_CLASS,
@@ -79,6 +78,7 @@ function NeuralPlayer({
   articleSelector,
   onUseBrowserVoice,
   share,
+  startPlaying = false,
 }: {
   slug: string;
   /** Accent whose manifest/audio this player instance is bound to. */
@@ -92,6 +92,13 @@ function NeuralPlayer({
    * this player, and the floating button's toggle drives this player.
    */
   share: PlaybackShare;
+  /**
+   * Auto-start playback on mount. Set when the manifest arrived lazily
+   * from a Listen press, so one press both fetches and plays. If the
+   * browser blocks it (the async fetch left the user-gesture window),
+   * play()'s own catch leaves the pill idle and a second press plays.
+   */
+  startPlaying?: boolean;
 }) {
   const [status, setStatus] = useState<Status>('idle');
   const [speed, setSpeed] = useState<number>(1);
@@ -419,6 +426,17 @@ function NeuralPlayer({
     return () => share.registerToggle(null);
   });
 
+  // Lazily-probed manifests (startPlaying) arrive after the learner
+  // pressed Listen: begin playback immediately so one press both fetches
+  // and plays. Guarded so a re-render never restarts a paused lesson.
+  const didAutoPlayRef = useRef(false);
+  useEffect(() => {
+    if (startPlaying && !didAutoPlayRef.current) {
+      didAutoPlayRef.current = true;
+      play();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const seek = (value: number) => {
     const audio = ensureAudio();
     if (!audio) return;
@@ -559,13 +577,14 @@ function NeuralPlayer({
  * "Listen to this lesson" — neural narration when available, browser speech
  * synthesis otherwise.
  *
- * On mount (and whenever the accent changes) it probes
- * `public/audio/<slug>/<accent>/narration.json`. When the build-time
- * narration exists for the chosen accent, the learner gets the AI voice
- * with word-by-word read-along highlighting; when it doesn't (or the probe
- * fails), the proven Web Speech fallback renders instead — so listen mode
- * never breaks, even for lessons generated later or accents not yet
- * recorded.
+ * The manifest (`public/audio/<slug>/<accent>/narration.json`) is fetched
+ * lazily: a build-time index (`src/lib/narration-index.ts`) is consulted
+ * synchronously on mount, and the manifest is requested only on the first
+ * Listen press (hover/focus prefetches). Lessons and accents with no
+ * narration never probe the network at all — when the index says no (or
+ * the fetch fails), the proven Web Speech fallback renders instead, so
+ * listen mode never breaks, even for lessons generated later or accents
+ * not yet recorded.
  */
 export function LessonNarrator({
   slug,
@@ -575,9 +594,11 @@ export function LessonNarrator({
   articleSelector?: string;
 }) {
   const [accent, setAccent] = useState<NarrationAccent>(loadAccentPreference);
-  const [manifest, setManifest] = useState<NarrationManifest | null>(null);
-  const [failed, setFailed] = useState(false);
   const [browserVoice, setBrowserVoice] = useState(false);
+
+  // Lazy manifest probe: no network on mount; the first Listen press
+  // fetches (hover/focus prefetches) and plays.
+  const probe = useNarrationProbe(slug, accent);
 
   // One shared playback state per lesson mount: the active player (neural
   // or the Web Speech fallback) publishes its status here, and the
@@ -585,41 +606,20 @@ export function LessonNarrator({
   // always agree. See `src/lib/playback-share.ts`.
   const [share] = useState(() => createPlaybackShare());
 
+  // Drop any stale shared status on slug/accent change so the floating
+  // button can never show "playing" for a dead player. (The probe hook
+  // resets its own state on the same change.)
   useEffect(() => {
-    let cancelled = false;
-    // Fresh probe (slug or accent changed): drop any stale shared status
-    // so the floating button can never show "playing" for a dead player.
     share.setStatus('idle');
-    fetch(narrationJsonUrl(slug, accent))
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((json: unknown) => {
-        // Defense-in-depth: a mislabeled manifest (right schema, wrong
-        // accent) would play audio with wrong highlight timings. The build
-        // validator enforces this too; reject it here as well.
-        if (!cancelled && isValidManifest(json) && json.accent === accent)
-          setManifest(json);
-        else if (!cancelled) setFailed(true);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
   }, [slug, accent, share]);
 
   const changeAccent = (next: NarrationAccent) => {
     if (next === accent) return;
     saveAccentPreference(next);
     setAccent(next);
-    // Fresh probe for the new accent: drop the old manifest, clear any
-    // fallback state so the neural player gets its chance first, and reset
-    // the shared status (the keyed player below remounts and re-registers).
-    setManifest(null);
-    setFailed(false);
+    // Fresh accent: the probe hook resets to idle (the next Listen press
+    // re-probes the new accent), and any fallback state is cleared so the
+    // neural player gets its chance first.
     setBrowserVoice(false);
     share.setStatus('idle');
   };
@@ -629,36 +629,50 @@ export function LessonNarrator({
   // support gating as the main player.
   const speechSupported =
     typeof window !== 'undefined' && 'speechSynthesis' in window;
-  const neuralReady = manifest !== null && !failed && !browserVoice;
+  const neuralReady =
+    probe.state === 'ready' && probe.manifest !== null && !browserVoice;
   const floatingVisible = neuralReady || (!neuralReady && speechSupported);
 
   const player =
-    failed || browserVoice ? (
+    browserVoice || !probe.narratable || probe.state === 'failed' ? (
+      // No build-time narration for this lesson/accent (the index said no,
+      // so nothing was ever probed), the probe failed, or the learner chose
+      // the browser voice: the Web Speech fallback.
       <ListenButton
         key={`${slug}:${accent}`}
         slug={slug}
         articleSelector={articleSelector}
         share={share}
       />
-    ) : !manifest ? (
-      // Manifest still loading: the fallback works immediately, and is
-      // replaced by the neural player the moment the manifest arrives.
-      <ListenButton
-        key={`${slug}:${accent}`}
-        slug={slug}
-        articleSelector={articleSelector}
-        share={share}
-      />
-    ) : (
+    ) : probe.state === 'ready' && probe.manifest ? (
       <NeuralPlayer
         key={`${slug}:${accent}`}
         slug={slug}
         accent={accent}
-        manifest={manifest}
+        manifest={probe.manifest}
         articleSelector={articleSelector}
         onUseBrowserVoice={() => setBrowserVoice(true)}
         share={share}
+        startPlaying={probe.autoplay}
       />
+    ) : (
+      // Manifest not fetched yet: a Listen pill that fetches on press and
+      // plays when the manifest lands; hover/focus prefetches silently.
+      <button
+        type="button"
+        onClick={() => probe.probe({ autoplay: true })}
+        onMouseEnter={() => probe.probe()}
+        onFocus={() => probe.probe()}
+        aria-label="Listen to this lesson"
+        aria-busy={probe.state === 'loading'}
+        className={pillClass}
+      >
+        <Icon
+          name="play"
+          className={`h-4 w-4 ${probe.state === 'loading' ? 'animate-pulse' : ''}`}
+        />
+        {probe.state === 'loading' ? 'Loading…' : 'Listen'}
+      </button>
     );
 
   return (

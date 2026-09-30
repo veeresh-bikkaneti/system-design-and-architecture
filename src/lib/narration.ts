@@ -166,6 +166,31 @@ export function narrationJsonUrl(slug: string, accent: NarrationAccent): string 
   return `${baseUrl()}audio/${slug}/${accent}/narration.json`;
 }
 
+/**
+ * Lazily fetch and validate a narration manifest.
+ *
+ * Called only on the first Listen press (or its hover/focus prefetch) for
+ * lessons the build-time index says have narration — never on page load.
+ * Rejects on non-OK status or an invalid manifest so callers fall back to
+ * the proven Web Speech player.
+ */
+export async function fetchManifest(
+  slug: string,
+  accent: NarrationAccent,
+): Promise<NarrationManifest> {
+  const res = await fetch(narrationJsonUrl(slug, accent));
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json: unknown = await res.json();
+  if (!isValidManifest(json)) throw new Error('invalid manifest');
+  // Defense-in-depth (was b558083 in the player): a mislabeled manifest
+  // (right schema, wrong accent) would play audio with wrong highlight
+  // timings. The build validator enforces this too; reject it here as well.
+  // Tolerates manifests that predate the accent field.
+  if (json.accent !== undefined && json.accent !== accent)
+    throw new Error(`accent mismatch: manifest is ${json.accent}, wanted ${accent}`);
+  return json;
+}
+
 /** URL of the audio file described by a loaded manifest. */
 export function narrationAudioUrl(
   slug: string,
