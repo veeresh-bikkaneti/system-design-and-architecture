@@ -14,13 +14,13 @@ flowchart TB
         KOK["Kokoro-82M neural TTS<br/>(Apache-2.0, CPU-only)"]
         SYN["synthesize.py<br/>audio + per-word timestamps"]
         MDX --> EXT --> KOK --> SYN
-        SYN --> OPUS["public/audio/&lt;slug&gt;/narration.opus"]
-        SYN --> JSON["public/audio/&lt;slug&gt;/narration.json"]
+        SYN --> OPUS["public/audio/&lt;slug&gt;/&lt;accent&gt;/narration.opus"]
+        SYN --> JSON["public/audio/&lt;slug&gt;/&lt;accent&gt;/narration.json"]
     end
 
     subgraph SITE["Learner's browser (GitHub Pages, static)"]
         BTN["Listen button<br/>(LessonNarrator)"]
-        PROBE{"narration.json<br/>exists?"}
+        PROBE{"audio/&lt;slug&gt;/&lt;accent&gt;/narration.json<br/>exists?"}
         PLAYER["Neural player<br/>HTMLAudio + rAF karaoke highlight"]
         FALLBACK["Browser voice fallback<br/>(Web Speech API, sentence highlight)"]
         BTN --> PROBE
@@ -49,6 +49,11 @@ flowchart TB
 ## Controls
 
 - **Play / pause / resume** — one pill button; nothing ever autoplays.
+- **US / UK accent picker** — switches between the two neural voices
+  (remembered per device); the player re-probes and restarts cleanly.
+- **Floating pause/play** — a small button fixed to the bottom-right
+  corner, always in sync with the main player, so playback stays
+  reachable while scrolling.
 - **Seek bar** — jump to any point; highlighting follows automatically.
 - **Speed** — 0.9×, 1×, 1.25×, 1.5×. Highlighting stays in sync because
   word timings are measured in audio time.
@@ -97,23 +102,28 @@ Then:
 python3 scripts/tts/extract_narration.py
 
 # 2. Synthesize audio + word timings (CPU) and write
-#    public/audio/<slug>/{narration.opus,narration.json} directly.
+#    public/audio/<slug>/<accent>/{narration.opus,narration.json} directly.
+#    --voice selects the voice and the accent dir (af_heart -> us, bf_emma -> uk).
 python3 scripts/tts/synthesize.py --only-missing
 
-# 3. Validate every manifest against the player contract.
+# 3. Validate every manifest against the player contract (per accent).
 for slug in $(ls public/audio); do
-  python3 scripts/tts/validate_manifest.py "$slug" || break
+  for accent in us uk; do
+    [ -d "public/audio/$slug/$accent" ] || continue
+    python3 scripts/tts/validate_manifest.py "$slug" "$accent" || break 2
+  done
 done
 
 # 4. End-to-end player check in headless Chromium (needs node_modules).
-node scripts/tts/verify_player.mjs <lesson-slug>
+node scripts/tts/verify_player.mjs <lesson-slug> [accent]
 ```
 
 `synthesize.py` writes each lesson's opus + manifest as it finishes, logs
 failures per lesson without aborting the batch, and exits nonzero if any
 lesson failed — re-run with `--only-missing` to retry just those. To
-re-voice the course with a different Kokoro voice, change the `VOICE`
-constant in `synthesize.py` (see `VOICES.md` upstream) and re-run
+re-voice an accent with a different Kokoro voice, pass
+`--voice <voice-id>` (see the `VOICES` catalog in `synthesize.py`;
+`af_heart` writes to `us/`, `bf_emma` to `uk/`) and re-run
 steps 1–2. To smoke-test the pipeline, pass `--slugs <slug> --limit-blocks 3`.
 
 ### Read-along alignment
