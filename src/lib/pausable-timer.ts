@@ -17,12 +17,15 @@ export class PausableTimer {
   private handle: TimerHandle | null = null;
   /** Nested engagements (hover + focus at once) must all release first. */
   private engagements = 0;
+  private readonly delayMs: number;
+  private readonly onFire: () => void;
+  private readonly schedule: ScheduleFn;
 
-  constructor(
-    private readonly delayMs: number,
-    private readonly onFire: () => void,
-    private readonly schedule: ScheduleFn,
-  ) {}
+  constructor(delayMs: number, onFire: () => void, schedule: ScheduleFn) {
+    this.delayMs = delayMs;
+    this.onFire = onFire;
+    this.schedule = schedule;
+  }
 
   /** Start (or restart) the countdown. */
   start(): void {
