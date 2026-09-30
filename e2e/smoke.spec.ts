@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { revealLazyDiagrams } from './reveal-lazy-diagrams';
 
 /**
  * Smoke test against the production build (`npm run build` then this spec).
@@ -136,6 +137,8 @@ test.describe('production build smoke test', () => {
     const errors = collectErrors(page);
 
     await page.goto(`${TARGET}/lesson/${LESSON_SLUG}`);
+    // Diagrams load lazily as they near the viewport; scroll them into being.
+    await revealLazyDiagrams(page);
     // The read-replica diagram exercises node labels, <br/> multiline
     // labels, edge labels, and semantic class colors.
     const diagram = page.locator('.mermaid-diagram', { hasText: 'Photocopy' });
