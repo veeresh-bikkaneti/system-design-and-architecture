@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { revealLazyDiagrams } from './reveal-lazy-diagrams';
 
 /**
  * Course-wide diagram layout regression test.
@@ -150,25 +151,8 @@ test('every mermaid node/actor renders inside its SVG viewport', async ({
   for (const { slug, diagramCount } of lessons) {
     await page.goto(`${TARGET}/lesson/${slug}`, { timeout: 60_000 });
     // Diagrams are viewport-gated (lazyMdx + IntersectionObserver, PR #44):
-    // placeholders below the fold never load until scrolled near. Sweep the
-    // page top-to-bottom so every placeholder's observer fires, then count.
-    await page.evaluate(async () => {
-      await new Promise<void>((resolve) => {
-        const tick = () => {
-          window.scrollBy(0, 600);
-          if (
-            window.scrollY + window.innerHeight >=
-            document.body.scrollHeight - 1
-          ) {
-            window.scrollTo(0, 0);
-            resolve();
-          } else {
-            setTimeout(tick, 50);
-          }
-        };
-        tick();
-      });
-    });
+    // placeholders below the fold never load until scrolled near.
+    await revealLazyDiagrams(page);
     const diagrams = page.locator('.mermaid-diagram');
     await expect(diagrams).toHaveCount(diagramCount, { timeout: 45_000 });
     await page.waitForTimeout(SETTLE_MS); // let entrance animations finish
@@ -317,12 +301,13 @@ test('every mermaid node/actor renders inside its SVG viewport', async ({
     const stepThroughOutliers: Outlier[] = await page.evaluate(
       async (glowPx: number) => {
         const bad: { kind: 'stepthrough-glow'; label: string; detail: string }[] = [];
-        const tablists = [...document.querySelectorAll('[role="tablist"][aria-label="Steps"]')];
-        for (const [panelIdx, tablist] of tablists.entries()) {
-          const tabs = [...tablist.querySelectorAll('[role="tab"]')] as HTMLElement[];
-          // The tablist div sits inside the StepThrough controls div, whose
+        const stepGroups = [...document.querySelectorAll('[role="group"][aria-label="Steps"]')];
+        for (const [panelIdx, stepGroup] of stepGroups.entries()) {
+          // Step dots are plain buttons (not tabs — see StepThrough.tsx).
+          const tabs = [...stepGroup.querySelectorAll('button')] as HTMLElement[];
+          // The step group div sits inside the StepThrough controls div, whose
           // parent is the panel root that also holds the diagram svg.
-          const root = tablist.parentElement?.parentElement;
+          const root = stepGroup.parentElement?.parentElement;
           const svg = root?.querySelector('svg') as SVGSVGElement | null;
           if (!svg || tabs.length === 0) continue;
           // Production invariant: the svg must not clip the highlight glow.
@@ -363,8 +348,8 @@ test('every mermaid node/actor renders inside its SVG viewport', async ({
       },
       HIGHLIGHT_GLOW_PX,
     );
-    const tablistCount = await page.locator('[role="tablist"][aria-label="Steps"]').count();
-    checkedStepThroughs += tablistCount;
+    const stepGroupCount = await page.locator('[role="group"][aria-label="Steps"]').count();
+    checkedStepThroughs += stepGroupCount;
     for (const [i, o] of stepThroughOutliers.entries())
       outliers.push({ slug, diagram: i, ...o });
   }

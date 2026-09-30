@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { revealLazyDiagrams } from './reveal-lazy-diagrams';
 
 /**
  * Smoke test against the production build (`npm run build` then this spec).
@@ -139,24 +140,8 @@ test.describe('production build smoke test', () => {
     // The read-replica diagram exercises node labels, <br/> multiline
     // labels, edge labels, and semantic class colors.
     // Diagrams are viewport-gated (lazyMdx + IntersectionObserver, PR #44):
-    // sweep the page so the placeholder's observer fires before asserting.
-    await page.evaluate(async () => {
-      await new Promise<void>((resolve) => {
-        const tick = () => {
-          window.scrollBy(0, 600);
-          if (
-            window.scrollY + window.innerHeight >=
-            document.body.scrollHeight - 1
-          ) {
-            window.scrollTo(0, 0);
-            resolve();
-          } else {
-            setTimeout(tick, 50);
-          }
-        };
-        tick();
-      });
-    });
+    // bring the placeholders into view so they load before asserting.
+    await revealLazyDiagrams(page);
     const diagram = page.locator('.mermaid-diagram', { hasText: 'Photocopy' });
     await expect(diagram.locator('svg')).toBeAttached({ timeout: 15000 });
 
