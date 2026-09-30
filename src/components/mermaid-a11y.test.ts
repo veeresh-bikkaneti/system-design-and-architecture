@@ -20,10 +20,29 @@ describe('describeDiagram', () => {
     ['stateDiagram-v2\n  [*] --> A', 'State diagram'],
     ['classDiagram\n  A <|-- B', 'Class diagram'],
     ['erDiagram\n  A ||--o{ B : has', 'Entity-relationship diagram'],
-    ['gantt\n  title X', 'Gantt chart'],
-    ['pie title X\n  "a" : 1', 'Pie chart'],
+    ['gantt\n  title X', 'X — Gantt chart'],
+    ['pie title X\n  "a" : 1', 'X — Pie chart'],
   ])('names %j as %j', (code, label) => {
     expect(describeDiagram(code)).toBe(label);
+  });
+
+  it.each([
+    ['flowchart LR\n  accTitle: Signup flow\n  A-->B', 'Signup flow — Flowchart'],
+    ['sequenceDiagram\n  title: Auth sequence\n  A->>B: hi', 'Auth sequence — Sequence diagram'],
+    ['flowchart LR\n  title:Spaceless\n  A-->B', 'Spaceless — Flowchart'],
+    ['gantt\n  title   Padded title  \n  section S', 'Padded title — Gantt chart'],
+  ])('prefers an explicit title over the type name: %j', (code, label) => {
+    expect(describeDiagram(code)).toBe(label);
+  });
+
+  it('keeps the type-based name when no title is declared', () => {
+    expect(describeDiagram('flowchart LR\n  A-->B')).toBe('Flowchart');
+    expect(describeDiagram('sequenceDiagram\n  A->>B: hi')).toBe('Sequence diagram');
+  });
+
+  it('does not mistake a node named "title" or a title comment for a directive', () => {
+    expect(describeDiagram('flowchart LR\n  title["not a directive"]\n  A-->B')).toBe('Flowchart');
+    expect(describeDiagram('flowchart LR\n  %% title: comment\n  A-->B')).toBe('Flowchart');
   });
 
   it('falls back to a generic name for unknown sources', () => {
