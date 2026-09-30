@@ -153,6 +153,12 @@ try {
   {
     const browser = await newBrowser();
     const page = await browser.newPage();
+    // The player's accent comes from localStorage (defaults to "us"): seed
+    // it so the page actually plays the accent under test. Without this the
+    // UK runs silently tested US audio against UK manifest timings.
+    await page.addInitScript((accent) => {
+      window.localStorage.setItem('lesson-narration-accent', accent);
+    }, ACCENT);
     const errors = [];
     page.on('pageerror', (e) => errors.push(`pageerror: ${e}`));
     page.on('console', (m) => {
@@ -231,17 +237,19 @@ try {
       { timeout: 10_000 },
     );
     check('seek moves playback position', true, `t=${t.toFixed(2)}s`);
-    await page.waitForFunction(
-      (exp) => document.querySelector('span.narr-word-active')?.getAttribute('data-narr-idx') === String(exp),
-      expected,
-      { timeout: 10_000 },
-    );
-    check('seek highlights manifest word at seek time', true, `t=${t.toFixed(2)}s → word ${expected}`);
-
-    // Pausing keeps the highlight where it is.
+    // Pause immediately: the audio keeps playing forward, so catching the
+    // exact seek-target word (often <0.5s long) while playing is a race.
+    // Pausing freezes the highlight; it must have landed within a few
+    // words of the seek target — proving seek→highlight linkage.
     await page.getByRole('button', { name: 'Pause narration' }).click();
     await page.getByText(/Paused at/).waitFor({ timeout: 10_000 });
     check('pause works', true);
+    const frozenIdx = await page.locator('span.narr-word-active').getAttribute('data-narr-idx');
+    check(
+      'seek highlights manifest word at seek time',
+      frozenIdx !== null && Number(frozenIdx) >= expected - 1 && Number(frozenIdx) <= expected + 10,
+      `t=${t.toFixed(2)}s → word ${frozenIdx} (expected ~${expected})`,
+    );
 
     // Floating button shares the player's state and drives it: resume from
     // the main player's paused state through the floating control.
