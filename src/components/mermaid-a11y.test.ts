@@ -45,6 +45,18 @@ describe('describeDiagram', () => {
     expect(describeDiagram('flowchart LR\n  %% title: comment\n  A-->B')).toBe('Flowchart');
   });
 
+  it('does not capture the next line when the title directive has an empty value', () => {
+    expect(describeDiagram('flowchart LR\n  title:\n  A-->B')).toBe('Flowchart');
+    expect(describeDiagram('flowchart LR\n  title:   \n  A-->B')).toBe('Flowchart');
+    expect(describeDiagram('flowchart LR\n  accTitle:\n  A-->B')).toBe('Flowchart');
+    expect(describeDiagram('sequenceDiagram\n  title:\n  A->>B: hi')).toBe('Sequence diagram');
+  });
+
+  it('does not capture the next line from a bare title after the type line', () => {
+    expect(describeDiagram('pie\n  title\n  "a": 1')).toBe('Pie chart');
+    expect(describeDiagram('gantt\n  title\n  section S')).toBe('Gantt chart');
+  });
+
   it('falls back to a generic name for unknown sources', () => {
     expect(describeDiagram('something-weird\n  foo')).toBe('Diagram');
   });

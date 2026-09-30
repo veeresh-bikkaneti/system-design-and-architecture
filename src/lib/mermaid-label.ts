@@ -6,16 +6,18 @@
  * diagram type is the fallback when no title is declared.
  *
  * Matches a `title:` / `accTitle:` directive line, or gantt/pie's bare
- * `title ...` form. Requires `:` or whitespace right after the keyword so
- * a node actually named `title` (`title["..."]`) or a `%% title:` comment
- * is not mistaken for a directive.
+ * `title ...` form. Requires `:` or horizontal whitespace right after the
+ * keyword so a node actually named `title` (`title["..."]`) or a
+ * `%% title:` comment is not mistaken for a directive. The separators are
+ * horizontal-whitespace-only (`[ \t]`) so a bare `title:` with an empty
+ * value cannot bleed across the line break and capture the next line.
  *
  * Used as the `aria-label` on the `role="img"` render region in
  * MermaidDiagram.tsx.
  */
-const TITLE_DIRECTIVE = /^\s*(?:accTitle|title)(?:\s*:\s*|\s+)(.+?)\s*$/m;
+const TITLE_DIRECTIVE = /^\s*(?:accTitle|title)(?:[ \t]*:[ \t]*|[ \t]+)(.+?)[ \t]*$/m;
 /** gantt/pie declare the title on the diagram-type line: `pie title X`. */
-const TYPE_LINE_TITLE = /^\s*(?:pie|gantt)\s+title\s+(.+?)\s*$/m;
+const TYPE_LINE_TITLE = /^\s*(?:pie|gantt)[ \t]+title[ \t]+(.+?)[ \t]*$/m;
 const DIAGRAM_TYPE_LABELS: Array<[RegExp, string]> = [
   [/^\s*(flowchart|graph)\b/m, 'Flowchart'],
   [/^\s*sequenceDiagram\b/m, 'Sequence diagram'],
