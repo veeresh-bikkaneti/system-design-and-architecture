@@ -174,6 +174,11 @@ try {
       .waitFor({ timeout: 15_000 });
     check('neural player mounted', true);
 
+    // Floating play button is visible while the neural player is mounted.
+    await page.getByRole('button', { name: 'Play lesson narration' })
+      .waitFor({ timeout: 15_000 });
+    check('floating play button visible', true);
+
     // Play: status flips to the neural "playing" state.
     await page.getByRole('button', { name: 'Listen to this lesson' }).click();
     await page.getByText(/Playing AI narration/).waitFor({ timeout: 15_000 });
@@ -200,8 +205,10 @@ try {
     // Seek: jump to the middle of a known word; the highlight must land there.
     // (Mid-lesson for long lessons; the midpoint for short ones — a hardcoded
     // index would fail with a confusing timeout on lessons under 501 words.)
+    // Rounded to the slider's 0.5s step: the range input snaps fractional
+    // values, so the expected clock text must be computed from the snapped t.
     const probe = flat.length > 500 ? flat[500] : flat[Math.floor(flat.length / 2)];
-    const t = (probe.start + probe.end) / 2;
+    const t = Math.round(((probe.start + probe.end) / 2) * 2) / 2;
     const expected = wordIndexAt(flat, t);
     await page.getByRole('button', { name: 'Narration options', exact: true }).click();
     const slider = page.getByLabel('Seek narration');
@@ -233,6 +240,16 @@ try {
     await page.getByRole('button', { name: 'Pause narration' }).click();
     await page.getByText(/Paused at/).waitFor({ timeout: 10_000 });
     check('pause works', true);
+
+    // Floating button shares the player's state and drives it: resume from
+    // the main player's paused state through the floating control.
+    await page.getByRole('button', { name: 'Resume lesson narration' }).click();
+    await page.getByText(/Playing AI narration/).waitFor({ timeout: 15_000 });
+    check('floating button resumes neural playback', true);
+    check(
+      'floating button agrees with player state',
+      (await page.getByRole('button', { name: 'Pause lesson narration' }).count()) === 1,
+    );
 
     check('no page errors during neural playback', errors.length === 0, errors.join(' | ').slice(0, 200));
     await browser.close();
@@ -272,7 +289,8 @@ try {
       `neuralOptions=${neuralOptions} narr-word spans=${karaokeSpans}`);
 
     await page.getByRole('button', { name: 'Listen to this lesson' }).click();
-    await page.getByText('Playing narration.').waitFor({ timeout: 15_000 });
+    // NOTE: this must match ListenButton's sr-only status text exactly.
+    await page.getByText('Playing lesson audio.').waitFor({ timeout: 15_000 });
     const speakCalls = await page.evaluate(() => window.__speakCalls.length);
     const firstText = await page.evaluate(() => window.__speakCalls[0]?.text ?? '');
     check('browser voice fallback speaks', speakCalls > 0 && firstText.length > 0,
@@ -281,6 +299,17 @@ try {
     // Fallback highlights the spoken block.
     const activeBlocks = await page.locator('.narr-block-active').count();
     check('fallback highlights spoken block', activeBlocks > 0, `${activeBlocks} active block(s)`);
+
+    // Floating button reflects and drives the fallback player too.
+    check(
+      'floating button reflects fallback playing state',
+      (await page.getByRole('button', { name: 'Pause lesson narration' }).count()) === 1,
+    );
+    await page.getByRole('button', { name: 'Pause lesson narration' }).click();
+    // Exact match: the floating button's own live region says
+    // "Lesson narration paused." (substring match would hit both).
+    await page.getByText('Paused.', { exact: true }).waitFor({ timeout: 10_000 });
+    check('floating button pauses fallback speech', true);
 
     await browser.close();
   }
