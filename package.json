@@ -27,7 +27,7 @@
     "@mlc-ai/web-llm": "^0.2.85",
     "dompurify": "^3.4.16",
     "mermaid": "^12.0.0",
-    "motion": "^13.3.0",
+    "motion": "^13.4.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-markdown": "^10.1.0",
