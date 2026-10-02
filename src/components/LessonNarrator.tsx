@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon } from './ui/Icon';
 import { ListenButton } from './ListenButton';
 import { FloatingPlaybackButton } from './FloatingPlaybackButton';
@@ -10,7 +10,22 @@ import {
   SpeedSegments,
 } from './player/PlayerChrome';
 import { extractLessonBlocks } from '../lib/listen';
+import {
+  BEFORE_FIRST_BLOCK,
+  buildNeuralSeekMap,
+  canStep,
+  hasResumePoint,
+  resolveResumeBlock,
+  allBlocks,
+  snapToPlayable,
+  stepBlock,
+  type NeuralSeekPoint,
+} from '../lib/listen-seek';
 import { createPlaybackShare, type PlaybackShare } from '../lib/playback-share';
+import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
+import { positionFor, useListenPositionStore } from '../store/listenPosition';
+import { ReadFromHere } from './ReadFromHere';
+import { useSeekShortcuts } from './player/useSeekShortcuts';
 import {
   alignBlocks,
   findActiveWordIndex,
@@ -28,6 +43,7 @@ import {
   BLOCK_ACTIVE_CLASS,
   WORD_ACTIVE_CLASS,
   WORD_SPAN_CLASS,
+  scrollBlockIntoView,
   unwrapSpans,
   wrapWordSpans,
 } from '../lib/narrate-dom';
@@ -74,6 +90,7 @@ function NeuralPlayer({
   onUseBrowserVoice,
   share,
   startPlaying = false,
+  startBlock = null,
 }: {
   slug: string;
   /** Accent whose manifest/audio this player instance is bound to. */
@@ -94,10 +111,24 @@ function NeuralPlayer({
    * play()'s own catch leaves the pill idle and a second press plays.
    */
   startPlaying?: boolean;
+  /**
+   * Block index (see `lib/listen-seek.ts`) the auto-start should begin at —
+   * set when the learner pressed "read from here" / "continue" before the
+   * manifest had loaded. `null` plays from the start.
+   */
+  startBlock?: number | null;
 }) {
   const [status, setStatus] = useState<Status>('idle');
   const [speed, setSpeed] = useState<number>(1);
   const [progress, setProgress] = useState(0);
+  // Seek state. `points` are the blocks that aligned to the recording (set
+  // on first play); `currentBlock` is the block being narrated (-1 while the
+  // title/summary play). The ref mirrors the state so rapid presses between
+  // renders step from where the last press landed.
+  const [points, setPoints] = useState<NeuralSeekPoint[]>([]);
+  const [currentBlock, setCurrentBlock] = useState(BEFORE_FIRST_BLOCK);
+  const currentBlockRef = useRef(BEFORE_FIRST_BLOCK);
+  const [seekNote, setSeekNote] = useState('');
   /**
    * One-line, non-blocking notices: untagged playback, stale narration,
    * audio load failure. `offerFallback` adds the "use my browser's voice
@@ -132,6 +163,12 @@ function NeuralPlayer({
   const lastProgressRef = useRef(-1);
   const statusRef = useRef<Status>(status);
   const reducedMotionRef = useRef(false);
+  /** Manifest block -> canonical block index (see `buildNeuralSeekMap`). */
+  const canonicalOfRef = useRef<Array<number | null>>([]);
+  const pointsRef = useRef<NeuralSeekPoint[]>([]);
+  /** A seek requested before the audio's metadata loaded (see setAudioTime). */
+  const pendingTimeRef = useRef<number | null>(null);
+  const reducedMotion = usePrefersReducedMotion();
 
   const audioUrl = useMemo(
     () => narrationAudioUrl(slug, accent, manifest),
@@ -148,12 +185,8 @@ function NeuralPlayer({
   // tick could see a stale 'idle' and the highlight loop would die silently.
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'matchMedia' in window) {
-      reducedMotionRef.current = window.matchMedia(
-        '(prefers-reduced-motion: reduce)',
-      ).matches;
-    }
-  }, []);
+    reducedMotionRef.current = reducedMotion;
+  }, [reducedMotion]);
 
   const clearActive = () => {
     const { word, block } = activeRef.current;
@@ -179,6 +212,9 @@ function NeuralPlayer({
     spansRef.current = [];
     flatRef.current = [];
     staleRef.current = null;
+    canonicalOfRef.current = [];
+    pointsRef.current = [];
+    pendingTimeRef.current = null;
   };
 
   // Full teardown on slug change / unmount: no orphaned audio, DOM restored.
@@ -227,6 +263,16 @@ function NeuralPlayer({
     }
 
     const alignment = alignBlocks(manifest.blocks, domTexts);
+    // Canonical block indices for seeking: DOM positions minus the leading
+    // title/summary entries, so they match the speech engine's indices.
+    const seekMap = buildNeuralSeekMap(
+      manifest.blocks,
+      alignment,
+      (titleEl ? 1 : 0) + (summaryEl ? 1 : 0),
+    );
+    canonicalOfRef.current = seekMap.canonicalOf;
+    pointsRef.current = seekMap.points;
+    setPoints(seekMap.points);
     // Flat-word offset of each block's first word, derived from the same
     // flattened array the highlighter binary-searches — one computation,
     // no chance of the two drifting apart.
@@ -276,19 +322,24 @@ function NeuralPlayer({
     return true;
   };
 
-  const tick = () => {
-    const audio = audioRef.current;
-    if (!audio || statusRef.current !== 'playing') return;
-    const t = audio.currentTime;
+  /**
+   * Move the karaoke highlight to media time `t`. Shared by the rAF loop and
+   * by seeks while paused (where no loop runs). `block` is the manifest block
+   * to show when no word is active at `t`; `forceScroll` re-centers the
+   * block even if it was already the active one (the learner may have
+   * scrolled away before jumping).
+   */
+  const syncHighlight = (t: number, opts: { block?: number; forceScroll?: boolean } = {}) => {
     const wi = findActiveWordIndex(flatRef.current, t);
     const prev = activeRef.current;
-    if (wi !== prev.word) {
-      if (prev.word >= 0) spansRef.current[prev.word]?.classList.remove(WORD_ACTIVE_CLASS);
-      let block = prev.block;
-      if (wi >= 0) {
-        spansRef.current[wi]?.classList.add(WORD_ACTIVE_CLASS);
-        block = flatRef.current[wi].block;
+    let block = prev.block;
+    if (wi >= 0) block = flatRef.current[wi].block;
+    else if (opts.block !== undefined) block = opts.block;
+    if (wi !== prev.word || block !== prev.block) {
+      if (prev.word >= 0 && prev.word !== wi) {
+        spansRef.current[prev.word]?.classList.remove(WORD_ACTIVE_CLASS);
       }
+      if (wi >= 0) spansRef.current[wi]?.classList.add(WORD_ACTIVE_CLASS);
       if (block !== prev.block) {
         if (prev.block >= 0) {
           taggedRef.current[prev.block]?.el.classList.remove(BLOCK_ACTIVE_CLASS);
@@ -298,15 +349,35 @@ function NeuralPlayer({
           tb?.el.classList.add(BLOCK_ACTIVE_CLASS);
           // Keep the spoken block in view (gently — 'nearest' scrolls the
           // minimum needed). Skipped for reduced-motion users.
-          if (!reducedMotionRef.current) {
-            tb?.el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-          } else {
-            tb?.el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+          if (tb && !opts.forceScroll) {
+            tb.el.scrollIntoView({
+              block: 'nearest',
+              behavior: reducedMotionRef.current ? 'auto' : 'smooth',
+            });
+          }
+          const canonical = canonicalOfRef.current[block];
+          if (canonical !== undefined && canonical !== null) {
+            currentBlockRef.current = canonical;
+            setCurrentBlock(canonical);
+            // The title/summary count as "the start" (block 0): starting
+            // over forgets the old resume point.
+            useListenPositionStore.getState().setPosition(slug, Math.max(0, canonical));
           }
         }
       }
       activeRef.current = { word: wi, block };
     }
+    if (opts.forceScroll && block >= 0) {
+      const tb = taggedRef.current[block];
+      if (tb) scrollBlockIntoView(tb.el, reducedMotionRef.current);
+    }
+  };
+
+  const tick = () => {
+    const audio = audioRef.current;
+    if (!audio || statusRef.current !== 'playing') return;
+    const t = audio.currentTime;
+    syncHighlight(t);
     // Throttle progress state: the bar doesn't need 60fps.
     if (Math.abs(t - lastProgressRef.current) > 0.25) {
       lastProgressRef.current = t;
@@ -328,6 +399,11 @@ function NeuralPlayer({
         clearActive();
         setProgress(0);
         lastProgressRef.current = -1;
+        // Finished the lesson: nothing left to continue from.
+        useListenPositionStore.getState().clearPosition(slug);
+        currentBlockRef.current = BEFORE_FIRST_BLOCK;
+        setCurrentBlock(BEFORE_FIRST_BLOCK);
+        setSeekNote('');
       };
       audio.onerror = () => {
         // Corrupt/missing audio file (the probe only fetched the JSON, so
@@ -348,14 +424,15 @@ function NeuralPlayer({
     return audioRef.current;
   };
 
-  const play = () => {
+  const play = (fromBlock?: number) => {
     const audio = ensureAudio();
     if (!audio) return;
     // Fresh attempt: drop any previous notice (e.g. a load error from an
     // earlier try). ensureTagged()/the failure path below re-set it when
     // the condition still holds.
     setNotice(null);
-    if (!ensureTagged()) {
+    const tagged = ensureTagged();
+    if (!tagged) {
       // Nothing aligned (prose rewritten after recording): still play the
       // audio — timestamps stay valid for the seek bar — and say so plainly
       // instead of leaving a pressed button that does nothing.
@@ -365,6 +442,9 @@ function NeuralPlayer({
       });
     }
     audio.playbackRate = speed;
+    setSeekNote('');
+    // Position the audio before play() so it never blips from the start.
+    if (fromBlock !== undefined && tagged) jumpTo(fromBlock, false);
     // Synchronous ref write: the rAF loop gates on statusRef and can run
     // before React flushes setStatus (see the note on the sync effect).
     statusRef.current = 'playing';
@@ -385,9 +465,92 @@ function NeuralPlayer({
   };
 
   const toggle = () => {
+    setSeekNote('');
     if (status === 'playing') pause();
     else play();
   };
+
+  /**
+   * Set `audio.currentTime`. A seek before the file's metadata has loaded
+   * (first press, nothing buffered yet) is ignored by some browsers, so it
+   * is remembered and re-applied on `loadedmetadata`.
+   */
+  const setAudioTime = (audio: HTMLAudioElement, t: number) => {
+    pendingTimeRef.current = null;
+    audio.currentTime = t;
+    // readyState 0 = HAVE_NOTHING: no metadata yet.
+    if (audio.readyState < 1) {
+      pendingTimeRef.current = t;
+      audio.addEventListener(
+        'loadedmetadata',
+        () => {
+          if (pendingTimeRef.current === null) return;
+          audio.currentTime = pendingTimeRef.current;
+          pendingTimeRef.current = null;
+        },
+        { once: true },
+      );
+    }
+  };
+
+  /**
+   * Move the narration to the start of `block` (snapped to a block that
+   * aligned to the recording). Works playing or paused: the audio position
+   * and highlight update immediately; whether it then plays is up to the
+   * current status. `announce` adds the "Paragraph n of m" live-region note.
+   */
+  const jumpTo = (block: number, announce = true) => {
+    const audio = ensureAudio();
+    if (!audio) return;
+    const pts = pointsRef.current;
+    const blocks = pts.map((p) => p.block);
+    const target = snapToPlayable(blocks, block);
+    const point = pts.find((p) => p.block === target);
+    if (!point) return;
+    setAudioTime(audio, point.time);
+    lastProgressRef.current = -1;
+    setProgress(point.time);
+    clearActive();
+    currentBlockRef.current = point.block;
+    setCurrentBlock(point.block);
+    useListenPositionStore.getState().setPosition(slug, point.block);
+    syncHighlight(point.time, {
+      block: canonicalOfRef.current.indexOf(point.block),
+      forceScroll: true,
+    });
+    if (announce) setSeekNote(`Paragraph ${blocks.indexOf(point.block) + 1} of ${blocks.length}.`);
+  };
+
+  /** Jump to a block; an idle player starts playing from it. */
+  const seekToBlock = (block: number) => {
+    if (statusRef.current === 'idle') play(block);
+    else jumpTo(block);
+  };
+
+  const step = (delta: -1 | 1) => {
+    const next = stepBlock(
+      pointsRef.current.map((p) => p.block),
+      currentBlockRef.current,
+      delta,
+    );
+    if (next !== null) seekToBlock(next);
+  };
+
+  // Seek: expose handlers to the floating button / read-from-here / resume,
+  // publish which directions are possible, and wire ←/→ while active.
+  const active = status !== 'idle';
+  const playable = points.map((p) => p.block);
+  const canPrev = active && canStep(playable, currentBlock, -1);
+  const canNext = active && canStep(playable, currentBlock, 1);
+  useEffect(() => {
+    share.registerSeek({ toBlock: seekToBlock, step });
+    return () => share.registerSeek(null);
+  });
+  useEffect(() => {
+    share.setSeek({ canPrev, canNext });
+  }, [canPrev, canNext, share]);
+  useEffect(() => () => share.setSeek({ canPrev: false, canNext: false }), [share]);
+  useSeekShortcuts(active, step);
 
   // Shared playback state: publish status for the floating button and let
   // it drive this player's toggle. Registered without a dep array so the
@@ -407,13 +570,14 @@ function NeuralPlayer({
   useEffect(() => {
     if (startPlaying && !didAutoPlayRef.current) {
       didAutoPlayRef.current = true;
-      play();
+      play(startBlock ?? undefined);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const seek = (value: number) => {
     const audio = ensureAudio();
     if (!audio) return;
+    pendingTimeRef.current = null;
     audio.currentTime = Math.min(Math.max(value, 0), manifest.duration);
     lastProgressRef.current = -1;
     setProgress(audio.currentTime);
@@ -427,11 +591,12 @@ function NeuralPlayer({
   const mainLabel =
     status === 'playing' ? 'Pause narration' : status === 'paused' ? 'Resume narration' : 'Listen to this lesson';
   const statusText =
-    status === 'playing'
+    seekNote ||
+    (status === 'playing'
       ? `Playing AI narration, ${fmtTime(progress)} of ${fmtTime(manifest.duration)}.`
       : status === 'paused'
         ? `Paused at ${fmtTime(progress)}.`
-        : 'AI narration stopped.';
+        : 'AI narration stopped.');
 
   return (
     <div className="inline-flex flex-col items-start gap-1">
@@ -444,6 +609,16 @@ function NeuralPlayer({
         popoverLabel="Narration options"
         popoverWidthClass="w-72"
         statusText={statusText}
+        seek={
+          active && points.length > 1
+            ? {
+                onPrev: () => step(-1),
+                onNext: () => step(1),
+                canPrev,
+                canNext,
+              }
+            : undefined
+        }
       >
         <div className="flex items-baseline justify-between">
           <PopoverLabel>Progress</PopoverLabel>
@@ -529,6 +704,9 @@ export function LessonNarrator({
 }) {
   const [accent, setAccent] = useState<NarrationAccent>(loadAccentPreference);
   const [browserVoice, setBrowserVoice] = useState(false);
+  // Block the lazily-loaded narration should start at (set when "read from
+  // here" or "continue" is pressed before any player is mounted).
+  const [pendingStart, setPendingStart] = useState<number | null>(null);
 
   // Lazy manifest probe: no network on mount; the first Listen press
   // fetches (hover/focus prefetches) and plays.
@@ -555,8 +733,16 @@ export function LessonNarrator({
     // re-probes the new accent), and any fallback state is cleared so the
     // neural player gets its chance first.
     setBrowserVoice(false);
+    setPendingStart(null);
     share.setStatus('idle');
   };
+
+  const status = useSyncExternalStore(
+    share.subscribe,
+    share.getStatus,
+    () => 'idle' as const,
+  );
+  const saved = useListenPositionStore((s) => positionFor(s.positions, slug));
 
   // The floating button appears only when narration is available: the
   // neural player is up, or the Web Speech fallback can render — the same
@@ -566,6 +752,27 @@ export function LessonNarrator({
   const neuralReady =
     probe.state === 'ready' && probe.manifest !== null && !browserVoice;
   const floatingVisible = neuralReady || (!neuralReady && speechSupported);
+
+  /**
+   * Start Listen at `block` on whichever engine is active. When no player
+   * is mounted yet (the manifest is still unfetched, so only the inert
+   * Listen pill exists) remember the block and fetch-and-play: the neural
+   * player consumes it on mount.
+   */
+  const startAtBlock = (block: number) => {
+    if (share.seekToBlock(block)) return;
+    setPendingStart(block);
+    probe.probe({ autoplay: true });
+  };
+
+  const continueListening = () => {
+    const root = document.querySelector(articleSelector);
+    const count = root ? extractLessonBlocks(root).length : 0;
+    // Clamp into today's lesson (it may have shrunk since the position was
+    // saved); the engine then snaps to a block it can actually start at.
+    startAtBlock(resolveResumeBlock(saved, allBlocks(count)) ?? 0);
+  };
+  const showResume = status === 'idle' && floatingVisible && hasResumePoint(saved);
 
   // Branch order is a race-safety invariant (P0-5): the Web Speech fallback
   // mounts only in terminal states for this slug+accent — the build-time
@@ -592,9 +799,13 @@ export function LessonNarrator({
         accent={accent}
         manifest={probe.manifest}
         articleSelector={articleSelector}
-        onUseBrowserVoice={() => setBrowserVoice(true)}
+        onUseBrowserVoice={() => {
+          setPendingStart(null);
+          setBrowserVoice(true);
+        }}
         share={share}
         startPlaying={probe.autoplay}
+        startBlock={pendingStart}
       />
     ) : (
       // Manifest not fetched yet: a Listen pill that fetches on press and
@@ -617,32 +828,48 @@ export function LessonNarrator({
     );
 
   return (
-    <div className="inline-flex items-center gap-1.5">
-      {player}
-      <div
-        role="group"
-        aria-label="Narration voice: US or UK English"
-        className="inline-flex overflow-hidden rounded-full border border-stone-200/80 bg-white shadow-soft dark:border-stone-700 dark:bg-stone-900"
-      >
-        {NARRATION_ACCENTS.map((a) => (
-          <button
-            key={a}
-            type="button"
-            onClick={() => changeAccent(a)}
-            aria-pressed={accent === a}
-            aria-label={`${a === 'us' ? 'US' : 'UK'} English narration`}
-            title={`${a === 'us' ? 'US' : 'UK'} English narration`}
-            className={`px-2.5 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
-              accent === a
-                ? 'bg-accent-700 text-white dark:bg-accent-400 dark:text-stone-950'
-                : 'text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100'
-            }`}
-          >
-            {a === 'us' ? 'US' : 'UK'}
-          </button>
-        ))}
+    <div className="inline-flex flex-col items-start gap-1.5">
+      <div className="inline-flex items-center gap-1.5">
+        {player}
+        <div
+          role="group"
+          aria-label="Narration voice: US or UK English"
+          className="inline-flex overflow-hidden rounded-full border border-stone-200/80 bg-white shadow-soft dark:border-stone-700 dark:bg-stone-900"
+        >
+          {NARRATION_ACCENTS.map((a) => (
+            <button
+              key={a}
+              type="button"
+              onClick={() => changeAccent(a)}
+              aria-pressed={accent === a}
+              aria-label={`${a === 'us' ? 'US' : 'UK'} English narration`}
+              title={`${a === 'us' ? 'US' : 'UK'} English narration`}
+              className={`px-2.5 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
+                accent === a
+                  ? 'bg-accent-700 text-white dark:bg-accent-400 dark:text-stone-950'
+                  : 'text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100'
+              }`}
+            >
+              {a === 'us' ? 'US' : 'UK'}
+            </button>
+          ))}
+        </div>
+        <FloatingPlaybackButton share={share} visible={floatingVisible} />
       </div>
-      <FloatingPlaybackButton share={share} visible={floatingVisible} />
+      {showResume && (
+        <button
+          type="button"
+          onClick={continueListening}
+          className="text-xs font-semibold text-accent-700 underline-offset-2 hover:underline dark:text-accent-400"
+        >
+          Continue from where you left off
+        </button>
+      )}
+      <ReadFromHere
+        articleSelector={articleSelector}
+        enabled={floatingVisible}
+        onSelect={startAtBlock}
+      />
     </div>
   );
 }
