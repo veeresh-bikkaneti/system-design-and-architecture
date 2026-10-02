@@ -60,6 +60,23 @@ client bundle today, so quiz completion is self-check only, not a basis for any 
 credential — see `worker/README.md` (Phase 2) for the plan to move grading server-side before a
 verifiable certificate can be issued on top of it.
 
+**Listen mode has a shared seek model.** Both players (recorded AI narration in `LessonNarrator.tsx`,
+Web Speech in `ListenButton.tsx`) seek by *block index* (`extractLessonBlocks` order,
+`src/lib/listen-seek.ts`), publish status/seek availability/progress through
+`src/lib/playback-share.ts`, and persist the last position per lesson in `src/store/listenPosition.ts`
+(`sdm-listen-position`). When changing either player, dispose the in-flight speech run before
+`speechSynthesis.cancel()`, and keep the manifest-to-block mapping (inverse of `alignBlocks`) in mind:
+the manifest includes title/summary blocks the browser voice never speaks. See
+`docs/listen-natural-tts.md`.
+
+**Optional GitHub progress sync (client-only).** `src/components/AuthBar.tsx`, `src/lib/gist-sync.ts` and
+`src/store/session.ts` let a learner sign in and mirror progress to a private gist in their own account
+(OAuth scope `gist`; without `VITE_GITHUB_CLIENT_ID`/`VITE_WORKER_URL` the dialog falls back to a pasted
+fine-grained token; the token lives in `sessionStorage`, never `localStorage`). It must stay strictly
+opt-in: every lesson, quiz and progress feature works signed out, and nothing may be sent anywhere before
+sign-in. Lessons are not gated on sign-in (`canOpenLesson` is currently only exercised by its tests); the
+README's privacy statements describe this behaviour, so update them with any change here.
+
 **BYOK AI tutor is a strictly additive, client-only feature.** The user supplies their own
 Anthropic API key, stored in `localStorage` via the Zustand store `src/store/aiSettings.ts` (key
 `sdm-ai-settings`) and used directly from the browser (`dangerouslyAllowBrowser: true` in
