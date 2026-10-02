@@ -760,7 +760,12 @@ export function LessonNarrator({
    * player consumes it on mount.
    */
   const startAtBlock = (block: number) => {
-    if (share.seekToBlock(block)) return;
+    if (share.seekToBlock(block)) {
+      // An explicit "start here" also resumes a paused player (previous/next
+      // deliberately don't: they move the position and stay paused).
+      if (share.getStatus() === 'paused') share.toggle();
+      return;
+    }
     setPendingStart(block);
     probe.probe({ autoplay: true });
   };

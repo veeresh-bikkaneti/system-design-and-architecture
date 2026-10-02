@@ -236,7 +236,7 @@ export function PlayerChrome({
               icon="skipBack"
               enabled={seek.canPrev}
               onClick={seek.onPrev}
-              className={`${pillClass} hidden rounded-none border-r-0 px-2.5 sm:inline-flex`}
+              className={`${pillClass} rounded-none border-r-0 px-2.5 max-sm:hidden`}
             />
             <SeekButton
               label="Next paragraph"
@@ -244,7 +244,7 @@ export function PlayerChrome({
               icon="skipForward"
               enabled={seek.canNext}
               onClick={seek.onNext}
-              className={`${pillClass} hidden rounded-none border-r-0 px-2.5 sm:inline-flex`}
+              className={`${pillClass} rounded-none border-r-0 px-2.5 max-sm:hidden`}
             />
           </>
         )}
