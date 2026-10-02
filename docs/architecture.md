@@ -155,7 +155,15 @@ public/audio/<slug>/<accent>/narration.json    # word-level timestamps
    and registers its toggle, so both controls always agree — pause from
    either one, resume from either one. Rendered only when narration is
    available; stacked above the Q&A button so the two never overlap.
-5. **Web Speech fallback** (`ListenButton.tsx`). When no neural package
+5. **Seek, resume and progress.** The same bridge carries seek
+   handlers, which the active player registers and the floating button,
+   the margin "read from here" marker (`ReadFromHere.tsx`) and the resume
+   link all drive, and a quantized 0..1 progress value that fills the ring
+   around the floating button. Position is a block index shared by both
+   engines (`src/lib/listen-seek.ts`) and persisted per lesson by
+   `src/store/listenPosition.ts`. Details and limits:
+   [listen-natural-tts.md](listen-natural-tts.md#how-seeking-works).
+6. **Web Speech fallback** (`ListenButton.tsx`). When no neural package
    exists, the browser's own speech synthesis reads the lesson with
    sentence-level highlighting. It has its own device-voice preference
    (Auto/US/UK), and the floating button integrates with it exactly as

@@ -60,11 +60,51 @@ flowchart TB
 - **Floating pause/play** — a small button fixed to the bottom-right
   corner, always in sync with the main player, so playback stays
   reachable while scrolling.
-- **Seek bar** — jump to any point; highlighting follows automatically.
+- **Previous / next paragraph** — buttons in the player and the floating
+  control, plus the Left/Right arrow keys while a lesson is playing (they
+  are ignored while you type or hold a modifier key). On the compact
+  player they live in the popover.
+- **Read from here** — hover or focus a paragraph and press the small play
+  marker in the margin (tap it on touch screens) to start reading there.
+  It never hijacks text selection or links. On a paused player it also
+  resumes playback; previous/next move the position but stay paused.
+- **Continue where you left off** — the last paragraph you reached is
+  remembered per lesson in this browser; the next time you open the
+  lesson a "Continue from where you left off" link offers to jump back.
+  Finishing the lesson clears it.
+- **Progress ring** — a thin ring around the floating play/pause button
+  fills as you go (audio time for the AI voice, paragraphs for the
+  browser voice); the tooltip shows the percentage.
+- **Seek bar** (AI voice, in the player popover) — jump to any point;
+  highlighting follows automatically, also while paused.
 - **Speed** — 0.9×, 1×, 1.25×, 1.5×. Highlighting stays in sync because
   word timings are measured in audio time.
 - **Voice (browser fallback only)** — Auto / US / UK preference for your
   device's voices; the most natural-sounding one is picked first.
+
+### How seeking works
+
+Paragraph skipping rides one shared concept, the **block index** (the order
+of `extractLessonBlocks` in `src/lib/listen.ts`), so both engines behave the
+same. The pure helpers (clamp, step, resume resolution, manifest-to-block
+mapping, key guard) are in `src/lib/listen-seek.ts`; the last position per
+lesson is persisted by `src/store/listenPosition.ts` under
+`sdm-listen-position` (versioned, sanitized on load).
+
+- **AI voice.** The narration manifest also contains the title and summary
+  blocks, which the browser voice never speaks, so manifest blocks are
+  mapped onto the shared index through the inverse of `alignBlocks`; blocks
+  that did not align to the recording have no time and a seek lands on the
+  next aligned block. A seek sets `audio.currentTime` to the block's first
+  word and syncs the highlight explicitly, because the animation loop only
+  runs while playing.
+- **Browser voice.** A seek jumps to the first speech chunk of the target
+  block. The in-flight utterance is disposed **before** `speechSynthesis.cancel()`
+  so the cancelled utterance's late events and watchdog cannot call `stop()`.
+- **Limits.** Seeking is paragraph-level. The manifest has no sentence
+  boundaries and speech chunks never start mid-paragraph, so "from here"
+  begins at the paragraph start. Real-browser latency of
+  `speechSynthesis.cancel()` then `speak()` varies by browser.
 
 ## Accessibility
 
@@ -72,7 +112,10 @@ flowchart TB
   the audio is the content itself.
 - If you prefer reduced motion, the highlight changes instantly instead of
   fading, and the page doesn't smooth-scroll.
-- A screen-reader live region announces play / pause / stop state.
+- A screen-reader live region announces play / pause / stop state and
+  "Paragraph n of m" after a seek. The floating button's accessible name
+  stays constant while the ring fills (the percentage rides in the tooltip),
+  so progress updates are not announced.
 
 ## For maintainers: regenerating narration
 

@@ -1,6 +1,6 @@
 # System Design Mastery
 
-**[🚀 Live course: 36 interactive lessons](https://veeresh-bikkaneti.github.io/system-design-and-architecture/)** — free, runs entirely in your browser. Nothing to install, no account, no signup.
+**[🚀 Live course: 36 interactive lessons](https://veeresh-bikkaneti.github.io/system-design-and-architecture/)** — free, runs entirely in your browser. Nothing to install, no account required, no signup.
 
 ## How it works
 
@@ -10,7 +10,11 @@
 4. **Track progress and earn badges** — your progress and quiz scores are saved in your own browser. Finish lesson groups to earn badges you can show on LinkedIn.
 5. **Go deeper (optional)** — each lesson ends with hand-picked conference talks and tutorials when you want more than the lesson covers.
 
-The lessons, quizzes, and badges are a static site, so your progress never leaves your machine. Ben, the chat button, also runs entirely on your machine — there is no backend and no server for chat.
+The lessons, quizzes, and badges are a static site, and by default your progress stays in your own browser. Ben, the chat button, also runs entirely on your machine — there is no backend and no server for chat.
+
+**Optional: sync progress across devices.** If you choose *Sign in with GitHub*, your progress (completed lessons, quiz results, badges) is saved to a **private gist in your own GitHub account** (`sdm-progress.json`) so you can pick up on another device. Nothing is sent anywhere unless you sign in, the only destination is `api.github.com` with your own token, and there is no course server in between. The token lives in `sessionStorage` (cleared when the tab closes). Without a configured OAuth worker the sign-in dialog asks you to paste a fine-grained token with Gist access. Signing in does not lock or unlock any lesson.
+
+**Listen mode.** Every lesson can be read aloud with a natural AI voice (or your browser's voice). You can skip by paragraph, start from any paragraph, and pick up where you left off — see [docs/listen-natural-tts.md](docs/listen-natural-tts.md).
 
 ## AI assistant (100% client-side, no key, no cloud model)
 
