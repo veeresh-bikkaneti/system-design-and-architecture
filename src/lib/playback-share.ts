@@ -15,9 +15,30 @@
  *   through `toggle()`, which delegates to whichever player is active.
  * - `LessonNarrator` resets to `'idle'` on slug/accent change so a stale
  *   "playing" can never survive a player remount.
+ *
+ * Seek (block index, see `lib/listen-seek.ts`) rides the same bridge: the
+ * active player registers `{ toBlock, step }` handlers and publishes which
+ * directions are possible, so the floating button, the "read from here"
+ * affordance and the resume link drive either engine identically.
  */
 
 export type PlaybackStatus = 'idle' | 'playing' | 'paused';
+
+/** Which paragraph steps the active player can currently take. */
+export interface SeekAvailability {
+  canPrev: boolean;
+  canNext: boolean;
+}
+
+/** Seek entry points the active player registers. */
+export interface SeekHandlers {
+  /** Jump to a block index; an idle player starts playing from it. */
+  toBlock(block: number): void;
+  /** Move one paragraph back (-1) or forward (+1) from the current block. */
+  step(delta: -1 | 1): void;
+}
+
+const NO_SEEK: SeekAvailability = { canPrev: false, canNext: false };
 
 export interface PlaybackShare {
   getStatus(): PlaybackStatus;
@@ -28,12 +49,26 @@ export interface PlaybackShare {
   registerToggle(toggle: (() => void) | null): void;
   /** Drives the currently registered player; no-op when none is registered. */
   toggle(): void;
+  /** Stable snapshot (same object until it changes) for `useSyncExternalStore`. */
+  getSeek(): SeekAvailability;
+  /** Published by the active player; notifies seek subscribers on change only. */
+  setSeek(next: SeekAvailability): void;
+  subscribeSeek(listener: () => void): () => void;
+  /** The active player registers its seek handlers; `null` unregisters. */
+  registerSeek(handlers: SeekHandlers | null): void;
+  /** Jump via the registered player. Returns false when none is registered. */
+  seekToBlock(block: number): boolean;
+  /** Step via the registered player. Returns false when none is registered. */
+  step(delta: -1 | 1): boolean;
 }
 
 export function createPlaybackShare(): PlaybackShare {
   let status: PlaybackStatus = 'idle';
   const listeners = new Set<(s: PlaybackStatus) => void>();
   let toggleFn: (() => void) | null = null;
+  let seek: SeekAvailability = NO_SEEK;
+  const seekListeners = new Set<() => void>();
+  let seekHandlers: SeekHandlers | null = null;
 
   return {
     getStatus: () => status,
@@ -53,6 +88,31 @@ export function createPlaybackShare(): PlaybackShare {
     },
     toggle: () => {
       toggleFn?.();
+    },
+    getSeek: () => seek,
+    setSeek: (next) => {
+      if (next.canPrev === seek.canPrev && next.canNext === seek.canNext) return;
+      seek = next.canPrev || next.canNext ? { ...next } : NO_SEEK;
+      seekListeners.forEach((l) => l());
+    },
+    subscribeSeek: (listener) => {
+      seekListeners.add(listener);
+      return () => {
+        seekListeners.delete(listener);
+      };
+    },
+    registerSeek: (handlers) => {
+      seekHandlers = handlers;
+    },
+    seekToBlock: (block) => {
+      if (!seekHandlers) return false;
+      seekHandlers.toBlock(block);
+      return true;
+    },
+    step: (delta) => {
+      if (!seekHandlers) return false;
+      seekHandlers.step(delta);
+      return true;
     },
   };
 }

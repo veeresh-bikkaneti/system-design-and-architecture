@@ -25,6 +25,8 @@ export type IconName =
   | 'monitor'
   | 'play'
   | 'pause'
+  | 'skipBack'
+  | 'skipForward'
   | 'checkCircle'
   | 'xCircle'
   | 'checkFilled'
@@ -117,6 +119,10 @@ function paths(name: IconName): React.ReactNode {
           <rect x="14" y="5" width="4" height="14" rx="1.5" />
         </>
       );
+    case 'skipBack':
+      return <path d="M19 5L9 12l10 7V5ZM5 5v14" />;
+    case 'skipForward':
+      return <path d="M5 5l10 7-10 7V5ZM19 5v14" />;
     case 'checkCircle':
       return (
         <path

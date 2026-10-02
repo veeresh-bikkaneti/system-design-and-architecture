@@ -93,3 +93,69 @@ describe('createPlaybackShare', () => {
     expect(observed).toEqual(['playing', 'paused']);
   });
 });
+
+describe('createPlaybackShare seek bridge', () => {
+  it('starts with no seek available and a stable snapshot', () => {
+    const share = createPlaybackShare();
+    expect(share.getSeek()).toEqual({ canPrev: false, canNext: false });
+    expect(share.getSeek()).toBe(share.getSeek());
+  });
+
+  it('notifies seek subscribers only when availability changes', () => {
+    const share = createPlaybackShare();
+    const listener = vi.fn();
+    share.subscribeSeek(listener);
+    share.setSeek({ canPrev: false, canNext: false });
+    expect(listener).not.toHaveBeenCalled();
+    share.setSeek({ canPrev: false, canNext: true });
+    expect(listener).toHaveBeenCalledTimes(1);
+    share.setSeek({ canPrev: false, canNext: true });
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(share.getSeek()).toEqual({ canPrev: false, canNext: true });
+  });
+
+  it('keeps the snapshot identity between equal publishes', () => {
+    const share = createPlaybackShare();
+    share.setSeek({ canPrev: true, canNext: true });
+    const first = share.getSeek();
+    share.setSeek({ canPrev: true, canNext: true });
+    expect(share.getSeek()).toBe(first);
+  });
+
+  it('seek publishes do not disturb status subscribers', () => {
+    const share = createPlaybackShare();
+    const status = vi.fn();
+    share.subscribe(status);
+    share.setSeek({ canPrev: true, canNext: true });
+    expect(status).not.toHaveBeenCalled();
+  });
+
+  it('unsubscribing stops seek notifications', () => {
+    const share = createPlaybackShare();
+    const listener = vi.fn();
+    share.subscribeSeek(listener)();
+    share.setSeek({ canPrev: true, canNext: true });
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('seekToBlock and step delegate to the registered handlers', () => {
+    const share = createPlaybackShare();
+    const toBlock = vi.fn();
+    const step = vi.fn();
+    share.registerSeek({ toBlock, step });
+    expect(share.seekToBlock(7)).toBe(true);
+    expect(share.step(-1)).toBe(true);
+    expect(share.step(1)).toBe(true);
+    expect(toBlock).toHaveBeenCalledWith(7);
+    expect(step.mock.calls).toEqual([[-1], [1]]);
+  });
+
+  it('reports false (and does nothing) when no handlers are registered', () => {
+    const share = createPlaybackShare();
+    expect(share.seekToBlock(3)).toBe(false);
+    expect(share.step(1)).toBe(false);
+    share.registerSeek({ toBlock: vi.fn(), step: vi.fn() });
+    share.registerSeek(null);
+    expect(share.seekToBlock(3)).toBe(false);
+  });
+});
