@@ -41,7 +41,7 @@ export function AuthBar() {
     setError(null);
     const token = pat.trim();
     if (!token) {
-      setError('Paste a fine-grained token with Gist access.');
+      setError('Paste a GitHub personal access token with gist access.');
       return;
     }
     try {
@@ -109,15 +109,26 @@ export function AuthBar() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/40 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lift dark:bg-stone-900">
             <h2 className="font-display text-xl font-semibold">Sign in with GitHub</h2>
-            <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">One lesson is free. Saving, completing, and resuming on another device needs GitHub.</p>
+            <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">Optional. Sign in to keep your progress in sync across devices. It is saved to a private gist in your own GitHub account and nowhere else; every lesson works without signing in.</p>
             {clientId ? (
               <button type="button" className="mt-4 rounded-xl bg-accent-700 px-4 py-2 text-sm font-semibold text-white" onClick={startOauth}>Continue with GitHub</button>
             ) : (
               <>
                 <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-stone-500">
-                  Fine-grained PAT (Gists: read/write)
+                  GitHub token with gist access
                   <input className="mt-1 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-950" value={pat} onChange={(e) => setPat(e.target.value)} type="password" autoComplete="off" />
                 </label>
+                <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+                  <a
+                    className="underline"
+                    href="https://github.com/settings/tokens/new?scopes=gist&description=system-design-mastery-progress"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Create one with only the gist scope
+                  </a>
+                  . It is kept for this browser tab only and sent only to GitHub.
+                </p>
                 {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
                 <button type="button" className="mt-4 rounded-xl bg-accent-700 px-4 py-2 text-sm font-semibold text-white" onClick={() => void signInWithPat()}>Save and sync</button>
               </>
@@ -139,7 +150,7 @@ export function OauthCallbackPage() {
     const code = params.get('code');
     const worker = import.meta.env.VITE_WORKER_URL as string | undefined;
     if (!code || !worker) {
-      setError('Missing OAuth code or worker URL. Use a GitHub PAT instead.');
+      setError('GitHub sign-in is not available here. Use a GitHub token instead.');
       return;
     }
     void (async () => {

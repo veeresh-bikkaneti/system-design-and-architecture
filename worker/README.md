@@ -43,6 +43,13 @@ via a public link. "Phase 4" below is the rest of that design and why it's seque
   - `POST /auth/exchange` — `{code}` in, `{sessionToken, email}` out. The frontend calls this
     immediately on landing (with the code from the URL, then scrubbing it via
     `history.replaceState`) to get the real session, which never touches a URL.
+  - `POST /auth/github/exchange` — `{code}` in, `{accessToken, login}` out. Powers the *optional*
+    progress-sync sign-in (a private gist in the learner's own GitHub account; unrelated to the
+    magic-link/exam flow above). The OAuth client secret can only live here, so the code-for-token
+    exchange does too (`src/github-oauth.ts`). Nothing is stored: the token goes straight back and
+    the browser keeps it in `sessionStorage`. IP-throttled like the other `/auth/*` routes, answers
+    503 until `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` are set (the site then falls back to a pasted
+    token), 400 for a rejected code, 502 if GitHub is unreachable.
   - `GET /auth/session` — `Authorization: Bearer <session>` in, `{email}` out (401 if invalid or
     expired). This is what Phase 4 will use to require a *verified* email, not merely a
     self-reported one, before issuing anything.
@@ -172,6 +179,12 @@ then visit `http://localhost:8787/verify/demo`.
    `DEV_MODE` on the deployed Worker — it must only ever exist in a developer's own local
    `.dev.vars`; the fail-closed design (see `src/auth.ts`) depends on the committed `wrangler.toml`
    never setting it.
+3. **GitHub OAuth app (optional, progress sync only):** create an OAuth app with callback URL
+   `https://veeresh-bikkaneti.github.io/system-design-and-architecture/oauth/callback`, then
+   `wrangler secret put GITHUB_CLIENT_ID` and `wrangler secret put GITHUB_CLIENT_SECRET` on the
+   deployed Worker, and build the site with `VITE_GITHUB_CLIENT_ID` and `VITE_WORKER_URL` set (the
+   client id is public; the secret never leaves the Worker). Until then the sign-in dialog accepts a
+   pasted GitHub token with the `gist` scope instead.
 
 ## What's not built yet (Phase 4)
 
