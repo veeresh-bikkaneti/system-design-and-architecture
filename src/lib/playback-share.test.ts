@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createPlaybackShare } from './playback-share';
+import { createPlaybackShare, quantizeProgress } from './playback-share';
 
 describe('createPlaybackShare', () => {
   it('starts idle', () => {
@@ -91,5 +91,109 @@ describe('createPlaybackShare', () => {
     expect(playerStatus).toBe('paused');
     expect(share.getStatus()).toBe('paused');
     expect(observed).toEqual(['playing', 'paused']);
+  });
+});
+
+describe('createPlaybackShare seek bridge', () => {
+  it('starts with no seek available and a stable snapshot', () => {
+    const share = createPlaybackShare();
+    expect(share.getSeek()).toEqual({ canPrev: false, canNext: false });
+    expect(share.getSeek()).toBe(share.getSeek());
+  });
+
+  it('notifies seek subscribers only when availability changes', () => {
+    const share = createPlaybackShare();
+    const listener = vi.fn();
+    share.subscribeSeek(listener);
+    share.setSeek({ canPrev: false, canNext: false });
+    expect(listener).not.toHaveBeenCalled();
+    share.setSeek({ canPrev: false, canNext: true });
+    expect(listener).toHaveBeenCalledTimes(1);
+    share.setSeek({ canPrev: false, canNext: true });
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(share.getSeek()).toEqual({ canPrev: false, canNext: true });
+  });
+
+  it('keeps the snapshot identity between equal publishes', () => {
+    const share = createPlaybackShare();
+    share.setSeek({ canPrev: true, canNext: true });
+    const first = share.getSeek();
+    share.setSeek({ canPrev: true, canNext: true });
+    expect(share.getSeek()).toBe(first);
+  });
+
+  it('seek publishes do not disturb status subscribers', () => {
+    const share = createPlaybackShare();
+    const status = vi.fn();
+    share.subscribe(status);
+    share.setSeek({ canPrev: true, canNext: true });
+    expect(status).not.toHaveBeenCalled();
+  });
+
+  it('unsubscribing stops seek notifications', () => {
+    const share = createPlaybackShare();
+    const listener = vi.fn();
+    share.subscribeSeek(listener)();
+    share.setSeek({ canPrev: true, canNext: true });
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('seekToBlock and step delegate to the registered handlers', () => {
+    const share = createPlaybackShare();
+    const toBlock = vi.fn();
+    const step = vi.fn();
+    share.registerSeek({ toBlock, step });
+    expect(share.seekToBlock(7)).toBe(true);
+    expect(share.step(-1)).toBe(true);
+    expect(share.step(1)).toBe(true);
+    expect(toBlock).toHaveBeenCalledWith(7);
+    expect(step.mock.calls).toEqual([[-1], [1]]);
+  });
+
+  it('reports false (and does nothing) when no handlers are registered', () => {
+    const share = createPlaybackShare();
+    expect(share.seekToBlock(3)).toBe(false);
+    expect(share.step(1)).toBe(false);
+    share.registerSeek({ toBlock: vi.fn(), step: vi.fn() });
+    share.registerSeek(null);
+    expect(share.seekToBlock(3)).toBe(false);
+  });
+});
+
+describe('playback progress', () => {
+  it('starts null and publishes quantized, clamped fractions', () => {
+    const share = createPlaybackShare();
+    expect(share.getProgress()).toBeNull();
+    share.setProgress(0.5);
+    expect(share.getProgress()).toBe(0.5);
+    share.setProgress(7);
+    expect(share.getProgress()).toBe(1);
+    share.setProgress(-1);
+    expect(share.getProgress()).toBe(0);
+    share.setProgress(null);
+    expect(share.getProgress()).toBeNull();
+  });
+
+  it('ignores NaN/Infinity', () => {
+    expect(quantizeProgress(Number.NaN)).toBeNull();
+    expect(quantizeProgress(Number.POSITIVE_INFINITY)).toBeNull();
+  });
+
+  it('notifies only when the quantized value changes', () => {
+    const share = createPlaybackShare();
+    const listener = vi.fn();
+    share.subscribeProgress(listener);
+    share.setProgress(0.5);
+    share.setProgress(0.5001); // same 0.5% step
+    share.setProgress(0.6);
+    expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('unsubscribing stops progress notifications', () => {
+    const share = createPlaybackShare();
+    const listener = vi.fn();
+    share.subscribeProgress(listener)();
+    share.setProgress(0.3);
+    expect(listener).not.toHaveBeenCalled();
   });
 });

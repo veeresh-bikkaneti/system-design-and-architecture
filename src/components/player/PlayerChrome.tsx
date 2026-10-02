@@ -120,6 +120,55 @@ export function SpeedSegments({
   );
 }
 
+/**
+ * Paragraph-level transport shared by both engines. Pass it only while a
+ * track is active (playing or paused); omit it when idle or when the engine
+ * can't seek, and the chrome renders exactly as before.
+ */
+export interface PlayerSeekControls {
+  onPrev: () => void;
+  onNext: () => void;
+  canPrev: boolean;
+  canNext: boolean;
+}
+
+/**
+ * Icon-only transport button. Uses `aria-disabled` instead of `disabled` so
+ * a learner stepping to the first/last paragraph keeps keyboard focus on
+ * the button rather than losing it to <body>.
+ */
+function SeekButton({
+  label,
+  shortcut,
+  icon,
+  enabled,
+  onClick,
+  className,
+}: {
+  label: string;
+  shortcut: 'ArrowLeft' | 'ArrowRight';
+  icon: 'skipBack' | 'skipForward';
+  enabled: boolean;
+  onClick: () => void;
+  className: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (enabled) onClick();
+      }}
+      aria-label={label}
+      aria-disabled={!enabled}
+      aria-keyshortcuts={shortcut}
+      title={label}
+      className={`${className} aria-disabled:cursor-not-allowed aria-disabled:opacity-40`}
+    >
+      <Icon name={icon} className="h-4 w-4" />
+    </button>
+  );
+}
+
 export interface PlayerChromeProps {
   /** Accessible label for the play/pause pill. */
   playLabel: string;
@@ -136,6 +185,8 @@ export interface PlayerChromeProps {
   popoverWidthClass?: string;
   /** Screen-reader-only live-region text describing playback status. */
   statusText: string;
+  /** Previous/next paragraph controls; see {@link PlayerSeekControls}. */
+  seek?: PlayerSeekControls;
   /** Popover body: option sections and notes. */
   children: ReactNode;
 }
@@ -154,6 +205,7 @@ export function PlayerChrome({
   popoverLabel,
   popoverWidthClass = 'w-64',
   statusText,
+  seek,
   children,
 }: PlayerChromeProps) {
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -174,6 +226,28 @@ export function PlayerChrome({
           <Icon name={playing ? 'pause' : 'play'} className="h-4 w-4" />
           {playText}
         </button>
+        {seek && (
+          // Compact UI keeps the pill short: below `sm` these two live in
+          // the options popover instead (same handlers, same labels).
+          <>
+            <SeekButton
+              label="Previous paragraph"
+              shortcut="ArrowLeft"
+              icon="skipBack"
+              enabled={seek.canPrev}
+              onClick={seek.onPrev}
+              className={`${pillClass} rounded-none border-r-0 px-2.5 max-sm:hidden`}
+            />
+            <SeekButton
+              label="Next paragraph"
+              shortcut="ArrowRight"
+              icon="skipForward"
+              enabled={seek.canNext}
+              onClick={seek.onNext}
+              className={`${pillClass} rounded-none border-r-0 px-2.5 max-sm:hidden`}
+            />
+          </>
+        )}
         <button
           type="button"
           onClick={() => setOptionsOpen((o) => !o)}
@@ -191,7 +265,43 @@ export function PlayerChrome({
           aria-label={popoverLabel}
           className={`absolute right-0 top-full z-30 mt-2 ${popoverWidthClass} rounded-2xl border border-stone-200/80 bg-white p-4 shadow-lift dark:border-stone-700 dark:bg-stone-900`}
         >
+          {seek && (
+            <div className="mb-3 sm:hidden">
+              <PopoverLabel>Paragraph</PopoverLabel>
+              <div className="mt-1.5 flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (seek.canPrev) seek.onPrev();
+                  }}
+                  aria-label="Previous paragraph"
+                  aria-disabled={!seek.canPrev}
+                  className={`${segmentClass(false)} inline-flex items-center gap-1 border border-stone-200/80 aria-disabled:opacity-40 dark:border-stone-700`}
+                >
+                  <Icon name="skipBack" className="h-3.5 w-3.5" />
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (seek.canNext) seek.onNext();
+                  }}
+                  aria-label="Next paragraph"
+                  aria-disabled={!seek.canNext}
+                  className={`${segmentClass(false)} inline-flex items-center gap-1 border border-stone-200/80 aria-disabled:opacity-40 dark:border-stone-700`}
+                >
+                  Next
+                  <Icon name="skipForward" className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
           {children}
+          {seek && (
+            <PopoverNote>
+              Tip: press the left and right arrow keys to skip between paragraphs while listening.
+            </PopoverNote>
+          )}
         </div>
       )}
 

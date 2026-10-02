@@ -15,6 +15,15 @@ export const BLOCK_ACTIVE_CLASS = 'narr-block-active';
 export const SENT_SPAN_CLASS = 'narr-sent';
 export const SENT_ACTIVE_CLASS = 'narr-sent-active';
 
+/**
+ * Bring a block into view after an explicit jump (seek / read-from-here).
+ * Centered, since the learner chose to land here; reduced-motion users get
+ * an instant jump instead of a smooth scroll.
+ */
+export function scrollBlockIntoView(el: Element, reducedMotion: boolean): void {
+  el.scrollIntoView({ block: 'center', behavior: reducedMotion ? 'auto' : 'smooth' });
+}
+
 /** All descendant text nodes of `el`, in document order. */
 export function textNodesIn(el: Element): Text[] {
   const nodes: Text[] = [];
