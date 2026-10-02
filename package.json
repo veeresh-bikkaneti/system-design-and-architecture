@@ -27,7 +27,7 @@
     "@mlc-ai/web-llm": "^0.2.85",
     "dompurify": "^3.4.16",
     "mermaid": "^12.0.0",
-    "motion": "^13.3.0",
+    "motion": "^13.4.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-markdown": "^10.1.0",
@@ -49,11 +49,11 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "jsdom": "^30.1.1",
-    "oxlint": "^1.83.0",
+    "oxlint": "^1.85.0",
     "satori": "^0.33.5",
     "tailwindcss": "^4.3.3",
     "typescript": "~7.0.2",
-    "vite": "^8.3.0",
+    "vite": "^8.3.1",
     "vitest": "^5.0.1"
   },
   "overrides": {
