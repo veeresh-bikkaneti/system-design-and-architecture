@@ -260,4 +260,44 @@ describe('runChunk', () => {
     expect(handle.hasStarted()).toBe(false);
     expect(onEnd).not.toHaveBeenCalled();
   });
+
+  it('seek: dispose-then-cancel supersedes a started chunk without a stray onError/onEnd', () => {
+    // What ListenButton.jumpTo does: dispose() BEFORE synth.cancel(), because
+    // cancel() makes the platform fire an error/end on the old utterance —
+    // which, if still live, would call stop() (onError) or double-advance
+    // (onEnd) while the player is playing.
+    const synth = makeSynth([UK_VOICE]);
+    const utterances: FakeUtterance[] = [];
+    const first = startRun(synth, utterances, 'uk');
+    fire(utterances[0], 'onstart');
+    first.handle.dispose();
+    synth.cancel();
+    fire(utterances[0], 'onerror');
+    fire(utterances[0], 'onend');
+    expect(first.onError).not.toHaveBeenCalled();
+    expect(first.onEnd).not.toHaveBeenCalled();
+
+    // The replacement run is independent and fully live.
+    const second = startRun(synth, utterances, 'uk');
+    fire(utterances[1], 'onstart');
+    fire(utterances[1], 'onend');
+    expect(second.onEnd).toHaveBeenCalledTimes(1);
+    expect(first.onEnd).not.toHaveBeenCalled();
+  });
+
+  it('seek before the first chunk starts leaves no watchdog behind', () => {
+    const synth = makeSynth([UK_VOICE]);
+    const utterances: FakeUtterance[] = [];
+    const first = startRun(synth, utterances, 'uk');
+    first.handle.dispose();
+    synth.cancel();
+    const cancelsAfterSeek = synth.cancelMock.mock.calls.length;
+    const second = startRun(synth, utterances, 'uk');
+    fire(utterances[1], 'onstart');
+    vi.advanceTimersByTime(WATCHDOG_MS * 3);
+    expect(synth.cancelMock.mock.calls.length).toBe(cancelsAfterSeek);
+    expect(first.onUnrecoverable).not.toHaveBeenCalled();
+    expect(second.onUnrecoverable).not.toHaveBeenCalled();
+    second.handle.dispose();
+  });
 });

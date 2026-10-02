@@ -8,7 +8,16 @@ import {
   type VoicePreference,
 } from '../lib/listen';
 import { runChunk, type ChunkRun } from '../lib/listen-speak';
+import {
+  canStep,
+  firstChunkOfBlock,
+  snapToPlayable,
+  stepBlock,
+} from '../lib/listen-seek';
 import type { PlaybackShare } from '../lib/playback-share';
+import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
+import { useListenPositionStore } from '../store/listenPosition';
+import { useSeekShortcuts } from './player/useSeekShortcuts';
 import {
   PlayerChrome,
   PopoverLabel,
@@ -20,6 +29,7 @@ import {
   BLOCK_ACTIVE_CLASS,
   SENT_ACTIVE_CLASS,
   SENT_SPAN_CLASS,
+  scrollBlockIntoView,
   unwrapSpans,
   wrapSentenceSpans,
 } from '../lib/narrate-dom';
@@ -53,6 +63,11 @@ const VOICE_OPTIONS: { value: VoicePreference; label: string }[] = [
  * that fire speech boundary events — the exact sentence is highlighted too,
  * so the learner can follow along in the text.
  *
+ * Seeking is block-level (the shared block index from `lib/listen-seek`):
+ * previous/next paragraph, "read from here" and resume all restart the
+ * utterance queue at the first chunk of the target block. Sentence-level
+ * starts are a possible follow-up; the chunker already tracks sentence ranges.
+ *
  * Nothing autoplays, the text stays primary, and the control is one quiet
  * pill in the lesson header. The pill chrome (play button, options chevron,
  * dismissible popover) is the shared `PlayerChrome`; this component only
@@ -83,6 +98,18 @@ export function ListenButton({
   const [status, setStatus] = useState<Status>('idle');
   const [speed, setSpeed] = useState<number>(1);
   const [voicePref, setVoicePref] = useState<VoicePreference>('auto');
+  // Seek state: blocks this lesson can start at (ascending) and the block
+  // being read. The ref mirrors the state so rapid presses between renders
+  // step from where the last press landed.
+  const [playable, setPlayable] = useState<number[]>([]);
+  const [currentBlock, setCurrentBlock] = useState(0);
+  const currentBlockRef = useRef(0);
+  const [seekNote, setSeekNote] = useState('');
+  const reducedMotion = usePrefersReducedMotion();
+  const reducedMotionRef = useRef(reducedMotion);
+  useEffect(() => {
+    reducedMotionRef.current = reducedMotion;
+  });
 
   const statusRef = useRef<Status>(status);
   useEffect(() => {
@@ -103,6 +130,11 @@ export function ListenButton({
     activeBlockRef.current = null;
     activeSentRef.current?.classList.remove(SENT_ACTIVE_CLASS);
     activeSentRef.current = null;
+  };
+
+  const trackBlock = (block: number) => {
+    currentBlockRef.current = block;
+    setCurrentBlock(block);
   };
 
   const stop = () => {
@@ -168,6 +200,9 @@ export function ListenButton({
     if (index >= chunks.length) {
       setStatus('idle');
       indexRef.current = 0;
+      // Finished the lesson: nothing left to continue from.
+      useListenPositionStore.getState().clearPosition(slug);
+      trackBlock(0);
       clearHighlight();
       const root = document.querySelector(articleSelector);
       if (root) unwrapSpans(root, SENT_SPAN_CLASS);
@@ -189,6 +224,8 @@ export function ListenButton({
       startWatchdogMs: START_WATCHDOG_MS,
       onStart: () => {
         clearHighlight();
+        trackBlock(chunk.blockIndex);
+        useListenPositionStore.getState().setPosition(slug, chunk.blockIndex);
         const block = blocksRef.current[chunk.blockIndex];
         if (block) {
           block.element.classList.add(BLOCK_ACTIVE_CLASS);
@@ -216,7 +253,7 @@ export function ListenButton({
     });
   };
 
-  const play = () => {
+  const play = (startBlock = 0) => {
     const synth = window.speechSynthesis;
     // Clear any stuck state first (long-standing Chrome quirk).
     synth.cancel();
@@ -231,13 +268,75 @@ export function ListenButton({
     });
     blocksRef.current = blocks;
     chunksRef.current = chunks;
-    indexRef.current = 0;
+    const blocksWithSpeech = [...new Set(chunks.map((c) => c.blockIndex))];
+    setPlayable(blocksWithSpeech);
+    // Block-level start: the first chunk of the requested block (snapped to
+    // one that has speech; out-of-range clamps to the last).
+    const first = snapToPlayable(blocksWithSpeech, startBlock) ?? 0;
+    const startChunk = firstChunkOfBlock(chunks, first) ?? 0;
+    indexRef.current = startChunk;
+    trackBlock(first);
+    setSeekNote('');
     setStatus('playing');
-    speakNext(0);
+    if (startBlock > 0) showBlock(first);
+    speakNext(startChunk);
+  };
+
+  /** Highlight a block and bring it into view (explicit jumps only). */
+  const showBlock = (block: number) => {
+    const el = blocksRef.current[block]?.element;
+    if (!el) return;
+    clearHighlight();
+    el.classList.add(BLOCK_ACTIVE_CLASS);
+    activeBlockRef.current = el;
+    scrollBlockIntoView(el, reducedMotionRef.current);
+  };
+
+  /**
+   * Move a live (playing or paused) session to `block`. The in-flight
+   * utterance is superseded cleanly: dispose() first, so its watchdog is
+   * cleared and the late onend/onerror that cancel() provokes is ignored by
+   * runChunk's `done` guard — no stale timer, no double-advance.
+   */
+  const jumpTo = (block: number) => {
+    const target = snapToPlayable(playable, block);
+    const chunkIdx = target === null ? null : firstChunkOfBlock(chunksRef.current, target);
+    if (target === null || chunkIdx === null) return;
+    const synth = window.speechSynthesis;
+    runRef.current?.dispose();
+    runRef.current = null;
+    synth.cancel();
+    indexRef.current = chunkIdx;
+    trackBlock(target);
+    useListenPositionStore.getState().setPosition(slug, target);
+    showBlock(target);
+    setSeekNote(`Paragraph ${playable.indexOf(target) + 1} of ${playable.length}.`);
+    if (statusRef.current === 'paused') {
+      // Stay paused, but drop the platform's paused flag (nothing is queued
+      // now) so the fresh utterance resume speaks isn't swallowed by it, and
+      // make resume take the "start a new utterance" path.
+      synth.resume();
+      pausedAfterStartRef.current = false;
+    } else {
+      speakNext(chunkIdx);
+    }
+  };
+
+  /** Jump to a block; an idle player starts reading from it. */
+  const seekToBlock = (block: number) => {
+    if (!supported) return;
+    if (statusRef.current === 'idle') play(block);
+    else jumpTo(block);
+  };
+
+  const step = (delta: -1 | 1) => {
+    const next = stepBlock(playable, currentBlockRef.current, delta);
+    if (next !== null) seekToBlock(next);
   };
 
   const toggle = () => {
     if (!supported) return;
+    setSeekNote('');
     if (status === 'playing') {
       // Capture whether the utterance ever started BEFORE touching the run:
       // pausing inside the start-watchdog window means the run is dead (its
@@ -281,16 +380,33 @@ export function ListenButton({
     return () => share.registerToggle(null);
   });
 
+  // Seek: expose handlers to the floating button / read-from-here / resume,
+  // publish which directions are possible, and wire ←/→ while active.
+  const active = status !== 'idle';
+  const canPrev = active && canStep(playable, currentBlock, -1);
+  const canNext = active && canStep(playable, currentBlock, 1);
+  useEffect(() => {
+    if (!share) return;
+    share.registerSeek({ toBlock: seekToBlock, step });
+    return () => share.registerSeek(null);
+  });
+  useEffect(() => {
+    share?.setSeek({ canPrev, canNext });
+  }, [canPrev, canNext, share]);
+  useEffect(() => () => share?.setSeek({ canPrev: false, canNext: false }), [share]);
+  useSeekShortcuts(active, step);
+
   if (!supported) return null;
 
   const mainLabel =
     status === 'playing' ? 'Pause listening' : status === 'paused' ? 'Resume listening' : 'Listen to this lesson';
   const statusText =
-    status === 'playing'
+    seekNote ||
+    (status === 'playing'
       ? 'Playing lesson audio.'
       : status === 'paused'
         ? 'Paused.'
-        : 'Lesson audio stopped.';
+        : 'Lesson audio stopped.');
 
   return (
     <PlayerChrome
@@ -301,6 +417,16 @@ export function ListenButton({
       optionsLabel="Listening options: speed and voice"
       popoverLabel="Listening options"
       statusText={statusText}
+      seek={
+        active && playable.length > 1
+          ? {
+              onPrev: () => step(-1),
+              onNext: () => step(1),
+              canPrev,
+              canNext,
+            }
+          : undefined
+      }
     >
       <SpeedSegments speed={speed} onSelect={setSpeed} />
       <div className="mt-3">
