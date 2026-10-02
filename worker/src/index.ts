@@ -12,6 +12,7 @@ import {
   validateSession,
 } from './auth';
 import { sha256Hex } from './crypto';
+import { exchangeGitHubCode } from './github-oauth';
 
 export interface Env {
   DB: D1Database;
@@ -23,6 +24,11 @@ export interface Env {
   RESEND_API_KEY?: string;
   RESEND_FROM_ADDRESS?: string;
   DEV_MODE?: string;
+  // GitHub OAuth app credentials for the optional progress-sync sign-in
+  // (`POST /auth/github/exchange`). Set with `wrangler secret put`; unset
+  // means that route answers 503 and the site falls back to token paste.
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
 }
 
 interface CredentialRow {
@@ -502,6 +508,44 @@ async function handleExchange(request: Request, env: Env): Promise<Response> {
   return jsonResponse({ sessionToken: result.sessionToken, email: result.email }, { headers: cors });
 }
 
+// Optional progress-sync sign-in: the browser sends the one-time `code` from
+// GitHub's redirect; the client secret can only live here, so the exchange
+// does too. Nothing is stored -- the access token goes straight back to the
+// caller, who keeps it in sessionStorage.
+async function handleGitHubExchange(request: Request, env: Env): Promise<Response> {
+  const cors = corsHeaders(request.headers.get('Origin'));
+  const throttled = await throttleByIp(request, env.DB, 'auth_github_exchange', 60, cors);
+  if (throttled) return throttled;
+
+  if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET) {
+    return jsonResponse({ error: 'GitHub sign-in is not configured' }, { status: 503, headers: cors });
+  }
+
+  const parsed = await parseJsonBody(request, cors);
+  if ('errorResponse' in parsed) return parsed.errorResponse;
+
+  const { code } = (parsed.body && typeof parsed.body === 'object' ? parsed.body : {}) as { code?: unknown };
+  if (typeof code !== 'string' || !code) {
+    return jsonResponse({ error: 'A code is required' }, { status: 400, headers: cors });
+  }
+
+  try {
+    const { accessToken, login } = await exchangeGitHubCode(code, {
+      GITHUB_CLIENT_ID: env.GITHUB_CLIENT_ID,
+      GITHUB_CLIENT_SECRET: env.GITHUB_CLIENT_SECRET,
+    });
+    return jsonResponse({ accessToken, login }, { headers: { ...cors, 'Cache-Control': 'no-store' } });
+  } catch (err) {
+    // GitHub said no (bad/expired code): the caller's fault. Anything else
+    // (network, malformed reply) is upstream's.
+    const reason = err instanceof Error ? err.message : '';
+    if (reason === 'no_token' || reason === 'no_login' || reason === 'missing_code') {
+      return jsonResponse({ error: 'Invalid or expired code' }, { status: 400, headers: cors });
+    }
+    return jsonResponse({ error: 'GitHub is unavailable' }, { status: 502, headers: cors });
+  }
+}
+
 async function handleGetSession(request: Request, env: Env): Promise<Response> {
   const cors = corsHeaders(request.headers.get('Origin'));
   const throttled = await throttleByIp(request, env.DB, 'auth_session', 180, cors);
@@ -567,6 +611,10 @@ export default {
 
     if (url.pathname === '/auth/exchange' && request.method === 'POST') {
       return handleExchange(request, env);
+    }
+
+    if (url.pathname === '/auth/github/exchange' && request.method === 'POST') {
+      return handleGitHubExchange(request, env);
     }
 
     if (url.pathname === '/auth/session' && request.method === 'GET') {

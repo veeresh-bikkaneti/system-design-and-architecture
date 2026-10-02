@@ -72,7 +72,7 @@ the manifest includes title/summary blocks the browser voice never speaks. See
 **Optional GitHub progress sync (client-only).** `src/components/AuthBar.tsx`, `src/lib/gist-sync.ts` and
 `src/store/session.ts` let a learner sign in and mirror progress to a private gist in their own account
 (OAuth scope `gist`; without `VITE_GITHUB_CLIENT_ID`/`VITE_WORKER_URL` the dialog falls back to a pasted
-fine-grained token; the token lives in `sessionStorage`, never `localStorage`). It must stay strictly
+GitHub token with the `gist` scope; the `/auth/github/exchange` worker route needs the secrets in `worker/README.md`; the token lives in `sessionStorage`, never `localStorage`). It must stay strictly
 opt-in: every lesson, quiz and progress feature works signed out, and nothing may be sent anywhere before
 sign-in. Lessons are not gated on sign-in (`canOpenLesson` is currently only exercised by its tests); the
 README's privacy statements describe this behaviour, so update them with any change here.
