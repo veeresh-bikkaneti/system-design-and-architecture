@@ -40,6 +40,21 @@ export interface SeekHandlers {
 
 const NO_SEEK: SeekAvailability = { canPrev: false, canNext: false };
 
+/**
+ * How far through the lesson the active player is, 0..1, or `null` when
+ * there's nothing to show (idle, or the engine can't tell). Quantized so
+ * a 60fps audio clock doesn't re-render the floating button every frame.
+ */
+export type PlaybackProgress = number | null;
+
+const PROGRESS_STEPS = 200;
+
+export function quantizeProgress(fraction: number | null): PlaybackProgress {
+  if (fraction === null || !Number.isFinite(fraction)) return null;
+  const clamped = Math.min(Math.max(fraction, 0), 1);
+  return Math.round(clamped * PROGRESS_STEPS) / PROGRESS_STEPS;
+}
+
 export interface PlaybackShare {
   getStatus(): PlaybackStatus;
   /** Published by the active player on every internal status change. */
@@ -60,6 +75,11 @@ export interface PlaybackShare {
   seekToBlock(block: number): boolean;
   /** Step via the registered player. Returns false when none is registered. */
   step(delta: -1 | 1): boolean;
+  /** Stable snapshot for `useSyncExternalStore`. */
+  getProgress(): PlaybackProgress;
+  /** Published by the active player; notifies subscribers on change only. */
+  setProgress(fraction: number | null): void;
+  subscribeProgress(listener: () => void): () => void;
 }
 
 export function createPlaybackShare(): PlaybackShare {
@@ -69,6 +89,8 @@ export function createPlaybackShare(): PlaybackShare {
   let seek: SeekAvailability = NO_SEEK;
   const seekListeners = new Set<() => void>();
   let seekHandlers: SeekHandlers | null = null;
+  let progress: PlaybackProgress = null;
+  const progressListeners = new Set<() => void>();
 
   return {
     getStatus: () => status,
@@ -113,6 +135,19 @@ export function createPlaybackShare(): PlaybackShare {
       if (!seekHandlers) return false;
       seekHandlers.step(delta);
       return true;
+    },
+    getProgress: () => progress,
+    setProgress: (fraction) => {
+      const next = quantizeProgress(fraction);
+      if (next === progress) return;
+      progress = next;
+      progressListeners.forEach((l) => l());
+    },
+    subscribeProgress: (listener) => {
+      progressListeners.add(listener);
+      return () => {
+        progressListeners.delete(listener);
+      };
     },
   };
 }

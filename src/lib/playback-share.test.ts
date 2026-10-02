@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createPlaybackShare } from './playback-share';
+import { createPlaybackShare, quantizeProgress } from './playback-share';
 
 describe('createPlaybackShare', () => {
   it('starts idle', () => {
@@ -157,5 +157,43 @@ describe('createPlaybackShare seek bridge', () => {
     share.registerSeek({ toBlock: vi.fn(), step: vi.fn() });
     share.registerSeek(null);
     expect(share.seekToBlock(3)).toBe(false);
+  });
+});
+
+describe('playback progress', () => {
+  it('starts null and publishes quantized, clamped fractions', () => {
+    const share = createPlaybackShare();
+    expect(share.getProgress()).toBeNull();
+    share.setProgress(0.5);
+    expect(share.getProgress()).toBe(0.5);
+    share.setProgress(7);
+    expect(share.getProgress()).toBe(1);
+    share.setProgress(-1);
+    expect(share.getProgress()).toBe(0);
+    share.setProgress(null);
+    expect(share.getProgress()).toBeNull();
+  });
+
+  it('ignores NaN/Infinity', () => {
+    expect(quantizeProgress(Number.NaN)).toBeNull();
+    expect(quantizeProgress(Number.POSITIVE_INFINITY)).toBeNull();
+  });
+
+  it('notifies only when the quantized value changes', () => {
+    const share = createPlaybackShare();
+    const listener = vi.fn();
+    share.subscribeProgress(listener);
+    share.setProgress(0.5);
+    share.setProgress(0.5001); // same 0.5% step
+    share.setProgress(0.6);
+    expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('unsubscribing stops progress notifications', () => {
+    const share = createPlaybackShare();
+    const listener = vi.fn();
+    share.subscribeProgress(listener)();
+    share.setProgress(0.3);
+    expect(listener).not.toHaveBeenCalled();
   });
 });

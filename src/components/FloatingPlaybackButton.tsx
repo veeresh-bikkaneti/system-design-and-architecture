@@ -1,6 +1,11 @@
 import { useSyncExternalStore } from 'react';
 import { Icon } from './ui/Icon';
-import type { PlaybackShare, PlaybackStatus, SeekAvailability } from '../lib/playback-share';
+import type {
+  PlaybackProgress,
+  PlaybackShare,
+  PlaybackStatus,
+  SeekAvailability,
+} from '../lib/playback-share';
 
 /**
  * Floating pause/play button for lesson narration.
@@ -16,11 +21,25 @@ import type { PlaybackShare, PlaybackStatus, SeekAvailability } from '../lib/pla
  * the thumb never chases it); idle, it is the single circle it always was. Both go through `share`, so they skip paragraphs on
  * whichever engine is playing.
  *
+ * While a track is active, a thin ring around the play/pause circle fills
+ * as the lesson progresses (audio time on the neural path, paragraphs on
+ * the browser-voice path). It adds no width, so the thumb target and the
+ * stack above it don't move; the exact figure rides in the tooltip. Fine
+ * scrubbing stays in the main player's popover.
+ *
  * Rendered only when narration is available for the lesson (`visible`);
  * `LessonNarrator` applies the same support gating as the main player.
  */
 
 const NO_SEEK: SeekAvailability = { canPrev: false, canNext: false };
+
+// Ring geometry (viewBox units; the SVG is 56px, the button 48px inside it).
+const RING_RADIUS = 26;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+/** stroke-dashoffset that leaves `fraction` (0..1) of the ring drawn. */
+const ringDashOffset = (fraction: number): number =>
+  RING_CIRCUMFERENCE * (1 - Math.min(Math.max(fraction, 0), 1));
 
 const sideButtonClass =
   'flex h-10 w-10 items-center justify-center rounded-full border border-stone-200/80 bg-white text-stone-600 shadow-lift transition-all hover:border-accent-300 hover:text-accent-800 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 active:translate-y-px aria-disabled:cursor-not-allowed aria-disabled:opacity-40 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-accent-800 dark:hover:text-accent-300';
@@ -46,6 +65,12 @@ export function FloatingPlaybackButton({
     () => NO_SEEK,
   );
 
+  const progress: PlaybackProgress = useSyncExternalStore(
+    share.subscribeProgress,
+    share.getProgress,
+    () => null,
+  );
+
   if (!visible) return null;
 
   const showSeek = status !== 'idle' && (seek.canPrev || seek.canNext);
@@ -59,6 +84,9 @@ export function FloatingPlaybackButton({
     : status === 'paused'
       ? 'Resume listening'
       : 'Listen to this lesson';
+
+  const showRing = status !== 'idle' && progress !== null;
+  const title = showRing ? `${label} (${Math.round(progress * 100)}% through)` : label;
 
   return (
     // Fixed bottom-right, stacked ABOVE the course Q&A button (fixed
@@ -96,19 +124,50 @@ export function FloatingPlaybackButton({
           </button>
         </div>
       )}
-      <button
-        type="button"
-        onClick={() => share.toggle()}
-        aria-label={label}
-        aria-pressed={playing}
-        title={label}
-        // No aria-live region here: the main player's live region already
-        // announces status changes — a second one would double-announce
-        // every toggle. The aria-label flip covers the focused control.
-        className="flex h-12 w-12 items-center justify-center rounded-full border border-stone-200/80 bg-white text-stone-600 shadow-lift transition-all hover:border-accent-300 hover:text-accent-800 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 active:translate-y-px dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-accent-800 dark:hover:text-accent-300"
-      >
-        <Icon name={playing ? 'pause' : 'play'} className="h-5 w-5" />
-      </button>
+      <div className="relative -m-1 p-1">
+        {showRing && (
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 56 56"
+            className="pointer-events-none absolute inset-0 h-14 w-14 -rotate-90 text-accent-600 dark:text-accent-400"
+            data-testid="playback-progress-ring"
+          >
+            <circle
+              cx="28"
+              cy="28"
+              r={RING_RADIUS}
+              fill="none"
+              strokeWidth="3"
+              className="stroke-stone-200 dark:stroke-stone-700"
+            />
+            <circle
+              cx="28"
+              cy="28"
+              r={RING_RADIUS}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray={RING_CIRCUMFERENCE}
+              strokeDashoffset={ringDashOffset(progress)}
+              className="motion-safe:transition-[stroke-dashoffset] motion-safe:duration-300"
+            />
+          </svg>
+        )}
+        <button
+          type="button"
+          onClick={() => share.toggle()}
+          aria-label={label}
+          aria-pressed={playing}
+          title={title}
+          // No aria-live region here: the main player's live region already
+          // announces status changes — a second one would double-announce
+          // every toggle. The aria-label flip covers the focused control.
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-stone-200/80 bg-white text-stone-600 shadow-lift transition-all hover:border-accent-300 hover:text-accent-800 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 active:translate-y-px dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-accent-800 dark:hover:text-accent-300"
+        >
+          <Icon name={playing ? 'pause' : 'play'} className="h-5 w-5" />
+        </button>
+      </div>
     </div>
   );
 }

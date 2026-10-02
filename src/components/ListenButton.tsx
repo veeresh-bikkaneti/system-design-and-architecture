@@ -396,6 +396,14 @@ export function ListenButton({
   useEffect(() => () => share?.setSeek({ canPrev: false, canNext: false }), [share]);
   useSeekShortcuts(active, step);
 
+  // Floating-button progress ring: paragraphs started over paragraphs in
+  // the lesson (the speech engine has no reliable clock to measure by).
+  useEffect(() => {
+    const at = playable.indexOf(currentBlock);
+    share?.setProgress(active && playable.length > 0 && at >= 0 ? (at + 1) / playable.length : null);
+  }, [active, playable, currentBlock, share]);
+  useEffect(() => () => share?.setProgress(null), [share]);
+
   if (!supported) return null;
 
   const mainLabel =

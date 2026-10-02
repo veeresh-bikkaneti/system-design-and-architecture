@@ -552,6 +552,12 @@ function NeuralPlayer({
   useEffect(() => () => share.setSeek({ canPrev: false, canNext: false }), [share]);
   useSeekShortcuts(active, step);
 
+  // Floating-button progress ring: elapsed audio time over the recording.
+  useEffect(() => {
+    share.setProgress(active && manifest.duration > 0 ? progress / manifest.duration : null);
+  }, [active, progress, manifest.duration, share]);
+  useEffect(() => () => share.setProgress(null), [share]);
+
   // Shared playback state: publish status for the floating button and let
   // it drive this player's toggle. Registered without a dep array so the
   // floating button always calls the latest toggle closure.
