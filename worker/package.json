@@ -12,7 +12,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply system-design-mastery-cert --remote"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260921.1",
+    "@cloudflare/workers-types": "^5.20261005.1",
     "typescript": "~7.0.2",
     "vitest": "^5.0.2",
     "wrangler": "^4.144.0"
