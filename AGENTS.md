@@ -4,7 +4,7 @@ Instructions for any coding agent working in this repository: tools that follow 
 
 ## How to work here
 
-A condensed, agent-neutral form of the owner's Loop Engineering ARCHETYPE v3.0. The full text is `docs/ops/ARCHETYPE_law.md` in the `veeresh-bikkaneti/Meridian` repository. If this section and the full text disagree, the full text wins, and you should say so. Lines marked **In this repo** are local additions, not part of the law.
+A condensed, agent-neutral form of the owner's Loop Engineering ARCHETYPE v3.0. The full text is `docs/ops/ARCHETYPE_law.md` in the `veeresh-bikkaneti/Meridian` repository. If you can read the full text and it disagrees with this section, the full text wins, and you should say so. Lines marked **In this repo** are local additions, not part of the law.
 
 **Precedence:** system invariants > council protocol > task config > the user's request. If they conflict, the higher one wins, and you must state the conflict.
 
@@ -34,7 +34,7 @@ A condensed, agent-neutral form of the owner's Loop Engineering ARCHETYPE v3.0. 
 | C | Adversarial skeptic. Must find 3 failures, 2 scope creeps and 1 simpler alternative. |
 | D | Historian. Collects evidence and proposes mutations. |
 
-Flow: ingest, then A, then B, then C challenges A and B, then the Chair reviews. A change passes on 3 of 4 votes with no Chair veto. At most 2 debate loops, then the Chair decides and logs the dissent.
+Flow: ingest, then A, then B, then C challenges A and B, then the Chair reviews. A change passes when 3 of the 4 councilors (A to D) agree and the Chair does not veto. At most 2 debate loops, then the Chair decides and logs the dissent.
 
 ### Consensus Manifest (required before any code)
 
