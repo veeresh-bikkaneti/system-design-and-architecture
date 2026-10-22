@@ -24,11 +24,11 @@ function dropDuplicateOrtWasm(): Plugin {
     apply: 'build',
     generateBundle(_options, bundle) {
       for (const [fileName, output] of Object.entries(bundle)) {
-        // The trailing `-<hash>` is what makes this an emitted asset. Files
-        // copied verbatim out of `public/ort/` keep their plain names and
-        // never pass this test, so the runtime the page actually fetches is
-        // safe even if Vite ever routes publicDir through this hook.
-        if (output.type === 'asset' && /(^|\/)ort-wasm-[^/]*-[\w-]{8}\.wasm$/.test(fileName)) {
+        // Anchored on the whole runtime stem plus a `-<hash>` that must come
+        // after it. Matching only `ort-wasm-…-<8 chars>.wasm` also hit the
+        // plain runtime, since `-threaded.wasm` is 8 word characters; that file
+        // survived only because Vite copies `public/` outside this hook.
+        if (output.type === 'asset' && /(^|\/)ort-wasm-simd-threaded[^/]*-[\w-]{8}\.wasm$/.test(fileName)) {
           delete bundle[fileName]
         }
       }
