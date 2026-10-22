@@ -147,7 +147,7 @@ covers them with one shared concept. What shipped:
 - Flow: one PR per concern, draft first. PR checks here run only CodeQL and GitGuardian (the real
   gates run on push to `main`), so run the gates locally and read the Deploy workflow's jobs
   (gates, build, E2E, deploy) after merging. Do not pile merges on `main` while a deploy is running.
-- Docs move with the code: `docs/listen-natural-tts.md`, `docs/architecture.md`, `CLAUDE.md`. If a
+- Docs move with the code: `docs/listen-natural-tts.md`, `docs/architecture.md`, `AGENTS.md`. If a
   change alters what leaves the device, update the README privacy statements in the same PR.
 - Work in a worktree or subagent for long builds, but commit early and often: if the container
   restarts, committed work survives and in-flight work does not.
