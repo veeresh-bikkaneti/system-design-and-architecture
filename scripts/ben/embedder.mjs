@@ -91,6 +91,16 @@ export const ORT_ASYNCIFY_FILES = [
   'ort-wasm-simd-threaded.asyncify.wasm',
 ];
 
+/**
+ * Whether `ort/` holds the whole asyncify pair. `vite.config.ts` bakes this
+ * into the bundle so the page never requests a runtime this build did not
+ * ship. It asks the folder rather than re-reading `WORKERS_CI`, so what is
+ * shipped and what is requested cannot disagree.
+ */
+export function asyncifyShipped(ortDir = join(repoRoot, 'public', 'ort')) {
+  return ORT_ASYNCIFY_FILES.every((file) => existsSync(join(ortDir, file)));
+}
+
 /** The folder of the installed package `name` that `from` resolves. */
 function packageDir(name, from) {
   let dir = dirname(createRequire(from).resolve(name));

@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import mdx from '@mdx-js/rollup'
 import remarkGfm from 'remark-gfm'
+import { asyncifyShipped } from './scripts/ben/embedder.mjs'
 
 /**
  * Drop the duplicate ONNX WASM that Rollup emits into `assets/`.
@@ -39,11 +40,12 @@ function dropDuplicateOrtWasm(): Plugin {
 export default defineConfig({
   base: process.env.VITE_BASE_PATH ?? '/',
   define: {
-    /* Whether this build shipped the 25.6 MiB asyncify WASM. Cloudflare
-     * Workers Builds sets WORKERS_CI=1 and its artifact leaves the file out
-     * (copyRuntimeAssets() in scripts/ben/embedder.mjs), so WebGPU devices
-     * use the plain build there. Read by src/ai/local/runtime.ts. */
-    'import.meta.env.VITE_ORT_ASYNCIFY': JSON.stringify(process.env.WORKERS_CI ? '0' : '1'),
+    /* Whether `public/ort/` holds the 25.6 MiB asyncify WASM. Cloudflare
+     * Workers Builds leaves it out (copyRuntimeAssets() in
+     * scripts/ben/embedder.mjs), so WebGPU devices use the plain build there.
+     * Read by src/ai/local/runtime.ts. Asked of the folder, not of
+     * WORKERS_CI, so the page only requests what this build shipped. */
+    'import.meta.env.VITE_ORT_ASYNCIFY': JSON.stringify(asyncifyShipped() ? '1' : '0'),
   },
   plugins: [
     { enforce: 'pre', ...mdx({ remarkPlugins: [remarkGfm], providerImportSource: '@mdx-js/react' }) },

@@ -77,10 +77,11 @@ flowchart TD
   most phones among them, get the plain build (14 MB). Only one is downloaded.
 - **Except on a host that caps asset size.** The asyncify WASM is 25.6 MiB and Cloudflare Workers
   caps one static asset at 25 MiB, so a build with `WORKERS_CI=1` set (Cloudflare Workers Builds)
-  leaves that pair out of `ort/` and serves the plain build to WebGPU devices too — the path phones
-  already take. GitHub Pages, the target of record, has no such cap and is unchanged.
-  `scripts/check-asset-size.mjs` fails the build if anything is over the cap, because exceeding it
-  fails at Cloudflare's *deploy* step with no error line naming the file.
+  leaves that pair out of `ort/` and serves the plain build to WebGPU devices too. GitHub Pages, the
+  target of record, has no such cap and keeps the asyncify build. `vite.config.ts` asks
+  `asyncifyShipped()` whether `ort/` holds the pair and bakes the answer into the bundle, so the page
+  never requests a runtime the build did not ship. A file over the cap fails at Cloudflare's *deploy*
+  step with no error line naming it, so check any new large asset (audio, a model) against 25 MiB.
 - The CSP keeps `script-src 'self'`. It gains `'wasm-unsafe-eval'`, which permits WebAssembly
   compilation and nothing else (not `eval()` of JavaScript). The runtime's blob-URL WASM cache is
   off because the CSP forbids `blob:` scripts; the browser's HTTP cache still applies.

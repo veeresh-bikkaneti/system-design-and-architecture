@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
-// @ts-expect-error — plain .mjs build script, no type declarations
-import { ORT_ASYNCIFY_FILES, ORT_FILES } from './embedder.mjs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
+import { ORT_ASYNCIFY_FILES, ORT_FILES, asyncifyShipped } from './embedder.mjs';
 
 /**
  * `copyRuntimeAssets()` leaves the asyncify pair out of a Cloudflare Workers
@@ -12,8 +14,8 @@ import { ORT_ASYNCIFY_FILES, ORT_FILES } from './embedder.mjs';
  * pin the invariant here instead.
  */
 describe('ORT runtime file lists', () => {
-  const ort = ORT_FILES as string[];
-  const asyncify = ORT_ASYNCIFY_FILES as string[];
+  const ort = ORT_FILES;
+  const asyncify = ORT_ASYNCIFY_FILES;
 
   it('lists every asyncify file as one of the ORT files', () => {
     for (const file of asyncify) expect(ort).toContain(file);
@@ -29,5 +31,47 @@ describe('ORT runtime file lists', () => {
     for (const wasm of ort.filter((file) => file.endsWith('.wasm'))) {
       expect(ort).toContain(wasm.replace(/\.wasm$/, '.mjs'));
     }
+  });
+});
+
+/**
+ * `vite.config.ts` tells the browser bundle whether asyncify exists by asking
+ * `asyncifyShipped()`, not by re-reading `WORKERS_CI`. Two independent reads of
+ * one environment variable can disagree (a stale `public/ort/`, a build run
+ * without the variable), and the failure is silent: WebGPU devices request a
+ * file that was never deployed, the embedder fails to load, and Ben quietly
+ * falls back to keywords. Asking the filesystem makes "what we ship" and "what
+ * the page requests" the same fact.
+ */
+describe('asyncifyShipped', () => {
+  const dirs: string[] = [];
+  const ortDir = (files: string[]) => {
+    const dir = mkdtempSync(join(tmpdir(), 'ort-'));
+    dirs.push(dir);
+    for (const file of files) writeFileSync(join(dir, file), '');
+    return dir;
+  };
+  afterEach(() => {
+    for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('is true when the whole asyncify pair is present', () => {
+    expect(asyncifyShipped(ortDir(ORT_FILES))).toBe(true);
+  });
+
+  it('is false for a plain-only artifact, as a Workers build ships', () => {
+    const plain = ORT_FILES.filter((f) => !ORT_ASYNCIFY_FILES.includes(f));
+    expect(asyncifyShipped(ortDir(plain))).toBe(false);
+  });
+
+  it('is false when only half of the pair is there, since half cannot load', () => {
+    const [glue] = ORT_ASYNCIFY_FILES;
+    expect(asyncifyShipped(ortDir([glue]))).toBe(false);
+  });
+
+  it('is false when the folder does not exist yet', () => {
+    const missing = join(ortDir([]), 'never-created');
+    mkdirSync(join(missing, '..'), { recursive: true });
+    expect(asyncifyShipped(missing)).toBe(false);
   });
 });
