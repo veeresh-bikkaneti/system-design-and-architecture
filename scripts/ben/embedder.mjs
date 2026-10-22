@@ -112,10 +112,9 @@ function packageDir(name, from) {
   return dir;
 }
 
-export function copyRuntimeAssets() {
+export function copyRuntimeAssets(target = join(repoRoot, 'public', 'ort')) {
   const transformersDir = packageDir('@huggingface/transformers', import.meta.url);
   const ortDist = join(packageDir('onnxruntime-web', join(transformersDir, 'package.json')), 'dist');
-  const target = join(repoRoot, 'public', 'ort');
   mkdirSync(target, { recursive: true });
   // Cloudflare Workers Builds sets WORKERS_CI=1. The asyncify pair is over
   // that host's per-asset cap, so leave it out there (see ORT_ASYNCIFY_FILES)

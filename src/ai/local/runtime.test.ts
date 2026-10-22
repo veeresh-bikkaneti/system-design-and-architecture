@@ -31,7 +31,15 @@ function fakeTransformers() {
  * Import `runtime.ts` fresh with WebGPU presence and the build flag fixed.
  * Both are read at module scope, so they have to be set before the import.
  */
-async function loadWith({ webgpu, asyncifyFlag }: { webgpu: boolean; asyncifyFlag?: string }) {
+async function loadWith({
+  webgpu,
+  asyncifyFlag,
+  baseUrl,
+}: {
+  webgpu: boolean;
+  asyncifyFlag?: string;
+  baseUrl?: string;
+}) {
   if (webgpu) {
     Object.defineProperty(navigator, 'gpu', { value: {}, configurable: true });
   } else {
@@ -40,6 +48,7 @@ async function loadWith({ webgpu, asyncifyFlag }: { webgpu: boolean; asyncifyFla
   // Unset is the GitHub Pages / dev case: asyncify is assumed present.
   if (asyncifyFlag === undefined) vi.unstubAllEnvs();
   else vi.stubEnv('VITE_ORT_ASYNCIFY', asyncifyFlag);
+  if (baseUrl !== undefined) vi.stubEnv('BASE_URL', baseUrl);
 
   const transformers = fakeTransformers();
   vi.resetModules();
@@ -81,13 +90,12 @@ describe('loadRuntime wasmPaths', () => {
     });
   });
 
-  it('never points at a hashed asset/ copy, whatever the flag says', async () => {
-    for (const asyncifyFlag of [undefined, '0', '1']) {
-      const env = await loadWith({ webgpu: true, asyncifyFlag });
-      const paths = env.backends.onnx.wasm.wasmPaths;
-      expect(paths?.wasm).toContain('/ort/');
-      expect(paths?.wasm).not.toContain('/assets/');
-    }
+  it('serves the runtime from under the deployed base path, as GitHub Pages does', async () => {
+    const env = await loadWith({ webgpu: true, baseUrl: '/system-design-and-architecture/' });
+    expect(env.backends.onnx.wasm.wasmPaths).toEqual({
+      mjs: 'http://localhost:3000/system-design-and-architecture/ort/ort-wasm-simd-threaded.asyncify.mjs',
+      wasm: 'http://localhost:3000/system-design-and-architecture/ort/ort-wasm-simd-threaded.asyncify.wasm',
+    });
   });
 
   it('leaves the blob-URL WASM cache off, which the CSP requires', async () => {

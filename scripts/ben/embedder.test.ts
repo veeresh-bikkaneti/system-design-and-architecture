@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
-import { ORT_ASYNCIFY_FILES, ORT_FILES, asyncifyShipped } from './embedder.mjs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ORT_ASYNCIFY_FILES, ORT_FILES, asyncifyShipped, copyRuntimeAssets } from './embedder.mjs';
 
 /**
  * `copyRuntimeAssets()` leaves the asyncify pair out of a Cloudflare Workers
@@ -73,5 +73,50 @@ describe('asyncifyShipped', () => {
     const missing = join(ortDir([]), 'never-created');
     mkdirSync(join(missing, '..'), { recursive: true });
     expect(asyncifyShipped(missing)).toBe(false);
+  });
+});
+
+/**
+ * The fix itself: under `WORKERS_CI` the asyncify pair must not be copied, so a
+ * Cloudflare Workers artifact has nothing over its 25 MiB per-asset cap. The
+ * tests above only check that the two file lists agree; nothing ran the copy.
+ * It copies the real files (~40 MB) into a temp folder, so it checks the sizes
+ * that matter and not a stand-in.
+ */
+describe('copyRuntimeAssets', () => {
+  const WORKERS_CAP = 25 * 1024 * 1024;
+  const dirs: string[] = [];
+  const target = () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ort-copy-'));
+    dirs.push(dir);
+    return dir;
+  };
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('ships all four runtime files on a normal build', () => {
+    vi.stubEnv('WORKERS_CI', '');
+    const dir = target();
+    copyRuntimeAssets(dir);
+    expect(readdirSync(dir).sort()).toEqual([...ORT_FILES].sort());
+  });
+
+  it('leaves the asyncify pair out under WORKERS_CI, so nothing is over the Workers cap', () => {
+    vi.stubEnv('WORKERS_CI', '1');
+    const dir = target();
+    copyRuntimeAssets(dir);
+    const plain = ORT_FILES.filter((file) => !ORT_ASYNCIFY_FILES.includes(file));
+    expect(readdirSync(dir).sort()).toEqual([...plain].sort());
+    for (const file of readdirSync(dir)) expect(statSync(join(dir, file)).size).toBeLessThanOrEqual(WORKERS_CAP);
+  });
+
+  it('removes a stale asyncify copy an earlier non-Workers build left behind', () => {
+    vi.stubEnv('WORKERS_CI', '1');
+    const dir = target();
+    for (const file of ORT_ASYNCIFY_FILES) writeFileSync(join(dir, file), 'stale');
+    copyRuntimeAssets(dir);
+    for (const file of ORT_ASYNCIFY_FILES) expect(readdirSync(dir)).not.toContain(file);
   });
 });

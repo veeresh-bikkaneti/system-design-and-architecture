@@ -10,4 +10,4 @@ export function loadNodeEmbedder(): Promise<(texts: string[]) => Promise<number[
 export const ORT_FILES: string[];
 export const ORT_ASYNCIFY_FILES: string[];
 export function asyncifyShipped(ortDir?: string): boolean;
-export function copyRuntimeAssets(): string;
+export function copyRuntimeAssets(target?: string): string;

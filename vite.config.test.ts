@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadConfigFromFile } from 'vite';
+import { asyncifyShipped } from './scripts/ben/embedder.mjs';
 
 /**
  * `drop-duplicate-ort-wasm` deletes a file from the build output by filename
@@ -55,5 +56,23 @@ describe('drop-duplicate-ort-wasm', () => {
       ['assets/ort-wasm-simd-threaded.asyncify-CxOG5pUO.wasm', 'chunk'],
     ];
     expect(await survivors(files)).toEqual(files.map(([name]) => name));
+  });
+});
+
+/**
+ * `runtime.ts` decides which ONNX runtime to request from a flag that this
+ * config bakes into the bundle. `runtime.test.ts` fakes that flag, so it cannot
+ * see a config that sets it wrongly or not at all. This reads it from the real
+ * config. It pins the flag to the state of `public/ort/` at the time the test
+ * runs; in CI that folder does not exist yet, so a hard-coded "1" fails there.
+ */
+describe('asyncify flag in the config', () => {
+  it('is baked in from what public/ort holds, not from an environment guess', async () => {
+    const loaded = await loadConfigFromFile(
+      { command: 'build', mode: 'production' },
+      resolve(import.meta.dirname, 'vite.config.ts'),
+    );
+    const define = loaded?.config.define as Record<string, string> | undefined;
+    expect(define?.['import.meta.env.VITE_ORT_ASYNCIFY']).toBe(JSON.stringify(asyncifyShipped() ? '1' : '0'));
   });
 });

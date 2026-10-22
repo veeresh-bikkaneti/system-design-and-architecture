@@ -201,10 +201,12 @@ is only real if the holdout set, which that fix was never shown, agrees.
 
 - The first chat on a device downloads the embedder (23 MB) and the ONNX runtime WASM (14 MB,
   or 27 MB with WebGPU), plus a ~0.47 MB gzipped index. All cached afterwards.
-- The deployed site grows by ~39 MB of static files (both WASM builds and the model). Vite also
-  emitted a duplicate asyncify WASM from onnxruntime's own `new URL(...)` reference, which ORT
-  reads only when the page leaves `wasmPaths` unset — never here, so nothing ever fetched it. The
-  `drop-duplicate-ort-wasm` plugin in `vite.config.ts` now drops it, 25.6 MB off every deploy.
+- The deployed site grows by ~64 MB of static files on Pages: the plain WASM (14 MB), the asyncify
+  WASM (27 MB) and the model (23 MB). A Cloudflare Workers artifact leaves out asyncify, so it grows
+  by ~37 MB. Vite also emitted a duplicate asyncify WASM from onnxruntime's own `new URL(...)`
+  reference, another 27 MB, which ORT reads only when the page leaves `wasmPaths` unset — never
+  here, so nothing ever fetched it. The `drop-duplicate-ort-wasm` plugin in `vite.config.ts` now
+  drops it from every deploy.
 - `@huggingface/transformers` becomes a dev dependency (it runs the build-time embedding and the
   eval in Node). It is large (~450 MB in `node_modules`). It never ships to the browser bundle.
 - The build now fetches the embedder from Hugging Face (hash-pinned). A Hugging Face outage fails the build
