@@ -30,8 +30,19 @@ export interface TransformersRuntime {
  */
 export const HAS_WEBGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;
 
+/**
+ * Whether this build shipped the asyncify WASM at all. It is 25.6 MiB, past
+ * the 25 MiB per-asset cap a Cloudflare Worker enforces on static assets, so
+ * a Workers Builds artifact leaves it out (`copyRuntimeAssets()` in
+ * `scripts/ben/embedder.mjs`) and WebGPU devices served from that host use
+ * the plain build — the same path phones already take. GitHub Pages, the
+ * deploy target of record, has no such cap and ships it. Set by
+ * `vite.config.ts`; absent outside a Vite build, where asyncify is assumed.
+ */
+const HAS_ASYNCIFY_BUILD = import.meta.env.VITE_ORT_ASYNCIFY !== '0';
+
 function wasmPaths(): { mjs: string; wasm: string } {
-  const suffix = HAS_WEBGPU ? '.asyncify' : '';
+  const suffix = HAS_WEBGPU && HAS_ASYNCIFY_BUILD ? '.asyncify' : '';
   const base = new URL(`${import.meta.env.BASE_URL ?? '/'}ort/`, window.location.href).href;
   return {
     mjs: `${base}ort-wasm-simd-threaded${suffix}.mjs`,

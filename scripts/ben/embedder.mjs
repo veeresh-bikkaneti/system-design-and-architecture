@@ -8,7 +8,7 @@
  * match the pin below is refused.
  */
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { repoRoot } from '../seo/lesson-meta.mjs';
@@ -79,6 +79,18 @@ export const ORT_FILES = [
   'ort-wasm-simd-threaded.asyncify.wasm',
 ];
 
+/**
+ * The WebGPU half of `ORT_FILES`. The asyncify WASM is 25.6 MiB, past the
+ * 25 MiB per-asset cap a Cloudflare Worker enforces on static assets, so a
+ * Workers Builds artifact ships without it and WebGPU devices fall back to
+ * the plain build there (`wasmPaths()` in `src/ai/local/runtime.ts`).
+ * GitHub Pages, the deploy target of record, has no such cap and keeps it.
+ */
+export const ORT_ASYNCIFY_FILES = [
+  'ort-wasm-simd-threaded.asyncify.mjs',
+  'ort-wasm-simd-threaded.asyncify.wasm',
+];
+
 /** The folder of the installed package `name` that `from` resolves. */
 function packageDir(name, from) {
   let dir = dirname(createRequire(from).resolve(name));
@@ -95,7 +107,18 @@ export function copyRuntimeAssets() {
   const ortDist = join(packageDir('onnxruntime-web', join(transformersDir, 'package.json')), 'dist');
   const target = join(repoRoot, 'public', 'ort');
   mkdirSync(target, { recursive: true });
-  for (const file of ORT_FILES) copyFileSync(join(ortDist, file), join(target, file));
+  // Cloudflare Workers Builds sets WORKERS_CI=1. The asyncify pair is over
+  // that host's per-asset cap, so leave it out there (see ORT_ASYNCIFY_FILES)
+  // and delete any copy an earlier build left behind, so the artifact is the
+  // same whether or not `public/ort/` was already populated.
+  const skipAsyncify = Boolean(process.env.WORKERS_CI);
+  for (const file of ORT_FILES) {
+    if (skipAsyncify && ORT_ASYNCIFY_FILES.includes(file)) {
+      rmSync(join(target, file), { force: true });
+      continue;
+    }
+    copyFileSync(join(ortDist, file), join(target, file));
+  }
   return target;
 }
 

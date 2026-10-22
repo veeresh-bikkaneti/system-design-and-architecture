@@ -75,6 +75,12 @@ flowchart TD
   opens. The ONNX WASM files are copied from the same installed `onnxruntime-web` into `ort/`.
 - Devices with WebGPU get the asyncify build (27 MB, needed for WebGPU). Devices without it,
   most phones among them, get the plain build (14 MB). Only one is downloaded.
+- **Except on a host that caps asset size.** The asyncify WASM is 25.6 MiB and Cloudflare Workers
+  caps one static asset at 25 MiB, so a build with `WORKERS_CI=1` set (Cloudflare Workers Builds)
+  leaves that pair out of `ort/` and serves the plain build to WebGPU devices too — the path phones
+  already take. GitHub Pages, the target of record, has no such cap and is unchanged.
+  `scripts/check-asset-size.mjs` fails the build if anything is over the cap, because exceeding it
+  fails at Cloudflare's *deploy* step with no error line naming the file.
 - The CSP keeps `script-src 'self'`. It gains `'wasm-unsafe-eval'`, which permits WebAssembly
   compilation and nothing else (not `eval()` of JavaScript). The runtime's blob-URL WASM cache is
   off because the CSP forbids `blob:` scripts; the browser's HTTP cache still applies.
@@ -194,8 +200,10 @@ is only real if the holdout set, which that fix was never shown, agrees.
 
 - The first chat on a device downloads the embedder (23 MB) and the ONNX runtime WASM (14 MB,
   or 27 MB with WebGPU), plus a ~0.47 MB gzipped index. All cached afterwards.
-- The deployed site grows by ~65 MB of static files (both WASM builds, a duplicate asyncify WASM
-  that Vite emits from onnxruntime's own `new URL(...)` reference, and the model).
+- The deployed site grows by ~39 MB of static files (both WASM builds and the model). Vite also
+  emitted a duplicate asyncify WASM from onnxruntime's own `new URL(...)` reference, which ORT
+  reads only when the page leaves `wasmPaths` unset — never here, so nothing ever fetched it. The
+  `drop-duplicate-ort-wasm` plugin in `vite.config.ts` now drops it, 25.6 MB off every deploy.
 - `@huggingface/transformers` becomes a dev dependency (it runs the build-time embedding and the
   eval in Node). It is large (~450 MB in `node_modules`). It never ships to the browser bundle.
 - The build now fetches the embedder from Hugging Face (hash-pinned). A Hugging Face outage fails the build

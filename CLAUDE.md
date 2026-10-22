@@ -13,6 +13,7 @@ npm run lint      # oxlint (see .oxlintrc.json)
 npm test          # vitest unit tests (no model needed)
 npm run ben:index # fetch + verify Ben's embedder, build his lesson index (also runs on prebuild)
 npm run eval:ben  # score Ben's routing on held-out questions; writes evals/ben/REPORT.md
+npm run assets:check # fail if any dist/ file is over Cloudflare Workers' 25 MiB per-asset cap
 ```
 
 Ben, the local tutor, routes questions with a small embedding model served by the site. Read
