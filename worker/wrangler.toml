@@ -2,9 +2,10 @@ name = "system-design-mastery-cert"
 main = "src/index.ts"
 compatibility_date = "2026-09-10"
 
-# Created with: wrangler d1 create system-design-mastery-cert
-# Then replace database_id below with the id that command prints.
+# Created in the Cloudflare account on 2026-10-05 (name below). The id is an
+# identifier, not a secret. Migrations are applied by the "Deploy Worker"
+# workflow (or `npm run db:migrate:remote`), never by hand.
 [[d1_databases]]
 binding = "DB"
 database_name = "system-design-mastery-cert"
-database_id = "REPLACE_WITH_REAL_D1_DATABASE_ID"
+database_id = "6acf5d45-a6f1-47c9-a641-d15d5af36427"

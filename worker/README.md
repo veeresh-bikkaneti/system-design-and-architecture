@@ -166,25 +166,39 @@ npx wrangler d1 execute system-design-mastery-cert --local --command \
 
 then visit `http://localhost:8787/verify/demo`.
 
-## What still needs real accounts (not done here — no accounts to do it with)
+## What still needs your accounts (credentials only the account owner can supply)
 
-1. **Cloudflare:** `wrangler login`, then `wrangler d1 create system-design-mastery-cert` —
-   replace the `database_id` placeholder in `wrangler.toml` with the real id it prints, then
-   `npm run db:migrate:remote` to apply the schema. `wrangler deploy` to actually publish; the
-   CORS allowlist in `src/index.ts` already points at the real production course URL, so no code
-   change is needed for that step.
+1. **Cloudflare:** the D1 database `system-design-mastery-cert` already exists (its id is in
+   `wrangler.toml`; it holds no tables until migrations run). Deploying is the manual **Deploy
+   Worker (Cloudflare)** workflow (`.github/workflows/deploy-worker.yml`): add the
+   `CLOUDFLARE_API_TOKEN` (permissions: Workers Scripts Edit, D1 Edit) and `CLOUDFLARE_ACCOUNT_ID`
+   repository secrets, then run it from the Actions tab. It typechecks, tests, applies the
+   migrations to the remote database, and runs `wrangler deploy`. Locally the same steps are
+   `wrangler login`, `npm run db:migrate:remote`, `npm run deploy`. The Worker is named
+   `system-design-mastery-cert`; other Workers in the account are untouched. The CORS allowlist in
+   `src/index.ts` already points at the real production course URL.
 2. **Resend (or another transactional email provider):** create an account, verify a sending
    domain, then `wrangler secret put RESEND_API_KEY` (and, once you have a verified sender
    address, `wrangler secret put RESEND_FROM_ADDRESS`) on the deployed Worker. **Do not** set
    `DEV_MODE` on the deployed Worker — it must only ever exist in a developer's own local
    `.dev.vars`; the fail-closed design (see `src/auth.ts`) depends on the committed `wrangler.toml`
    never setting it.
-3. **GitHub OAuth app (optional, progress sync only):** create an OAuth app with callback URL
-   `https://veeresh-bikkaneti.github.io/system-design-and-architecture/oauth/callback`, then
-   `wrangler secret put GITHUB_CLIENT_ID` and `wrangler secret put GITHUB_CLIENT_SECRET` on the
-   deployed Worker, and build the site with `VITE_GITHUB_CLIENT_ID` and `VITE_WORKER_URL` set (the
-   client id is public; the secret never leaves the Worker). Until then the sign-in dialog accepts a
-   pasted GitHub token with the `gist` scope instead.
+3. **GitHub OAuth app (optional, progress sync only):**
+   1. GitHub > Settings > Developer settings > OAuth Apps > *New OAuth App*. Homepage URL
+      `https://veeresh-bikkaneti.github.io/system-design-and-architecture/`; Authorization
+      callback URL
+      `https://veeresh-bikkaneti.github.io/system-design-and-architecture/oauth/callback`.
+   2. Generate a client secret. Add repository **secrets** `OAUTH_GITHUB_CLIENT_ID` and
+      `OAUTH_GITHUB_CLIENT_SECRET` (the workflow stores them on the Worker as
+      `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`), then re-run **Deploy Worker**.
+   3. Add repository **variables** (not secrets; they are public build inputs) `VITE_GITHUB_CLIENT_ID`
+      (the client id) and `VITE_WORKER_URL` (the `https://system-design-mastery-cert.<subdomain>.workers.dev`
+      URL printed by the deploy). The next push to `main` rebuilds the site with them (or run
+      **Deploy to GitHub Pages** manually).
+   4. Check: the header's *Sign in with GitHub* now redirects to GitHub, and the callback page
+      exchanges the code through `POST /auth/github/exchange` (503 means the secrets are not set;
+      400 means GitHub rejected the code). Until all of this is in place the sign-in dialog accepts a
+      pasted token with the `gist` scope.
 
 ## What's not built yet (Phase 4)
 
