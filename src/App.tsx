@@ -5,7 +5,6 @@ import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { Layout } from './components/Layout';
 import { focusMainContent } from './lib/focus';
 import { OauthCallbackPage } from './components/AuthBar';
-import { KofiBench } from './components/kofi/KofiBench';
 
 // Route-level code splitting: every page ships as its own chunk so the entry
 // bundle only carries the app shell (router, layout, MDX provider). Pages are
@@ -158,6 +157,12 @@ const QaWidget = lazy(() =>
   import('./components/qa/QaWidget').then((m) => ({ default: m.QaWidget })),
 );
 
+// The Ko-fi bench renders nothing unless its build env var is set, so it
+// must not weigh down the entry shell: lazy, the same way as QaWidget.
+const KofiBench = lazy(() =>
+  import('./components/kofi/KofiBench').then((m) => ({ default: m.KofiBench })),
+);
+
 // Keep the viewport at the top when the route changes (e.g. Home -> lesson),
 // and move focus into the main landmark so screen-reader users get a "new
 // page" cue (alongside the document.title change Seo.tsx applies) instead of
@@ -213,7 +218,9 @@ function App() {
         <Suspense fallback={null}>
           <QaWidget />
         </Suspense>
-        <KofiBench />
+        <Suspense fallback={null}>
+          <KofiBench />
+        </Suspense>
         </AppErrorBoundary>
       </BrowserRouter>
     </MDXProvider>

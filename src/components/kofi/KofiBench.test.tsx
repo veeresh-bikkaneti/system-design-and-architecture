@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -137,4 +137,55 @@ describe('KofiBench grandpa figure (3D scene + SVG fallback)', () => {
     unmount();
     expect(dispose).toHaveBeenCalledTimes(1);
   });
+});
+
+describe('KofiBench peer-review fixes', () => {
+  it('returns focus to the grandpa figure when the figure opened the confirm', async () => {
+    const user = userEvent.setup();
+    render(<KofiBench />);
+    const figureButton = screen.getByRole('button', { name: 'Buy Grandpa a coffee on Ko-fi' });
+    await user.click(figureButton);
+    expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByText(ASK)).toBeTruthy();
+    // The figure button never unmounts, so focus must land back on it —
+    // not on the ask cloud button, which is what the old code always did.
+    expect(document.activeElement).toBe(figureButton);
+  });
+
+  it('does not replay the refill when the figure remounts after an offline→online toggle', async () => {
+    const playRefill = vi.fn();
+    const dispose = vi.fn();
+    mountMock.mockReturnValue({ playRefill, dispose });
+    const { container } = render(<KofiBench />);
+    await waitFor(() => expect(container.querySelector('svg')).toBeNull());
+    const callsAfterFirstMount = playRefill.mock.calls.length;
+    // Offline: the whole bench unmounts (fail-closed). Online: it remounts.
+    // The refill is once per page load, so a remount must not replay it.
+    act(() => {
+      setOnline(false);
+      window.dispatchEvent(new Event('offline'));
+    });
+    expect(screen.queryByTestId('kofi-bench-scene')).toBeNull();
+    act(() => {
+      setOnline(true);
+      window.dispatchEvent(new Event('online'));
+    });
+    await waitFor(() => expect(container.querySelector('svg')).toBeNull());
+    expect(playRefill.mock.calls.length).toBe(callsAfterFirstMount);
+  });
+
+  it('falls back to the SVG figure when the scene reports a lost WebGL context', async () => {
+    let capturedOpts: Parameters<typeof mountGrandpaScene>[1] | undefined;
+    mountMock.mockImplementation((_canvas, opts) => {
+      capturedOpts = opts;
+      return { playRefill: vi.fn(), dispose: vi.fn() };
+    });
+    const { container } = render(<KofiBench />);
+    await waitFor(() => expect(container.querySelector('svg')).toBeNull());
+    expect(capturedOpts?.onContextLost).toBeTypeOf('function');
+    act(() => capturedOpts?.onContextLost?.());
+    await waitFor(() => expect(container.querySelector('svg')).toBeTruthy());
+  });
+
 });

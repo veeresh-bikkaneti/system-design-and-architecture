@@ -303,7 +303,7 @@ const REFILL_SECONDS = 3.5;
 
 export function mountGrandpaScene(
   canvas: HTMLCanvasElement,
-  opts: { reducedMotion: boolean },
+  opts: { reducedMotion: boolean; onContextLost?: () => void },
 ): GrandpaSceneHandle | null {
   // Graceful fallback: no WebGL context, no scene — caller uses the SVG.
   let renderer: THREE.WebGLRenderer;
@@ -312,6 +312,14 @@ export function mountGrandpaScene(
   } catch {
     return null;
   }
+
+  // A lost context never recovers here: surface it so the caller can
+  // fall back to the SVG figure instead of leaving a blank canvas up.
+  const onContextLost = (event: Event): void => {
+    event.preventDefault();
+    opts.onContextLost?.();
+  };
+  canvas.addEventListener('webglcontextlost', onContextLost);
   renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -350,6 +358,9 @@ export function mountGrandpaScene(
     renderer.setSize(width, height, false);
     viewAspect = width / height;
     fitCamera();
+    // setSize clears the canvas; under reduced motion there is no loop
+    // to repaint it, so redraw the one static frame here.
+    if (opts.reducedMotion) renderer.render(scene, camera);
   };
   resize();
 
@@ -445,6 +456,14 @@ export function mountGrandpaScene(
   };
 
   const syncLoop = (): void => {
+    if (opts.reducedMotion) {
+      // Reduced motion: render one static frame and never start the RAF
+      // loop — a perpetual loop repainting an identical frame is waste.
+      if (!disposed && intersecting && document.visibilityState === 'visible') {
+        renderer.render(scene, camera);
+      }
+      return;
+    }
     const shouldRun = intersecting && document.visibilityState === 'visible' && !disposed;
     if (shouldRun && !running) {
       running = true;
@@ -481,6 +500,7 @@ export function mountGrandpaScene(
       disposed = true;
       running = false;
       cancelAnimationFrame(rafId);
+      canvas.removeEventListener('webglcontextlost', onContextLost);
       observer.disconnect();
       resizeObserver.disconnect();
       window.removeEventListener('resize', resize);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 
 import type { GrandpaSceneHandle } from './GrandpaScene';
@@ -37,6 +37,13 @@ declare global {
  * modal (z-[60]) and below the Q&A widget (z-50). bottom-24 keeps it clear
  * of the Q&A button (bottom-5, h-14) stacked under it.
  */
+
+/**
+ * The refill is once per page load — module scope, so an offline→online
+ * remount of the figure (the bench unmounts while offline) cannot replay
+ * it. A real page load gets a fresh module and plays it again.
+ */
+let hasPlayedRefill = false;
 
 const ASK_LINE = 'This course runs on coffee. Care to buy me one?';
 const ASK_SUB = 'Your refill keeps this course free.';
@@ -134,9 +141,10 @@ function BenchFigure() {
  * The scene module (and Three.js with it) is imported lazily, only after
  * this component has rendered — so visitors who never see the ask (env var
  * unset, offline) never download it. The SVG shows while the scene loads
- * and stays for good if the mount fails (no WebGL). On a successful mount
- * the once-per-load refill is triggered here; the scene itself owns the
- * idle motion and ignores the refill under reduced motion.
+ * and stays for good if the mount fails (no WebGL) or the context is lost
+ * mid-session. On a successful mount the once-per-load refill is
+ * triggered here; the scene itself owns the idle motion and ignores the
+ * refill under reduced motion.
  */
 function GrandpaFigure() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -149,13 +157,24 @@ function GrandpaFigure() {
     import('./GrandpaScene')
       .then((mod) => {
         if (cancelled || !canvasRef.current) return;
-        handle = mod.mountGrandpaScene(canvasRef.current, { reducedMotion: reduceMotion ?? false });
+        handle = mod.mountGrandpaScene(canvasRef.current, {
+          reducedMotion: reduceMotion ?? false,
+          onContextLost: () => {
+            if (cancelled) return;
+            handle?.dispose();
+            handle = null;
+            setSceneState('failed');
+          },
+        });
         if (!handle) {
           setSceneState('failed');
           return;
         }
         setSceneState('ready');
-        handle.playRefill();
+        if (!(reduceMotion ?? false) && !hasPlayedRefill) {
+          hasPlayedRefill = true;
+          handle.playRefill();
+        }
       })
       .catch(() => {
         if (!cancelled) setSceneState('failed');
@@ -186,6 +205,7 @@ export function KofiBench() {
   const [mode, setMode] = useState<'ask' | 'confirm'>('ask');
   const askRef = useRef<HTMLButtonElement>(null);
   const continueRef = useRef<HTMLButtonElement>(null);
+  const invokerRef = useRef<HTMLButtonElement | null>(null);
   const wasConfirm = useRef(false);
   const reduceMotion = useReducedMotion();
 
@@ -199,15 +219,21 @@ export function KofiBench() {
     };
   }, []);
 
-  // Focus: onto Continue when the confirm opens; back to the ask button
-  // when the cloud returns to the ask.
+  // Focus: onto Continue when the confirm opens; back to the control
+  // that opened the confirm (the ask cloud or the grandpa figure) when
+  // the cloud returns to the ask.
   useEffect(() => {
     if (mode === 'confirm') {
       wasConfirm.current = true;
       continueRef.current?.focus();
     } else if (wasConfirm.current) {
       wasConfirm.current = false;
-      askRef.current?.focus();
+      // The ask button remounts when the cloud swaps back, so a stored
+      // invoker that was the old ask button is no longer in the document
+      // — focus the fresh ask button in that case.
+      const invoker = invokerRef.current;
+      if (invoker && document.contains(invoker)) invoker.focus();
+      else askRef.current?.focus();
     }
   }, [mode]);
 
@@ -223,7 +249,10 @@ export function KofiBench() {
 
   if (!kofiUrl || !online) return null;
 
-  const openConfirm = () => setMode('confirm');
+  const openConfirm = (e: ReactMouseEvent<HTMLElement>) => {
+    invokerRef.current = e.currentTarget as HTMLButtonElement;
+    setMode('confirm');
+  };
   const continueToKofi = () => {
     // Fired directly from the click so the popup keeps its user activation.
     window.open(kofiUrl, '_blank', 'noopener,noreferrer');
