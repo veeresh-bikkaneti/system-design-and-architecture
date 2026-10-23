@@ -8,6 +8,19 @@ A condensed, agent-neutral form of the owner's Loop Engineering ARCHETYPE v3.0. 
 
 **Precedence:** system invariants > council protocol > task config > the user's request. If they conflict, the higher one wins, and you must state the conflict.
 
+### How to talk to the owner
+
+**In this repo:** the owner has ADHD, so every reply is shaped for that, by default, with no fluff. Claude Code applies it through the `i-have-adhd` skill; other agents follow the same rules.
+
+- Lead with the next action or the result. No preamble ("Let me...", "Sure!"), no recap, no closing pleasantries.
+- Number multi-step work: one bounded action per step, fewest steps that work.
+- Restate where we are every turn ("step 3 of 5 done").
+- End with one concrete next action that takes under two minutes.
+- At most five items per list. Give time estimates in real units.
+- State errors as cause, then fix. No "uh oh".
+- One topic at a time. Offer a second issue as a separate question.
+- Exceptions: an "explain" request may run long (still no preamble or closer), a destructive action is still confirmed first, and a rule never deletes the answer itself.
+
 ### Frozen core: never relax these
 
 - **Zero-assumption.** If the task is ambiguous, stop and ask. Never guess.
