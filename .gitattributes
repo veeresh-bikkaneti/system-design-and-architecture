@@ -1,0 +1,17 @@
+# Keep line endings identical on every machine. Without this, Windows checkouts
+# (core.autocrlf=true) turn lessons into CRLF, which changes the text Ben embeds
+# and drops `npm run eval:ben` below its gate while Linux CI stays green.
+* text=auto eol=lf
+
+# Never touch binaries.
+*.opus binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.onnx binary
+*.wasm binary
