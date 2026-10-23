@@ -17,7 +17,7 @@ vi.mock('./GrandpaScene', () => ({
 const mountMock = vi.mocked(mountGrandpaScene);
 
 const KOFI_URL = 'https://ko-fi.com/examplepage';
-const ASK = 'Students — buy me a coffee?';
+const ASK = 'This course runs on coffee. Care to buy me one?';
 
 function setOnline(online: boolean) {
   Object.defineProperty(navigator, 'onLine', { value: online, configurable: true });
@@ -67,9 +67,9 @@ describe('KofiBench ask and confirm', () => {
   it('swaps the same cloud to the confirm on tap — no second dialog', async () => {
     const user = userEvent.setup();
     render(<KofiBench />);
-    await user.click(screen.getByRole('button', { name: /Students — buy me a coffee/ }));
-    expect(screen.getByText("You're leaving for Ko-fi.")).toBeTruthy();
-    expect(screen.getByText('The course stays free. A coffee is optional.')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /This course runs on coffee/ }));
+    expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
+    expect(screen.getByText('The course is free, and stays free. A coffee is just a thank-you.')).toBeTruthy();
     expect(screen.queryByText(ASK)).toBeNull();
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
   });
@@ -78,14 +78,14 @@ describe('KofiBench ask and confirm', () => {
     const user = userEvent.setup();
     render(<KofiBench />);
     await user.click(screen.getByRole('button', { name: /grandpa/i }));
-    expect(screen.getByText("You're leaving for Ko-fi.")).toBeTruthy();
+    expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
   });
 
   it('Continue opens the env URL in a new tab with noopener,noreferrer, then returns to the ask', async () => {
     const user = userEvent.setup();
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<KofiBench />);
-    await user.click(screen.getByRole('button', { name: /Students — buy me a coffee/ }));
+    await user.click(screen.getByRole('button', { name: /This course runs on coffee/ }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(open).toHaveBeenCalledTimes(1);
     expect(open).toHaveBeenCalledWith(KOFI_URL, '_blank', 'noopener,noreferrer');
@@ -96,25 +96,25 @@ describe('KofiBench ask and confirm', () => {
     const user = userEvent.setup();
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<KofiBench />);
-    const askButton = screen.getByRole('button', { name: /Students — buy me a coffee/ });
+    const askButton = screen.getByRole('button', { name: /This course runs on coffee/ });
     await user.click(askButton);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(open).not.toHaveBeenCalled();
     expect(screen.getByText(ASK)).toBeTruthy();
     // The ask button remounts when the cloud swaps back — focus must land
     // on the fresh instance, not the pre-confirm element.
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: /Students — buy me a coffee/ }));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /This course runs on coffee/ }));
   });
 
   it('Escape closes the confirm and focus returns to the ask button', async () => {
     const user = userEvent.setup();
     render(<KofiBench />);
-    const askButton = screen.getByRole('button', { name: /Students — buy me a coffee/ });
+    const askButton = screen.getByRole('button', { name: /This course runs on coffee/ });
     await user.click(askButton);
-    expect(screen.getByText("You're leaving for Ko-fi.")).toBeTruthy();
+    expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
     await user.keyboard('{Escape}');
     expect(screen.getByText(ASK)).toBeTruthy();
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: /Students — buy me a coffee/ }));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /This course runs on coffee/ }));
   });
 });
 

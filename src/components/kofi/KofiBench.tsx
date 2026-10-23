@@ -38,10 +38,10 @@ declare global {
  * of the Q&A button (bottom-5, h-14) stacked under it.
  */
 
-const ASK_LINE = 'Students — buy me a coffee?';
+const ASK_LINE = 'This course runs on coffee. Care to buy me one?';
 const ASK_SUB = 'Your refill keeps this course free.';
-const CONFIRM_TITLE = "You're leaving for Ko-fi.";
-const CONFIRM_SUB = 'The course stays free. A coffee is optional.';
+const CONFIRM_TITLE = "You're heading to Ko-fi.";
+const CONFIRM_SUB = 'The course is free, and stays free. A coffee is just a thank-you.';
 
 /** One-shot refill choreography. Reduced motion turns it fully off. */
 const REFILL_CSS = `
@@ -294,7 +294,7 @@ export function KofiBench() {
       <button
         type="button"
         onClick={openConfirm}
-        aria-label="Grandpa on the bench — buy me a coffee on Ko-fi"
+        aria-label="Buy Grandpa a coffee on Ko-fi"
         className="w-[168px] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 max-[480px]:w-[128px]"
       >
         <GrandpaFigure />
