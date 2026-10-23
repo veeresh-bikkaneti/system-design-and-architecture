@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+
+import type { GrandpaSceneHandle } from './GrandpaScene';
 
 declare global {
   interface ImportMetaEnv {
@@ -24,6 +27,11 @@ declare global {
  * time, or the browser is offline, and the whole scene renders nothing.
  * Adult audience — the confirm is the only step before leaving; there is
  * deliberately no grown-up gate and no Meridian copy or code here.
+ *
+ * The figure is a small procedural Three.js scene (GrandpaScene.ts),
+ * lazy-loaded only when this component renders and swapped in when ready;
+ * if WebGL is unavailable the flat SVG figure below stays as the fallback.
+ * The cloud swap is animated with the Motion library (spring pop).
  *
  * Placement: fixed bottom-right at z-40 — above the page, below the sign-in
  * modal (z-[60]) and below the Q&A widget (z-50). bottom-24 keeps it clear
@@ -120,6 +128,58 @@ function BenchFigure() {
   );
 }
 
+/**
+ * The grandpa figure: the 3D scene when WebGL allows it, the SVG otherwise.
+ *
+ * The scene module (and Three.js with it) is imported lazily, only after
+ * this component has rendered — so visitors who never see the ask (env var
+ * unset, offline) never download it. The SVG shows while the scene loads
+ * and stays for good if the mount fails (no WebGL). On a successful mount
+ * the once-per-load refill is triggered here; the scene itself owns the
+ * idle motion and ignores the refill under reduced motion.
+ */
+function GrandpaFigure() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const reduceMotion = useReducedMotion();
+  const [sceneState, setSceneState] = useState<'loading' | 'ready' | 'failed'>('loading');
+
+  useEffect(() => {
+    let handle: GrandpaSceneHandle | null = null;
+    let cancelled = false;
+    import('./GrandpaScene')
+      .then((mod) => {
+        if (cancelled || !canvasRef.current) return;
+        handle = mod.mountGrandpaScene(canvasRef.current, { reducedMotion: reduceMotion ?? false });
+        if (!handle) {
+          setSceneState('failed');
+          return;
+        }
+        setSceneState('ready');
+        handle.playRefill();
+      })
+      .catch(() => {
+        if (!cancelled) setSceneState('failed');
+      });
+    return () => {
+      cancelled = true;
+      handle?.dispose();
+    };
+  }, [reduceMotion]);
+
+  return (
+    <div className="relative aspect-[230/160] w-full">
+      {sceneState !== 'failed' && (
+        <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full" />
+      )}
+      {sceneState !== 'ready' && (
+        <div className="absolute inset-0">
+          <BenchFigure />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function KofiBench() {
   const kofiUrl = import.meta.env.VITE_KOFI_URL?.trim();
   const [online, setOnline] = useState<boolean>(() => navigator.onLine);
@@ -127,6 +187,7 @@ export function KofiBench() {
   const askRef = useRef<HTMLButtonElement>(null);
   const continueRef = useRef<HTMLButtonElement>(null);
   const wasConfirm = useRef(false);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -176,11 +237,16 @@ export function KofiBench() {
     >
       <style>{REFILL_CSS}</style>
       {mode === 'ask' ? (
-        <button
+        <motion.button
           ref={askRef}
           type="button"
           onClick={openConfirm}
-          className="relative mb-1 w-full rounded-2xl border border-stone-200 bg-white px-3.5 py-2.5 text-left shadow-[0_10px_30px_rgb(28_25_23/0.16)] transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 motion-reduce:transition-none dark:border-stone-700 dark:bg-stone-900"
+          initial={reduceMotion ? false : { opacity: 0, y: 6, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          whileHover={reduceMotion ? undefined : { y: -2 }}
+          whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+          transition={{ type: 'spring', stiffness: 480, damping: 30 }}
+          className="relative mb-1 w-full rounded-2xl border border-stone-200 bg-white px-3.5 py-2.5 text-left shadow-[0_10px_30px_rgb(28_25_23/0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-stone-700 dark:bg-stone-900"
         >
           <span className="block text-[13px] font-semibold leading-snug text-stone-800 dark:text-stone-100">
             {ASK_LINE}
@@ -189,11 +255,14 @@ export function KofiBench() {
             {ASK_SUB}
           </span>
           <span aria-hidden="true" className="absolute -bottom-[5px] right-12 h-3 w-3 rotate-45 border-b border-r border-stone-200 bg-white dark:border-stone-700 dark:bg-stone-900" />
-        </button>
+        </motion.button>
       ) : (
-        <div
+        <motion.div
           role="dialog"
           aria-label="Support this course on Ko-fi"
+          initial={reduceMotion ? false : { opacity: 0, y: 6, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 480, damping: 30 }}
           className="relative mb-1 w-full rounded-2xl border border-stone-200 bg-white px-3.5 py-3 shadow-[0_10px_30px_rgb(28_25_23/0.16)] dark:border-stone-700 dark:bg-stone-900"
         >
           <p className="text-[13px] font-semibold leading-snug text-stone-800 dark:text-stone-100">
@@ -220,7 +289,7 @@ export function KofiBench() {
             </button>
           </div>
           <span aria-hidden="true" className="absolute -bottom-[5px] right-12 h-3 w-3 rotate-45 border-b border-r border-stone-200 bg-white dark:border-stone-700 dark:bg-stone-900" />
-        </div>
+        </motion.div>
       )}
       <button
         type="button"
@@ -228,7 +297,7 @@ export function KofiBench() {
         aria-label="Grandpa on the bench — buy me a coffee on Ko-fi"
         className="w-[168px] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 max-[480px]:w-[128px]"
       >
-        <BenchFigure />
+        <GrandpaFigure />
       </button>
     </div>
   );
