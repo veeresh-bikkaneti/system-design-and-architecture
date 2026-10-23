@@ -27,6 +27,8 @@ jobs:
   deploy-worker:
     name: Test, migrate, deploy
     runs-on: ubuntu-latest
+    environment:
+      name: cloudflare-worker
     defaults:
       run:
         working-directory: worker
