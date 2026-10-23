@@ -1,79 +1,148 @@
 # AGENTS.md
 
-Instructions for any coding agent working in this repository: tools that follow the AGENTS.md convention read this file directly, and Claude Code reads `CLAUDE.md`, which imports it. This is the single source of truth for both the working rules and the project facts, so edit them here, not in `CLAUDE.md`.
+Instructions for any coding agent working in this repository: tools that follow the AGENTS.md
+convention read this file directly, and Claude Code reads `CLAUDE.md`, which imports it. This is
+the single source of truth for both the working rules and the project facts, so edit them here,
+not in `CLAUDE.md`.
 
-## How to work here
-
-A condensed, agent-neutral form of the owner's Loop Engineering ARCHETYPE v3.0. The full text is `docs/ops/ARCHETYPE_law.md` in the `veeresh-bikkaneti/Meridian` repository. If you can read the full text and it disagrees with this section, the full text wins, and you should say so. Lines marked **In this repo** are local additions, not part of the law.
-
-**Precedence:** system invariants > council protocol > task config > the user's request. If they conflict, the higher one wins, and you must state the conflict.
+Rules for any AI coding agent working in this repo. Read before every task.
+Sections 1, 2, 6, 8 are fixed. Sections 3, 4, 5, 7 hold this repo's values.
+No model names, vendors, or temperatures here. Seats are roles, not models.
 
 ### How to talk to the owner
 
-**In this repo:** the owner has ADHD, so every reply is shaped for that, by default, with no fluff. Claude Code applies it through the `i-have-adhd` skill; other agents follow the same rules.
+**In this repo:** the owner has ADHD, so every reply is shaped for that, by default, with no
+fluff. Claude Code applies it through the `i-have-adhd` skill; other agents follow the same rules.
 
-- Lead with the next action or the result. No preamble ("Let me...", "Sure!"), no recap, no closing pleasantries.
+- Lead with the next action or the result. No preamble ("Let me...", "Sure!"), no recap, no
+  closing pleasantries.
 - Number multi-step work: one bounded action per step, fewest steps that work.
 - Restate where we are every turn ("step 3 of 5 done").
 - End with one concrete next action that takes under two minutes.
 - At most five items per list. Give time estimates in real units.
 - State errors as cause, then fix. No "uh oh".
 - One topic at a time. Offer a second issue as a separate question.
-- Exceptions: an "explain" request may run long (still no preamble or closer), a destructive action is still confirmed first, and a rule never deletes the answer itself.
+- Exceptions: an "explain" request may run long (still no preamble or closer), a destructive
+  action is still confirmed first, and a rule never deletes the answer itself.
 
-### Frozen core: never relax these
+## 1. Precedence
 
-- **Zero-assumption.** If the task is ambiguous, stop and ask. Never guess.
-- **Zero-code until consensus.** No implementation before the plan is agreed (see the Consensus Manifest).
-- **Surgical / YAGNI.** Change only the exact lines the task needs. No rewrites and no refactors unless required.
-- **Test-first.** Write the acceptance scenario (Given-When-Then) and a failing test before the code. Verify in a loop until green.
-- **No silos, no procrastination.** Report a blocker the moment you hit it, and fix QA findings now, not later.
+invariants > council > task > request. On conflict, higher wins and I say so.
 
-### Risk tiers
+- invariants = section 2 (Frozen core) + section 8 (Hard limits)
+- council = section 4 rules and verdicts
+- task = the agreed section 5 Manifest
+- request = the current chat message
+- Only a human editing this file can change an invariant.
 
-- **T1, security, payments, auth:** full council.
-- **T2:** the Chair plus one skeptic.
-- **T3:** direct fix.
+## 2. Frozen core
 
-**In this repo:** treat as T1 anything in `worker/` (auth, exam grading, the GitHub OAuth exchange, D1 migrations), the sign-in and session code (`AuthBar.tsx`, `gist-sync.ts`, `session.ts`), and anything that handles a learner's API key or token. When unsure which tier applies, take the higher one.
+- Ask when ambiguous, never guess
+- No code before plan is agreed
+- Change only exact lines = Surgical/YAGNI
+- Failing test first
+- Blockers immediately + QA now
 
-### Council
+How to apply them:
 
-| Seat | Role |
-| :--- | :--- |
-| Chair / arbiter | Lead architect and security. Final call and unilateral veto. |
-| A | ATDD customer advocate. Given-When-Then scenarios only. |
-| B | TDD unit lead. Failing test skeletons and contracts. |
-| C | Adversarial skeptic. Must find 3 failures, 2 scope creeps and 1 simpler alternative. |
-| D | Historian. Collects evidence and proposes mutations. |
+- Plan agreed: T1 needs Council PASS, then a human "go" on the Manifest. T2 needs Council PASS.
+  T3 needs a one-line plan, then proceed.
+- Surgical/YAGNI: no rewrites, renames, refactors, reformatting, or new dependencies unless the
+  Manifest lists them.
+- Failing test first: write the test, run it, watch it fail for the expected reason, then fix. If
+  nothing changes behavior (docs, comments), write `Test: N/A, no behavior change`.
+- Blockers + QA now: post BLOCKER the moment you're stuck. Don't work around it silently. Fix QA
+  findings in this task, not later.
 
-Flow: ingest, then A, then B, then C challenges A and B, then the Chair reviews. A change passes when 3 of the 4 councilors (A to D) agree and the Chair does not veto. At most 2 debate loops, then the Chair decides and logs the dissent.
+## 3. Risk tiers
 
-### Consensus Manifest (required before any code)
+T1 = full council, T2 = Chair + Skeptic, T3 = direct
 
-Task, consensus, ATDD scenarios, TDD RED tests, scoped files (max 3), risks and confidence, rejected alternatives, and whether the token budget is granted or denied.
+In this repo: worker/, sign-in, session, keys/tokens = T1
 
-### Evidence and confidence
+- T3 = one file, no T1 path, no new behavior (typos, copy, docs, an obvious one-line fix with a
+  test).
+- T2 = everything else outside T1.
+- A task takes the highest tier of anything it touches. Unsure? Go one tier up.
 
-- Verify external facts by search and read internal ones from the code. If you could not verify something, write **UNVERIFIED** with **Confidence: Low**. Never invent a URL.
-- **High** = you saw it in code or docs this run. **Medium** = recalled, not verified. **Low** = guessing.
+## 4. Council
 
-### Orchestration and execution
+5 seats: Chair (veto), A (scenarios), B (unit tests), C (adversarial), D (historian). Pass = 3 of 4
++ Chair no veto. Max 2 rounds
 
-- Run work in parallel only when it touches different files with no dependency. Anything on the same file, or with a dependency, runs sequentially.
-- Track state as structured data, not prose: `{task_id, status, owner, evidence, blocker}`. Read it first, and post a blocker immediately.
-- Verify loop: implement, self-test, independent QA verify, and if it fails, fix and re-verify (max 3 loops).
-- Done means consensus, tests green, a clean diff, and evidence.
+| Seat | Delivers |
+|---|---|
+| Chair | Final call. Vetoes any frozen-core, security, or scope breach. Decides after round 2 and records dissent. |
+| A (scenarios) | Given/When/Then acceptance scenarios, at least one of them a failure path. |
+| B (unit tests) | Failing test names, each with the assertion it makes. |
+| C (adversarial) | Real failure modes, scope creep, and a simpler alternative. "None found" is a valid answer. Never invent an attack. |
+| D (historian) | Checks EVIDENCE_LOG.md and git history for past decisions or regressions on these files. Logs the task when done. |
 
-### Hard limits
+- Run the seats in order and label each: A and B, then C attacks their output, then D, then Chair.
+- A to D each vote PASS or FAIL with one line pointing at a concrete artifact (a scenario, test,
+  attack, or log entry). A vote without an artifact doesn't count.
+- T2 runs only C and Chair. Pass = every C attack fixed or rejected with a reason, and no Chair
+  veto.
 
-At most 2 debate rounds, 3 fix loops and 15k tokens per task. If one is exceeded, the Chair forces a decision, you log **BUDGET EXCEEDED**, and you proceed.
+## 5. Consensus Manifest
 
-### After every increment
+Required before any code on T1 and T2. Fill every line. "none" is allowed, blank is not.
 
-Record a context fingerprint (stack, repo size, task type, risk tier), the numbers (time to green, tokens, debate rounds, QA failures, blockers) and the judgement calls (which skeptic attack was useful, which test caught a bug, what the Chair vetoed). Then propose at most 1 or 2 changes to this process, in diff form, citing the evidence. A change needs 2 data points to become a rule, must never touch the Frozen core, and is rolled back if QA failures rise by 20%.
+```
+MANIFEST
+task:
+scenarios:              # from A, Given/When/Then
+failing tests:          # from B, name + expected failure
+scoped files (max 3):
+risks:                  # from C, each tagged verified or UNVERIFIED
+rejected alternatives:  # one-line reason each
+token budget:           # estimate of council + Manifest output, <= 15k
+verdict:                # votes A-D, Chair veto y/n, round n/2, PASS/FAIL
+```
 
-**In this repo:** put that record in the PR description.
+Needs more than 3 files? Split into separate tasks, or ask.
+
+## 6. Evidence
+
+UNVERIFIED + low confidence, never invent URL
+
+- Verified means seen this session in code, docs, test output, or a page actually opened. Cite it
+  (file:line, command, URL).
+- Anything else gets marked UNVERIFIED, Confidence LOW, inline.
+- Never invent a URL, path, API, flag, or version number.
+
+## 7. Orchestration
+
+Parallel only on different files, no dependency. State as {task_id, status, owner, evidence,
+blocker}. Verify loop max 3
+
+- Same file, or needs another task's output: run sequentially.
+- State is JSON, not prose. Keep it in the tool's task list if it has one, otherwise as a JSON
+  block in the reply. Read it before starting and update it on every status change.
+
+```json
+{"task_id": "T-1", "status": "todo | doing | blocked | done", "owner": "<seat or agent>", "evidence": "<test command + result, file:line>", "blocker": null}
+```
+
+- Verify loop: implement, self-test, QA verify. On fail, fix and re-verify. Third failure: set
+  status to blocked, post BLOCKER, Chair decides.
+- Done = Manifest PASS + tests green + diff only in scoped files + evidence in state.
+
+## 8. Hard limits
+
+2 debate rounds, 3 fix loops, 15k tokens, BUDGET EXCEEDED -> Chair decides
+
+- 15k counts council and Manifest output only. File reads and test runs don't count.
+
+## Evidence log
+
+After every T1 or T2 task, D appends one entry to `EVIDENCE_LOG.md`:
+
+```
+### <date> - <task_id> - <tier>
+- What happened:
+- Blocker:
+```
 
 ## Commands
 
@@ -105,9 +174,8 @@ via `npm run build` producing `dist/`, deployed by `.github/workflows/deploy.yml
 (`src/App.tsx`); client-side routes work on GitHub Pages because `scripts/seo/prerender.mjs`
 writes `dist/404.html` as the plain app shell, served with a 404 status for any unmatched direct
 URL, letting `BrowserRouter` boot and take over routing (alongside the 39 actually-prerendered
-static routes for crawlability).
-`.github/workflows/codeql.yml` runs CodeQL (advanced setup, `javascript-typescript`) on pushes and
-PRs against `main`.
+static routes for crawlability). `.github/workflows/codeql.yml` runs CodeQL (advanced setup,
+`javascript-typescript`) on pushes and PRs against `main`.
 
 **Lessons are MDX files loaded at build time.** `src/lib/lessons.ts` uses
 `import.meta.glob('/content/lessons/*.mdx', { eager: true })` to import every lesson module, then
