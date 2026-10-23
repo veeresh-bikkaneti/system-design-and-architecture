@@ -101,8 +101,11 @@ runs `npm ci`, which fails if the lockfile drifts from `package.json`. Regenerat
 
 This is a static, client-only Vite + React + TypeScript SPA — no backend. It ships to GitHub Pages
 via `npm run build` producing `dist/`, deployed by `.github/workflows/deploy.yml` on push to `main`
-(base path set via `VITE_BASE_PATH` for the repo-name subpath). The app uses `HashRouter`
-(`src/App.tsx`) specifically so client-side routes work on GitHub Pages without server rewrites.
+(base path set via `VITE_BASE_PATH` for the repo-name subpath). The app uses `BrowserRouter`
+(`src/App.tsx`); client-side routes work on GitHub Pages because `scripts/seo/prerender.mjs`
+writes `dist/404.html` as the plain app shell, served with a 404 status for any unmatched direct
+URL, letting `BrowserRouter` boot and take over routing (alongside the 39 actually-prerendered
+static routes for crawlability).
 `.github/workflows/codeql.yml` runs CodeQL (advanced setup, `javascript-typescript`) on pushes and
 PRs against `main`.
 
