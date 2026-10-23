@@ -5,6 +5,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { Layout } from './components/Layout';
 import { focusMainContent } from './lib/focus';
 import { OauthCallbackPage } from './components/AuthBar';
+import { KofiBench } from './components/kofi/KofiBench';
 
 // Route-level code splitting: every page ships as its own chunk so the entry
 // bundle only carries the app shell (router, layout, MDX provider). Pages are
@@ -212,6 +213,7 @@ function App() {
         <Suspense fallback={null}>
           <QaWidget />
         </Suspense>
+        <KofiBench />
         </AppErrorBoundary>
       </BrowserRouter>
     </MDXProvider>
