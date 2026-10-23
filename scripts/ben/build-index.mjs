@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { repoRoot } from '../seo/lesson-meta.mjs';
 import { chunkAllLessons } from './chunk-lessons.mjs';
 import { copyRuntimeAssets, EMBEDDER_DIMS, EMBEDDER_FILES, EMBEDDER_REPO, loadNodeEmbedder } from './embedder.mjs';
+import { isMainModule } from './is-main.mjs';
 
 export const INDEX_VERSION = 1;
 /** Section text kept for the reply and for Qwen's material. The vector sees all of it. */
@@ -84,7 +85,7 @@ export async function buildIndex() {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   const started = Date.now();
   // `--optional` (used by `npm run dev`): an offline machine still gets a dev
   // server, and Ben falls back to keyword routing. Builds never pass it.
