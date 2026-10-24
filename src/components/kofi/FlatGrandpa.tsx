@@ -17,17 +17,33 @@ import { useReducedMotion } from 'motion/react';
  * groups; the phase machine below only sequences walk → sit → seated →
  * refill and reports `onSeated` exactly once.
  *
- * Under reduced motion there is no walk and no refill: he renders in
- * the seated pose from the start and `onSeated` fires immediately.
+ * Dock-only waiting behaviour (`pace`): after 15s seated he stands and
+ * paces a short loop beside the bench (58px, inside the 230px frame),
+ * then sits again and the cycle repeats — the lesson-end reader sees a
+ * living waiter, not a statue. The parent hides the ask cloud while he
+ * is up (it belongs on the bench) via `onPacingChange`. `frozen` (an
+ * open confirm) pauses and resets the idle timer, so a pace can never
+ * start under an open dialog. The fixed bench never paces.
+ *
+ * Under reduced motion there is no walk, no refill, and no pacing: he
+ * renders in the seated pose from the start and `onSeated` fires
+ * immediately.
  *
  * Phase timings (kept in sync with the keyframes below):
- * walk 2.2s · sit 0.5s · refill starts 0.35s after the sit · refill 3.6s.
+ * walk 2.2s · sit 0.5s · refill starts 0.35s after the sit · refill 3.6s
+ * pace: idle 15s · stand 0.5s · walk 1.6s · pause 0.6s · walk back 1.6s.
  */
 
 const WALK_MS = 2200;
 const SIT_MS = 500;
 const REFILL_DELAY_MS = 350;
 const REFILL_MS = 3600;
+const PACE_IDLE_MS = 15000;
+const PACE_STAND_MS = 500;
+const PACE_WALK_MS = 1600;
+const PACE_PAUSE_MS = 600;
+/** Pace amplitude: stays inside the 230px frame (hip at 148, tree at 17-81). */
+const PACE_OFFSET_PX = -58;
 
 /**
  * The refill is once per page load — module scope, so an offline→online
@@ -37,7 +53,7 @@ const REFILL_MS = 3600;
  */
 let hasPlayedRefill = false;
 
-type Phase = 'walking' | 'sitting' | 'seated' | 'refilling';
+type Phase = 'walking' | 'sitting' | 'seated' | 'refilling' | 'standing' | 'pacing-out' | 'pace-pause' | 'pacing-back';
 
 const INK = '#2b2320';
 
@@ -106,12 +122,27 @@ const FIGURE_CSS = `
 }
 `;
 
-export function FlatGrandpa({ onSeated }: { onSeated: () => void }) {
+export function FlatGrandpa({
+  onSeated,
+  pace = false,
+  frozen = false,
+  onPacingChange,
+}: {
+  onSeated: () => void;
+  /** Dock only: pace beside the bench while waiting. Defaults off. */
+  pace?: boolean;
+  /** An open confirm: pause and reset the idle timer, never pace under it. */
+  frozen?: boolean;
+  onPacingChange?: (pacing: boolean) => void;
+}) {
   const reduceMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>(reduceMotion ? 'seated' : 'walking');
   const seatedFired = useRef(false);
   const onSeatedRef = useRef(onSeated);
   onSeatedRef.current = onSeated;
+  const onPacingChangeRef = useRef(onPacingChange);
+  onPacingChangeRef.current = onPacingChange;
+  const paceRoundActive = useRef(false);
 
   useEffect(() => {
     if (reduceMotion) {
@@ -152,8 +183,55 @@ export function FlatGrandpa({ onSeated }: { onSeated: () => void }) {
     };
   }, [reduceMotion]);
 
+  // Pace driver: one timer per phase, cleared on every phase change, so
+  // a round can never double-schedule. It owns only the seated-idle and
+  // pace phases; the entrance effect above owns walk/sit/refill arrival
+  // and is inert by the time the first idle timer can fire. Anchored on
+  // `seated`, not on the refill: on a later lesson visit the refill
+  // latch is already spent, and he still paces 15s after sitting down.
+  useEffect(() => {
+    if (reduceMotion || !pace) return;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    if (phase === 'seated' && !frozen && !paceRoundActive.current) {
+      t = setTimeout(() => {
+        paceRoundActive.current = true;
+        onPacingChangeRef.current?.(true);
+        setPhase('standing');
+      }, PACE_IDLE_MS);
+    } else if (phase === 'standing') {
+      t = setTimeout(() => setPhase('pacing-out'), PACE_STAND_MS);
+    } else if (phase === 'pacing-out') {
+      t = setTimeout(() => setPhase('pace-pause'), PACE_WALK_MS);
+    } else if (phase === 'pace-pause') {
+      t = setTimeout(() => setPhase('pacing-back'), PACE_PAUSE_MS);
+    } else if (phase === 'pacing-back') {
+      t = setTimeout(() => setPhase('sitting'), PACE_WALK_MS);
+    } else if (phase === 'sitting' && paceRoundActive.current) {
+      // The pace-return sit: the entrance effect's sit timer fired once
+      // at mount and is inert now, so this branch owns the return.
+      t = setTimeout(() => {
+        paceRoundActive.current = false;
+        onPacingChangeRef.current?.(false);
+        setPhase('seated');
+      }, SIT_MS);
+    }
+    return () => clearTimeout(t);
+  }, [phase, pace, frozen, reduceMotion]);
+
   const walking = phase === 'walking';
-  const sat = phase !== 'walking';
+  const striding = walking || phase === 'pacing-out' || phase === 'pacing-back';
+  const sat = phase === 'sitting' || phase === 'seated' || phase === 'refilling';
+  // Pace travel is an inline style (not the entrance keyframes): the
+  // 1.6s transition matches the walk-phase timer exactly, and the offset
+  // is bounded inside the frame — no layout shift, no overflow.
+  const paceOffset = phase === 'pacing-out' || phase === 'pace-pause' ? PACE_OFFSET_PX : 0;
+  const xStyle = walking
+    ? undefined
+    : {
+        transform: `translateX(${paceOffset}px)`,
+        transition:
+          phase === 'pacing-out' || phase === 'pacing-back' ? 'transform 1.6s linear' : 'none',
+      };
 
   return (
     <div
@@ -178,8 +256,8 @@ export function FlatGrandpa({ onSeated }: { onSeated: () => void }) {
 
         {/* grandpa: hip at local (0,0) = frame (140,112); floor at local y +35 */}
         <g transform="translate(148 112)">
-          <g className={walking ? 'fg-x-walking' : undefined}>
-            <g className={walking ? 'fg-bob-on' : undefined}>
+          <g className={walking ? 'fg-x-walking' : undefined} style={xStyle}>
+            <g className={striding ? 'fg-bob-on' : undefined}>
               {/* seated legs (fade in as he sits) */}
               <g className="fg-fade" opacity={sat ? 1 : 0}>
                 <path d="M-3 0 L41 1 L42 9 L-2 9 Z" fill="#17140f" />
@@ -189,16 +267,16 @@ export function FlatGrandpa({ onSeated }: { onSeated: () => void }) {
                 <path d="M39 10 L47 10 L47 29 L39 29 Z" fill="#2e2a26" />
                 <path d="M35 29 L55 29 C58 29 58 35 55 35 L35 35 C32 35 32 29 35 29 Z" fill="#17140f" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
               </g>
-              {/* walking legs (swing while he crosses, fade out as he sits) */}
-              <g className="fg-fade" opacity={walking ? 1 : 0}>
+              {/* walking legs (swing while he crosses or paces, fade out as he sits) */}
+              <g className="fg-fade" opacity={sat ? 0 : 1}>
                 <g transform="translate(-3 0)">
-                  <g className={walking ? 'fg-leg-swing fg-leg-swing-b' : undefined}>
+                  <g className={striding ? 'fg-leg-swing fg-leg-swing-b' : undefined}>
                     <path d="M-6 0 L5 0 L4 18 L6 28 L2 28 L-1 18 Z" fill="#17140f" />
                     <path d="M0 28 L13 28 C16 28 16 34 13 34 L-2 34 C-4 34 -4 28 0 28 Z" fill="#17140f" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
                   </g>
                 </g>
                 <g>
-                  <g className={walking ? 'fg-leg-swing' : undefined}>
+                  <g className={striding ? 'fg-leg-swing' : undefined}>
                     <path d="M-6 0 L5 0 L4 18 L6 28 L2 28 L-1 18 Z" fill="#262320" />
                     <path d="M0 28 L13 28 C16 28 16 34 13 34 L-2 34 C-4 34 -4 28 0 28 Z" fill="#17140f" stroke={INK} strokeWidth="2.2" strokeLinejoin="round" />
                   </g>

@@ -89,6 +89,7 @@ function BenchCore({
   const [online, setOnline] = useState<boolean>(() => navigator.onLine);
   const [mode, setMode] = useState<'ask' | 'confirm'>('ask');
   const [seated, setSeated] = useState(false);
+  const [pacing, setPacing] = useState(false);
   const askRef = useRef<HTMLButtonElement>(null);
   const continueRef = useRef<HTMLButtonElement>(null);
   const invokerRef = useRef<HTMLButtonElement | null>(null);
@@ -229,7 +230,7 @@ function BenchCore({
 
   const clouds = (
     <>
-      {seated && mode === 'ask' && (
+      {seated && !pacing && mode === 'ask' && (
         <motion.button
           ref={askRef}
           type="button"
@@ -288,15 +289,25 @@ function BenchCore({
     </>
   );
 
+  // The click is guarded in the handler, not by removing it: a pacing
+  // or not-yet-seated figure must never be a dead tab stop for keyboard
+  // users — the guard and aria-disabled say the same thing.
   const figureButton = (
     <button
       type="button"
-      onClick={seated ? openConfirm : undefined}
-      aria-disabled={!seated || undefined}
+      onClick={(e) => {
+        if (seated && !pacing) openConfirm(e);
+      }}
+      aria-disabled={!seated || pacing || undefined}
       aria-label="Buy Grandpa a coffee on Ko-fi"
       className="pointer-events-auto w-[168px] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 max-[480px]:w-[128px]"
     >
-      <FlatGrandpa onSeated={() => setSeated(true)} />
+      <FlatGrandpa
+        onSeated={() => setSeated(true)}
+        pace={variant === 'dock'}
+        frozen={mode === 'confirm'}
+        onPacingChange={setPacing}
+      />
     </button>
   );
 

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -326,5 +326,127 @@ describe('KofiBench placement plan (agency panel, 2026-10-24)', () => {
     act(() => FakeIO.instances.forEach((io) => io.trigger(true)));
     expect(container.querySelector('svg')).toBeTruthy();
     await awaitAsk();
+  });
+});
+
+describe('KofiBench dock pacing (owner: "waiting and walking around")', () => {
+  it('the dock grandpa paces while he waits — cloud hides while he is up, returns when he sits', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.resetModules();
+      stubFakeIO();
+      const fresh = await import('./KofiBench');
+      const { container } = render(<fresh.KofiBenchDock />);
+      const phase = () => container.querySelector('[data-phase]')?.getAttribute('data-phase');
+      act(() => FakeIO.instances.forEach((io) => io.trigger(true)));
+      act(() => { vi.advanceTimersByTime(2700); }); // walk + sit
+      expect(phase()).toBe('seated');
+      expect(screen.getByText(ASK)).toBeTruthy();
+      act(() => { vi.advanceTimersByTime(400 + 3600); }); // the refill plays out
+      expect(phase()).toBe('seated');
+      // Step the round, one act() per phase: each phase's timer is
+      // scheduled by an effect that only flushes when the act() exits.
+      const step = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
+      step(15000); // idle long enough — he gets up
+      expect(phase()).toBe('standing');
+      expect(screen.queryByText(ASK)).toBeNull(); // the cloud waits with the bench
+      step(500); // standing -> pacing-out
+      step(1600); // pacing-out -> pause
+      step(600); // pause -> pacing-back
+      step(1600); // pacing-back -> sitting
+      step(500); // sitting -> seated
+      expect(phase()).toBe('seated');
+      expect(screen.getByText(ASK)).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('the dock grandpa still paces on a later lesson visit, after the refill latch is spent', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.resetModules();
+      stubFakeIO();
+      const fresh = await import('./KofiBench');
+      const { container, unmount } = render(<fresh.KofiBenchDock />);
+      const phase = () => container.querySelector('[data-phase]')?.getAttribute('data-phase');
+      const step = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
+      act(() => FakeIO.instances.forEach((io) => io.trigger(true)));
+      act(() => { vi.advanceTimersByTime(2700 + 400 + 3600); }); // first visit: walk, sit, refill
+      expect(phase()).toBe('seated');
+      unmount();
+      const second = render(<fresh.KofiBenchDock />);
+      const phase2 = () => second.container.querySelector('[data-phase]')?.getAttribute('data-phase');
+      act(() => FakeIO.instances.forEach((io) => io.trigger(true)));
+      act(() => { vi.advanceTimersByTime(2700); }); // second visit: walk + sit, no refill
+      expect(phase2()).toBe('seated');
+      expect(screen.getByText(ASK)).toBeTruthy();
+      step(15000);
+      expect(phase2()).toBe('standing');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('the fixed bench never paces, however long he sits', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.resetModules();
+      stubFakeIO();
+      const fresh = await import('./KofiBench');
+      const { container } = render(<fresh.KofiBench />);
+      const phase = () => container.querySelector('[data-phase]')?.getAttribute('data-phase');
+      act(() => { vi.advanceTimersByTime(2700 + 400 + 3600 + 30000); });
+      expect(phase()).toBe('seated');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('the dock grandpa never paces under reduced motion', async () => {
+    vi.useFakeTimers();
+    // Motion caches the reduced-motion preference in a module singleton
+    // on first use (externalized dep — vi.resetModules cannot clear it),
+    // so stubbing matchMedia after earlier tests is too late. Set the
+    // singleton directly; it is the same instance the figure reads.
+    const motionDom = await import('motion-dom');
+    motionDom.prefersReducedMotion.current = true;
+    try {
+      vi.resetModules();
+      stubFakeIO();
+      const fresh = await import('./KofiBench');
+      const { container } = render(<fresh.KofiBenchDock />);
+      const phase = () => container.querySelector('[data-phase]')?.getAttribute('data-phase');
+      act(() => FakeIO.instances.forEach((io) => io.trigger(true)));
+      expect(phase()).toBe('seated'); // seated from the start, no walk
+      act(() => { vi.advanceTimersByTime(30000); });
+      expect(phase()).toBe('seated');
+    } finally {
+      motionDom.prefersReducedMotion.current = false;
+      vi.useRealTimers();
+    }
+  });
+
+  it('the dock grandpa never paces while the confirm is open', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.resetModules();
+      stubFakeIO();
+      const fresh = await import('./KofiBench');
+      const { container } = render(<fresh.KofiBenchDock />);
+      const phase = () => container.querySelector('[data-phase]')?.getAttribute('data-phase');
+      // fireEvent, not userEvent: the async userEvent click timed out
+      // under fake timers in the full suite (it passed alone). The click
+      // only needs to fire onClick, so the synchronous dispatch is enough.
+      act(() => FakeIO.instances.forEach((io) => io.trigger(true)));
+      act(() => { vi.advanceTimersByTime(2700 + 400 + 3600); });
+      expect(phase()).toBe('seated');
+      fireEvent.click(screen.getByRole('button', { name: /This course runs on coffee/ }));
+      expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
+      act(() => { vi.advanceTimersByTime(30000); });
+      expect(phase()).toBe('seated');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
