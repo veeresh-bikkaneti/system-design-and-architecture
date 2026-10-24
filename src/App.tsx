@@ -28,6 +28,7 @@ const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
 import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { UpdatePrompt } from './components/UpdatePrompt';
 import { Quiz } from './components/Quiz';
 import { VideoCard } from './components/VideoCard';
 import {
@@ -202,6 +203,10 @@ function App() {
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <ScrollToTop />
         <AppErrorBoundary>
+          {/* T-PWA-3: in-flow, directly before Routes (outside the Routes
+              Suspense, so a loading route chunk never hides or remounts
+              it), never lazy, no fixed positioning, no z-index. */}
+          <UpdatePrompt />
           <Suspense fallback={<RouteLoading />}>
           <Routes>
           <Route element={<Layout />}>
