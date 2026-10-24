@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { KofiBench } from './KofiBench';
@@ -42,18 +42,21 @@ afterEach(() => {
 });
 
 describe('KofiBench under reduced motion', () => {
-  it('passes reduced motion to the scene and does not trigger the refill', async () => {
-    const playRefill = vi.fn();
-    mountMock.mockReturnValue({ playRefill, dispose: vi.fn() });
+  it('never imports the scene: the rendered still shows him seated, the ask is immediate, no walk, no refill', async () => {
     const { container } = render(<KofiBench />);
+    // Seated from the start: the still of the same grandpa, no SVG, no canvas.
+    const img = container.querySelector('img');
+    expect(img).toBeTruthy();
+    expect(img?.getAttribute('src')).toContain('grandpa-seated');
+    expect(container.querySelector('svg')).toBeNull();
+    expect(container.querySelector('canvas')).toBeNull();
     expect(screen.getByText('This course runs on coffee. Care to buy me one?')).toBeTruthy();
-    // The SVG overlay disappears once the scene reports ready — by then
-    // the refill decision has been made.
-    await waitFor(() => expect(container.querySelector('svg')).toBeNull());
-    expect(mountMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ reducedMotion: true }),
-    );
-    expect(playRefill).not.toHaveBeenCalled();
+    // Give the lazy scene import every chance to fire — it must not.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(mountMock).not.toHaveBeenCalled();
+    // The confirm still works end to end.
+    await waitFor(() => expect(screen.getByText('This course runs on coffee. Care to buy me one?')).toBeTruthy());
   });
 });

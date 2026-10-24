@@ -5,11 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { KofiBench } from './KofiBench';
 import { mountGrandpaScene } from './GrandpaScene';
+import { useQaPanelStore } from '../../store/qaPanel';
 
 // The 3D scene needs WebGL, which jsdom does not have: by default the mount
-// "fails" (returns null) and KofiBench must fall back to the SVG figure —
-// that fallback path is what most of this file exercises. The 3D-path tests
-// at the bottom override the mock with a fake handle.
+// "fails" (returns null) and KofiBench must fall back to the rendered still
+// of the same grandpa — that fallback path is what most of this file
+// exercises. The 3D-path tests override the mock with a fake handle and
+// drive the entrance through the captured mount options (onSeated).
 vi.mock('./GrandpaScene', () => ({
   mountGrandpaScene: vi.fn(() => null),
 }));
@@ -19,8 +21,27 @@ const mountMock = vi.mocked(mountGrandpaScene);
 const KOFI_URL = 'https://ko-fi.com/examplepage';
 const ASK = 'This course runs on coffee. Care to buy me one?';
 
+type MountOpts = Parameters<typeof mountGrandpaScene>[1];
+
 function setOnline(online: boolean) {
   Object.defineProperty(navigator, 'onLine', { value: online, configurable: true });
+}
+
+/** Stub matchMedia so only the narrow-viewport query matches. */
+function stubNarrowViewport() {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string) => ({
+      matches: query.includes('max-width: 649px'),
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
 }
 
 beforeEach(() => {
@@ -28,12 +49,14 @@ beforeEach(() => {
   vi.stubEnv('VITE_KOFI_URL', KOFI_URL);
   mountMock.mockReset();
   mountMock.mockReturnValue(null);
+  act(() => useQaPanelStore.setState({ open: false }));
 });
 
 afterEach(() => {
   cleanup();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
+  Reflect.deleteProperty(window, 'matchMedia');
 });
 
 describe('KofiBench gates', () => {
@@ -57,9 +80,9 @@ describe('KofiBench gates', () => {
 });
 
 describe('KofiBench ask and confirm', () => {
-  it('shows the seated ask cloud with the locked copy from the start', () => {
+  it('shows the seated ask cloud with the locked copy from the start (fallback path)', async () => {
     render(<KofiBench />);
-    expect(screen.getByText(ASK)).toBeTruthy();
+    await waitFor(() => expect(screen.getByText(ASK)).toBeTruthy());
     expect(screen.getByText('Your refill keeps this course free.')).toBeTruthy();
     expect(screen.getByTestId('kofi-bench-scene')).toBeTruthy();
   });
@@ -67,6 +90,7 @@ describe('KofiBench ask and confirm', () => {
   it('swaps the same cloud to the confirm on tap — no second dialog', async () => {
     const user = userEvent.setup();
     render(<KofiBench />);
+    await waitFor(() => expect(screen.getByText(ASK)).toBeTruthy());
     await user.click(screen.getByRole('button', { name: /This course runs on coffee/ }));
     expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
     expect(screen.getByText('The course is free, and stays free. A coffee is just a thank-you.')).toBeTruthy();
@@ -85,6 +109,7 @@ describe('KofiBench ask and confirm', () => {
     const user = userEvent.setup();
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<KofiBench />);
+    await waitFor(() => expect(screen.getByText(ASK)).toBeTruthy());
     await user.click(screen.getByRole('button', { name: /This course runs on coffee/ }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(open).toHaveBeenCalledTimes(1);
@@ -96,6 +121,7 @@ describe('KofiBench ask and confirm', () => {
     const user = userEvent.setup();
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<KofiBench />);
+    await waitFor(() => expect(screen.getByText(ASK)).toBeTruthy());
     const askButton = screen.getByRole('button', { name: /This course runs on coffee/ });
     await user.click(askButton);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -109,6 +135,7 @@ describe('KofiBench ask and confirm', () => {
   it('Escape closes the confirm and focus returns to the ask button', async () => {
     const user = userEvent.setup();
     render(<KofiBench />);
+    await waitFor(() => expect(screen.getByText(ASK)).toBeTruthy());
     const askButton = screen.getByRole('button', { name: /This course runs on coffee/ });
     await user.click(askButton);
     expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
@@ -118,24 +145,55 @@ describe('KofiBench ask and confirm', () => {
   });
 });
 
-describe('KofiBench grandpa figure (3D scene + SVG fallback)', () => {
-  it('falls back to the SVG figure when the 3D scene cannot mount', async () => {
+describe('KofiBench grandpa figure (3D scene + rendered-still fallback)', () => {
+  it('falls back to the rendered still of the same grandpa — never an SVG figure — when the scene cannot mount', async () => {
     const { container } = render(<KofiBench />);
     await waitFor(() => expect(mountMock).toHaveBeenCalled());
-    expect(container.querySelector('svg')).toBeTruthy();
+    const img = container.querySelector('img');
+    expect(img).toBeTruthy();
+    expect(img?.getAttribute('src')).toContain('grandpa-seated');
+    expect(container.querySelector('svg')).toBeNull();
     expect(container.querySelector('canvas')).toBeNull();
   });
 
-  it('shows the 3D canvas, plays the refill once, and disposes on unmount', async () => {
+  it('shows the canvas, withholds the cloud until seated, then plays the refill once and disposes on unmount', async () => {
     const playRefill = vi.fn();
     const dispose = vi.fn();
-    mountMock.mockReturnValue({ playRefill, dispose });
+    let opts: MountOpts | undefined;
+    mountMock.mockImplementation((_canvas, o) => {
+      opts = o;
+      return { playRefill, dispose };
+    });
     const { container, unmount } = render(<KofiBench />);
     await waitFor(() => expect(container.querySelector('canvas')).toBeTruthy());
-    await waitFor(() => expect(container.querySelector('svg')).toBeNull());
-    expect(playRefill).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(container.querySelector('img')).toBeNull());
+    // Mid-entrance: no cloud, and tapping grandpa does not open the confirm.
+    expect(screen.queryByText(ASK)).toBeNull();
+    expect(playRefill).not.toHaveBeenCalled();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Buy Grandpa a coffee on Ko-fi' }));
+    expect(screen.queryByText("You're heading to Ko-fi.")).toBeNull();
+    // He sits: the cloud appears and the once-per-load refill follows.
+    act(() => opts?.onSeated?.());
+    expect(screen.getByText(ASK)).toBeTruthy();
+    await waitFor(() => expect(playRefill).toHaveBeenCalledTimes(1));
     unmount();
     expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the rendered still when the scene reports a lost WebGL context', async () => {
+    let capturedOpts: MountOpts | undefined;
+    mountMock.mockImplementation((_canvas, opts_) => {
+      capturedOpts = opts_;
+      return { playRefill: vi.fn(), dispose: vi.fn() };
+    });
+    const { container } = render(<KofiBench />);
+    await waitFor(() => expect(container.querySelector('img')).toBeNull());
+    expect(capturedOpts?.onContextLost).toBeTypeOf('function');
+    act(() => capturedOpts?.onContextLost?.());
+    await waitFor(() => expect(container.querySelector('img')).toBeTruthy());
+    expect(container.querySelector('svg')).toBeNull();
+    // The fallback is seated by construction: the cloud shows immediately.
+    expect(screen.getByText(ASK)).toBeTruthy();
   });
 });
 
@@ -156,10 +214,22 @@ describe('KofiBench peer-review fixes', () => {
   it('does not replay the refill when the figure remounts after an offline→online toggle', async () => {
     const playRefill = vi.fn();
     const dispose = vi.fn();
-    mountMock.mockReturnValue({ playRefill, dispose });
+    let latestOpts: MountOpts | undefined;
+    mountMock.mockImplementation((_canvas, o) => {
+      latestOpts = o;
+      return { playRefill, dispose };
+    });
     const { container } = render(<KofiBench />);
-    await waitFor(() => expect(container.querySelector('svg')).toBeNull());
-    const callsAfterFirstMount = playRefill.mock.calls.length;
+    await waitFor(() => expect(container.querySelector('img')).toBeNull());
+    act(() => latestOpts?.onSeated?.());
+    // Settle past the post-sit refill beat, then take the baseline. (The
+    // once-per-load flag is module scope: if an earlier test in this file
+    // already latched it, the baseline here is legitimately 0 — what this
+    // test proves is that the remount does not ADD a call.)
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 450));
+    });
+    const callsAfterFirstSit = playRefill.mock.calls.length;
     // Offline: the whole bench unmounts (fail-closed). Online: it remounts.
     // The refill is once per page load, so a remount must not replay it.
     act(() => {
@@ -171,21 +241,39 @@ describe('KofiBench peer-review fixes', () => {
       setOnline(true);
       window.dispatchEvent(new Event('online'));
     });
-    await waitFor(() => expect(container.querySelector('svg')).toBeNull());
-    expect(playRefill.mock.calls.length).toBe(callsAfterFirstMount);
-  });
-
-  it('falls back to the SVG figure when the scene reports a lost WebGL context', async () => {
-    let capturedOpts: Parameters<typeof mountGrandpaScene>[1] | undefined;
-    mountMock.mockImplementation((_canvas, opts) => {
-      capturedOpts = opts;
-      return { playRefill: vi.fn(), dispose: vi.fn() };
+    await waitFor(() => expect(container.querySelector('img')).toBeNull());
+    act(() => latestOpts?.onSeated?.());
+    // Give a (wrongly) rescheduled refill time to fire, then compare.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 450));
     });
-    const { container } = render(<KofiBench />);
-    await waitFor(() => expect(container.querySelector('svg')).toBeNull());
-    expect(capturedOpts?.onContextLost).toBeTypeOf('function');
-    act(() => capturedOpts?.onContextLost?.());
-    await waitFor(() => expect(container.querySelector('svg')).toBeTruthy());
+    expect(playRefill.mock.calls.length).toBe(callsAfterFirstSit);
+  });
+});
+
+describe('KofiBench placement + Q&A yield', () => {
+  it('anchors bottom-left, clear of the bottom-right Q&A corner', () => {
+    render(<KofiBench />);
+    const el = screen.getByTestId('kofi-bench-scene');
+    expect(el.className).toContain('left-4');
+    expect(el.className).not.toContain('right-4');
   });
 
+  it('hides while the Q&A panel is open on a narrow viewport, and returns when it closes', async () => {
+    stubNarrowViewport();
+    render(<KofiBench />);
+    const el = screen.getByTestId('kofi-bench-scene');
+    expect(el.className).not.toContain('hidden');
+    act(() => useQaPanelStore.setState({ open: true }));
+    await waitFor(() => expect(screen.getByTestId('kofi-bench-scene').className).toContain('hidden'));
+    act(() => useQaPanelStore.setState({ open: false }));
+    await waitFor(() => expect(screen.getByTestId('kofi-bench-scene').className).not.toContain('hidden'));
+  });
+
+  it('stays visible beside the open Q&A panel on a wide viewport', () => {
+    // No matchMedia stub: jsdom has none, the bench treats that as wide.
+    act(() => useQaPanelStore.setState({ open: true }));
+    render(<KofiBench />);
+    expect(screen.getByTestId('kofi-bench-scene').className).not.toContain('hidden');
+  });
 });

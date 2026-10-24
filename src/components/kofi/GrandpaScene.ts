@@ -3,20 +3,35 @@ import * as THREE from 'three';
 /**
  * GrandpaScene — a tiny procedural Three.js scene for the Ko-fi widget.
  *
- * Grandpa sits on a bench under a tree, mug in hand, built entirely from
- * low-poly primitives (no models, textures, or network loads). It replaces
- * the flat SVG figure in KofiBench with the same identity and footprint.
+ * ONE grandpa, one rig, every state. The same procedural model (bench,
+ * tree, mug, kettle — no models, textures, or network loads) produces
+ * the walk-in, the sit-down, the seated idle, and the refill; the
+ * fallback still KofiBench shows when WebGL is unavailable is a render
+ * of this exact scene (scripts/kofi/render-grandpa-still.mjs), so the
+ * character never changes identity between states.
  *
- * The React component owns all behavior (copy, confirm, env gating); this
- * file only owns the 3D scene. It exposes a mount function that returns a
- * handle, or null when WebGL is unavailable so the caller can fall back to
- * the SVG figure. Import only from 'three' — no React here.
+ * Entrance: on mount he walks left→right across the front of the bench
+ * (3.45s, five short steps), turns, backs onto the seat line, and lowers
+ * himself (1.90s), landing bit-exact on the seated pose the idle and the
+ * refill were choreographed against. `opts.onSeated` fires once at that
+ * landing. Under reduced motion there is no entrance: the scene builds
+ * seated and renders one static frame.
+ *
+ * The React component owns all behavior (copy, confirm, env gating);
+ * this file only owns the 3D scene. It exposes a mount function that
+ * returns a handle, or null when WebGL is unavailable so the caller can
+ * fall back to the rendered still. Import only from 'three' — no React
+ * here.
  */
 
 export interface GrandpaSceneHandle {
   /** Stop the loop and release every GPU resource. Safe to call once. */
   dispose(): void;
-  /** Play the one-shot refill (mug raises, kettle pours, mug lowers). */
+  /**
+   * Play the one-shot refill (mug raises, kettle pours, mug lowers).
+   * Called before he is seated, it is queued and plays just after the
+   * sit lands — never mid-walk.
+   */
   playRefill(): void;
 }
 
@@ -78,16 +93,47 @@ function phaseOut(elapsed: number, start: number, end: number): number {
 }
 
 // ---------------------------------------------------------------------------
+// Entrance constants (Game Designer spec, team review 2026-10-23).
+// ---------------------------------------------------------------------------
+
+/** Walk: five steps at ~1.45 steps/s, an unhurried stroll. */
+const WALK_SECONDS = 3.45;
+const WALK_STEPS = 5;
+/** Sit: arrive, turn + back up, lower, settle. */
+const SIT_SECONDS = 1.9;
+const ENTRANCE_SECONDS = WALK_SECONDS + SIT_SECONDS;
+/** How far the root travels: character centre −1.00 → seat centre 1.35. */
+const WALK_TRAVEL = 2.35;
+/** Standing hip lift over the seated zero pose. */
+const LIFT = 0.62;
+/** Thigh pitch (rad about the hip pivot) that takes a leg from seated-forward to standing-down. */
+const HIP_STAND = 1.28;
+/** He walks in front of the bench (seat front edge is z≈0.42), then backs to z=0 to sit. */
+const WALK_PLANE_Z = 0.55;
+/** Body yaw while walking (¾ profile); his head compensates part-way back to camera. */
+const WALK_YAW = 1.26;
+
+// ---------------------------------------------------------------------------
 // Scene construction.
 // ---------------------------------------------------------------------------
 
 interface BuiltScene {
   root: THREE.Group;
+  grandpaRoot: THREE.Group;
+  hipsGroup: THREE.Group;
   torso: THREE.Mesh;
   headGroup: THREE.Group;
   eyesGroup: THREE.Group;
+  restArm: THREE.Group;
   mugArm: THREE.Group;
   mugGroup: THREE.Group;
+  hipL: THREE.Group;
+  hipR: THREE.Group;
+  kneeL: THREE.Group;
+  kneeR: THREE.Group;
+  ankleL: THREE.Group;
+  ankleR: THREE.Group;
+  walkShadowMaterial: THREE.MeshBasicMaterial;
   kettle: THREE.Group;
   kettleMaterials: THREE.MeshStandardMaterial[];
   stream: THREE.Mesh;
@@ -151,31 +197,75 @@ function buildScene(): BuiltScene {
   }
   root.add(bench);
 
-  // -- Grandpa, seated at the right end of the bench. -----------------------
+  // -- Grandpa. --------------------------------------------------------------
+  // Rig rule: THE SEATED POSE IS THE ZERO POSE. Every pivot sits at
+  // rotation 0 and every mesh keeps the exact transform it had before the
+  // rig existed, so when the entrance ends and the pivots snap back to 0
+  // he is bit-exact the seated grandpa the idle and refill were built
+  // against. Standing/walking are rotations AWAY from zero:
+  //   hipPivot.rotation.x  +1.28 swings a thigh from forward to down
+  //   kneePivot.rotation.x −hip − bend keeps the shin vertical / kicks the foot back
+  //   anklePivot           −(hip + knee) keeps the shoe flat
+  // hipsGroup carries torso, head, arms and hip pivots as one pelvis
+  // unit; its y is the standing lift. grandpaRoot carries the whole man
+  // across the frame (x), onto the seat line (z), and around (yaw).
+  const grandpaRoot = new THREE.Group();
   const grandpa = new THREE.Group();
-  const gx = 1.35; // his center along the bench
+  grandpaRoot.add(grandpa);
+  const gx = 1.35; // his centre along the bench
 
-  // Legs: thighs forward, shins down, shoes on the ground.
+  // Travelling ground blob: under him while he walks, fades out as he
+  // lowers into the bench shadow.
+  const walkShadowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+  const walkShadow = mesh(new THREE.CircleGeometry(1, 32), walkShadowMaterial);
+  walkShadow.rotation.x = -Math.PI / 2;
+  walkShadow.scale.set(0.78, 0.3, 1);
+  walkShadow.position.set(gx, 0.012, 0);
+  grandpaRoot.add(walkShadow);
+
+  const hipsGroup = new THREE.Group();
+  grandpa.add(hipsGroup);
+
+  // Legs: hip pivot → thigh, knee pivot → shin, ankle pivot → shoe.
+  // Child offsets are (today's mesh centre − pivot position), so at zero
+  // rotation every mesh lands exactly where the pre-rig build put it.
   const trouserMat = flat(COLORS.trousers);
   const shoeMat = flat(COLORS.shoe);
-  for (const side of [-1, 1]) {
+  const buildLeg = (side: -1 | 1) => {
+    const hipPivot = new THREE.Group();
+    hipPivot.position.set(gx + side * 0.24, 1.58, 0.02);
     const thigh = mesh(new THREE.CapsuleGeometry(0.17, 0.5, 3, 8), trouserMat);
     thigh.rotation.x = Math.PI / 2;
-    thigh.position.set(gx + side * 0.24, 1.56, 0.38);
-    grandpa.add(thigh);
+    thigh.position.set(0, -0.02, 0.36);
+    hipPivot.add(thigh);
+    const kneePivot = new THREE.Group();
+    kneePivot.position.set(0, -0.08, 0.72);
+    hipPivot.add(kneePivot);
     const shin = mesh(new THREE.CapsuleGeometry(0.14, 0.5, 3, 8), trouserMat);
-    shin.position.set(gx + side * 0.24, 0.95, 0.68);
-    grandpa.add(shin);
+    shin.position.set(0, -0.55, -0.06);
+    kneePivot.add(shin);
+    const anklePivot = new THREE.Group();
+    anklePivot.position.set(0, -0.98, -0.04);
+    kneePivot.add(anklePivot);
     const shoe = mesh(new THREE.BoxGeometry(0.24, 0.14, 0.44), shoeMat);
-    shoe.position.set(gx + side * 0.24, 0.09, 0.8);
-    grandpa.add(shoe);
-  }
+    shoe.position.set(0, -0.43, 0.1);
+    anklePivot.add(shoe);
+    hipsGroup.add(hipPivot);
+    return { hipPivot, kneePivot, anklePivot };
+  };
+  const legL = buildLeg(-1);
+  const legR = buildLeg(1);
 
   // Torso in the teal sweater; breathing scales this mesh.
   const torso = mesh(new THREE.CapsuleGeometry(0.52, 0.85, 4, 10), flat(COLORS.sweater));
   torso.position.set(gx, 2.5, -0.05);
   torso.rotation.x = -0.06;
-  grandpa.add(torso);
+  hipsGroup.add(torso);
 
   // Resting arm (viewer's left): shoulder down to a hand on the thigh.
   const sweaterMat = flat(COLORS.sweater);
@@ -193,7 +283,7 @@ function buildScene(): BuiltScene {
   const restHand = mesh(new THREE.SphereGeometry(0.12, 8, 8), skinMat);
   restHand.position.set(-0.17, -0.66, 0.52);
   restArm.add(restHand);
-  grandpa.add(restArm);
+  hipsGroup.add(restArm);
 
   // Mug arm (viewer's right): a group pivoted at the shoulder so the
   // refill can raise the forearm + mug toward the body.
@@ -211,7 +301,9 @@ function buildScene(): BuiltScene {
   mugHand.position.set(0.2, -0.62, 0.52);
   mugArm.add(mugHand);
 
-  // The amber mug, held at lap height at rest.
+  // The amber mug, held at lap height at rest — and in his hand through
+  // the whole walk (the mug arm keeps its seated bend; only its shoulder
+  // swings, a few degrees, so nothing spills).
   const mugGroup = new THREE.Group();
   mugGroup.position.set(0.2, -0.55, 0.62);
   const mugBody = mesh(
@@ -223,7 +315,7 @@ function buildScene(): BuiltScene {
   mugHandle.position.x = 0.17;
   mugGroup.add(mugHandle);
   mugArm.add(mugGroup);
-  grandpa.add(mugArm);
+  hipsGroup.add(mugArm);
 
   // Head: pivots at the neck so the sway looks natural.
   const headGroup = new THREE.Group();
@@ -262,8 +354,8 @@ function buildScene(): BuiltScene {
     eyesGroup.add(eye);
   }
   headGroup.add(eyesGroup);
-  grandpa.add(headGroup);
-  root.add(grandpa);
+  hipsGroup.add(headGroup);
+  root.add(grandpaRoot);
 
   // -- Kettle + pour stream: hidden at rest, only seen during a refill. -----
   const kettleMaterials = [
@@ -292,7 +384,28 @@ function buildScene(): BuiltScene {
   stream.visible = false;
   root.add(stream);
 
-  return { root, torso, headGroup, eyesGroup, mugArm, mugGroup, kettle, kettleMaterials, stream, streamMaterial };
+  return {
+    root,
+    grandpaRoot,
+    hipsGroup,
+    torso,
+    headGroup,
+    eyesGroup,
+    restArm,
+    mugArm,
+    mugGroup,
+    hipL: legL.hipPivot,
+    hipR: legR.hipPivot,
+    kneeL: legL.kneePivot,
+    kneeR: legR.kneePivot,
+    ankleL: legL.anklePivot,
+    ankleR: legR.anklePivot,
+    walkShadowMaterial,
+    kettle,
+    kettleMaterials,
+    stream,
+    streamMaterial,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -303,9 +416,9 @@ const REFILL_SECONDS = 3.5;
 
 export function mountGrandpaScene(
   canvas: HTMLCanvasElement,
-  opts: { reducedMotion: boolean; onContextLost?: () => void },
+  opts: { reducedMotion: boolean; onContextLost?: () => void; onSeated?: () => void },
 ): GrandpaSceneHandle | null {
-  // Graceful fallback: no WebGL context, no scene — caller uses the SVG.
+  // Graceful fallback: no WebGL context, no scene — caller uses the still.
   let renderer: THREE.WebGLRenderer;
   try {
     renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
@@ -314,7 +427,7 @@ export function mountGrandpaScene(
   }
 
   // A lost context never recovers here: surface it so the caller can
-  // fall back to the SVG figure instead of leaving a blank canvas up.
+  // fall back to the rendered still instead of leaving a blank canvas up.
   const onContextLost = (event: Event): void => {
     event.preventDefault();
     opts.onContextLost?.();
@@ -377,9 +490,111 @@ export function mountGrandpaScene(
   let nextBlinkAt = 2.5 + Math.random() * 2;
   const mugWorld = new THREE.Vector3();
 
+  // Entrance state. The clock starts at mount; the entrance clock is
+  // scene-tick time (the loop below drops paused gaps on resume), so a
+  // walk hidden by a closed tab or an off-screen widget freezes mid-
+  // stride and resumes — onSeated can only fire for a walk that was
+  // actually seen to complete.
+  let entranceStart = clock.getElapsedTime();
+  let seated = opts.reducedMotion; // reduced motion: born seated, no entrance
+  let seatedAt = -1;
+  let seatedNotified = false;
+  let queuedRefill = false;
+
   const setKettleOpacity = (opacity: number): void => {
     for (const m of built.kettleMaterials) m.opacity = opacity;
     built.kettle.visible = opacity > 0.01;
+  };
+
+  /** Pose one leg: hip pitch, knee bend (≥0 kicks the foot back), ankle keeps the shoe flat. */
+  const poseLeg = (
+    hip: THREE.Group,
+    knee: THREE.Group,
+    ankle: THREE.Group,
+    hipRot: number,
+    bend: number,
+    push: number,
+  ): void => {
+    hip.rotation.x = hipRot;
+    knee.rotation.x = -hipRot - bend;
+    ankle.rotation.x = bend + push;
+  };
+
+  /** Walking pose at entrance-elapsed t (0..WALK_SECONDS). */
+  const poseWalk = (t: number): void => {
+    // Distance is eased once; the gait is driven off that same progress,
+    // so each of the 5 steps covers exactly its share of the ground —
+    // feet track ground speed, no moonwalk slide.
+    const s = phase(t, 0, WALK_SECONDS);
+    const g = s * WALK_STEPS * Math.PI; // one π = one step
+    // First and last steps are gathered: amplitude ramps in and out.
+    const env = phase(t, 0, 0.35) * (1 - phase(t, WALK_SECONDS - 0.35, WALK_SECONDS));
+    built.grandpaRoot.position.x = -WALK_TRAVEL + WALK_TRAVEL * s;
+    built.grandpaRoot.position.z = WALK_PLANE_Z;
+    built.grandpaRoot.position.y = -0.03 * (0.5 - 0.5 * Math.cos(2 * g)) * env;
+    built.grandpaRoot.rotation.y = WALK_YAW;
+    built.hipsGroup.position.y = LIFT;
+    built.hipsGroup.rotation.z = 0.03 * Math.sin(g) * env;
+    const swing = 0.28 * env;
+    poseLeg(built.hipL, built.kneeL, built.ankleL,
+      HIP_STAND + swing * Math.sin(g),
+      0.5 * env * Math.max(0, Math.sin(g + 0.6)),
+      0.22 * env * Math.max(0, Math.sin(g + 2.6)));
+    poseLeg(built.hipR, built.kneeR, built.ankleR,
+      HIP_STAND + swing * Math.sin(g + Math.PI),
+      0.5 * env * Math.max(0, Math.sin(g + Math.PI + 0.6)),
+      0.22 * env * Math.max(0, Math.sin(g + Math.PI + 2.6)));
+    // Arms: the rest arm swings against its leg; the mug arm barely
+    // swings and keeps its seated bend, mug level in hand.
+    built.restArm.rotation.x = -0.26 * env * Math.sin(g);
+    built.mugArm.rotation.x = -0.09 * env * Math.sin(g + Math.PI);
+    // Forward lean for the walk; face turns part-way back to camera.
+    built.torso.rotation.x = -0.06 + 0.14 * env;
+    built.headGroup.rotation.y = -0.88 * env;
+    built.walkShadowMaterial.opacity = 0.1 * Math.max(env, 0.35);
+  };
+
+  /** Sit pose at sit-elapsed u (0..SIT_SECONDS). Ends at the zero pose. */
+  const poseSit = (u: number): void => {
+    // Turn & back up onto the seat line.
+    const turn = phase(u, 0.4, 0.9);
+    built.grandpaRoot.rotation.y = WALK_YAW * (1 - turn);
+    built.grandpaRoot.position.z = WALK_PLANE_Z * (1 - turn);
+    built.headGroup.rotation.y = -0.88 * (1 - turn);
+    // Lower: hips sink, legs fold back to the seated zero.
+    const lower = phase(u, 0.9, 1.6);
+    built.hipsGroup.position.y = LIFT * (1 - lower);
+    built.hipsGroup.rotation.z = 0;
+    built.grandpaRoot.position.y = 0;
+    poseLeg(built.hipL, built.kneeL, built.ankleL, HIP_STAND * (1 - lower), 0, 0);
+    poseLeg(built.hipR, built.kneeR, built.ankleR, HIP_STAND * (1 - lower), 0, 0);
+    built.torso.rotation.x = -0.06 + 0.14 * (1 - lower);
+    built.restArm.rotation.x = 0;
+    built.mugArm.rotation.x = 0;
+    // His travelling shadow hands over to the bench shadow as he lands.
+    built.walkShadowMaterial.opacity = 0.1 * (1 - lower);
+    // Settle: one dip-and-recover after seat contact, mirroring the
+    // refill's landing bob.
+    if (u > 1.6) {
+      const v = (u - 1.6) / 0.3;
+      if (v >= 0 && v <= 1) built.hipsGroup.position.y = -0.03 * Math.sin(Math.PI * v) * (1 - v);
+    }
+  };
+
+  /** Snap every entrance-written transform to its seated rest value. */
+  const snapSeated = (): void => {
+    built.grandpaRoot.position.set(0, 0, 0);
+    built.grandpaRoot.rotation.set(0, 0, 0);
+    built.hipsGroup.position.y = 0;
+    built.hipsGroup.rotation.z = 0;
+    for (const pivot of [built.hipL, built.hipR, built.kneeL, built.kneeR, built.ankleL, built.ankleR]) {
+      pivot.rotation.set(0, 0, 0);
+    }
+    built.restArm.rotation.set(0, 0, 0);
+    built.mugArm.rotation.set(0, 0, 0);
+    built.torso.rotation.x = -0.06;
+    built.headGroup.rotation.set(0, 0, 0);
+    built.walkShadowMaterial.opacity = 0;
   };
 
   /** Pose the mug arm / kettle / stream for a refill progress 0..1. */
@@ -433,17 +648,39 @@ export function mountGrandpaScene(
     rafId = requestAnimationFrame(tick);
     const t = clock.getElapsedTime();
 
-    if (!opts.reducedMotion) {
+    if (!seated) {
+      const elapsed = t - entranceStart;
+      if (elapsed < WALK_SECONDS) poseWalk(elapsed);
+      else if (elapsed < ENTRANCE_SECONDS) poseSit(elapsed - WALK_SECONDS);
+      else {
+        snapSeated();
+        seated = true;
+        seatedAt = t;
+      }
+    }
+
+    if (seated && !seatedNotified) {
+      seatedNotified = true;
+      opts.onSeated?.();
+    }
+    // A refill requested during the entrance starts just after the sit.
+    if (seated && queuedRefill && refillStart < 0 && t - seatedAt >= 0.35) {
+      queuedRefill = false;
+      refillStart = t;
+    }
+
+    if (seated && !opts.reducedMotion) {
       // Idle life: breathing, a slight head sway, and the occasional blink.
       const breath = 1 + 0.01 * Math.sin(t * 1.4);
       built.torso.scale.set(breath, 1, breath);
       built.headGroup.rotation.z = 0.03 * Math.sin(t * 0.5);
       built.headGroup.rotation.y = 0.05 * Math.sin(t * 0.33);
-      if (t >= nextBlinkAt) {
-        const blinkPhase = t - nextBlinkAt;
-        built.eyesGroup.scale.y = blinkPhase < 0.12 ? 0.1 : 1;
-        if (blinkPhase >= 0.12) nextBlinkAt = t + 3 + Math.random() * 2;
-      }
+    }
+    // The blink runs in every state — a walking man blinks too.
+    if (t >= nextBlinkAt) {
+      const blinkPhase = t - nextBlinkAt;
+      built.eyesGroup.scale.y = blinkPhase < 0.12 ? 0.1 : 1;
+      if (blinkPhase >= 0.12) nextBlinkAt = t + 3 + Math.random() * 2;
     }
 
     if (refillStart >= 0) {
@@ -459,8 +696,15 @@ export function mountGrandpaScene(
     if (opts.reducedMotion) {
       // Reduced motion: render one static frame and never start the RAF
       // loop — a perpetual loop repainting an identical frame is waste.
+      // The single frame is the seated pose, and seated is reported once
+      // it exists.
       if (!disposed && intersecting && document.visibilityState === 'visible') {
         renderer.render(scene, camera);
+        if (!seatedNotified) {
+          seatedNotified = true;
+          seatedAt = clock.getElapsedTime();
+          opts.onSeated?.();
+        }
       }
       return;
     }
@@ -493,6 +737,10 @@ export function mountGrandpaScene(
     playRefill(): void {
       if (opts.reducedMotion || disposed) return;
       if (refillStart >= 0) return; // re-entry guard: one refill at a time
+      if (!seated) {
+        queuedRefill = true; // plays just after the sit lands
+        return;
+      }
       refillStart = clock.getElapsedTime();
     },
     dispose(): void {
