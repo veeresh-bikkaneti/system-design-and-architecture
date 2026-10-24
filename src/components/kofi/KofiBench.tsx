@@ -90,6 +90,36 @@ function BenchCore({
   const [mode, setMode] = useState<'ask' | 'confirm'>('ask');
   const [seated, setSeated] = useState(false);
   const [pacing, setPacing] = useState(false);
+  // The recorded greeting: created on the first tap, never before — no
+  // autoplay, no pre-tap fetch. The element lives in a ref so StrictMode
+  // double-mounts cannot duplicate it.
+  const greetingRef = useRef<HTMLAudioElement | null>(null);
+  const playGreeting = () => {
+    const el =
+      greetingRef.current ??
+      new Audio(`${import.meta.env.BASE_URL}kofi-grandpa-greeting.mp3`);
+    greetingRef.current = el;
+    try {
+      // A fresh element has nothing buffered; seeking throws
+      // synchronously in some browsers. Playback from the start is the
+      // default anyway, so a failed seek just means "play from 0".
+      el.currentTime = 0;
+    } catch {
+      // ignore — play() below still starts from the beginning
+    }
+    const played = el.play();
+    if (played) played.catch(() => {});
+  };
+  const stopGreeting = () => {
+    const el = greetingRef.current;
+    if (!el) return;
+    el.pause();
+    try {
+      el.currentTime = 0;
+    } catch {
+      // ignore — pausing is what matters
+    }
+  };
   const askRef = useRef<HTMLButtonElement>(null);
   const continueRef = useRef<HTMLButtonElement>(null);
   const invokerRef = useRef<HTMLButtonElement | null>(null);
@@ -195,21 +225,38 @@ function BenchCore({
   useEffect(() => {
     if (mode !== 'confirm') return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMode('ask');
+      if (e.key === 'Escape') {
+        setMode('ask');
+        stopGreeting();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [mode]);
+
+  // Route-switch unmount must silence a playing greeting. The ref is
+  // read inside the cleanup: the element is created lazily on tap, so a
+  // mount-time capture would hold null and pause nothing.
+  useEffect(
+    () => () => {
+      greetingRef.current?.pause();
+    },
+    [],
+  );
 
   if (!kofiUrl || !online) return null;
   if (deferralActive && !ctaGone) return null;
 
   const openConfirm = (e: ReactMouseEvent<HTMLElement>) => {
     invokerRef.current = e.currentTarget as HTMLButtonElement;
+    // Only the ask -> confirm transition speaks: a figure re-tap while
+    // the confirm is already open must not restart the greeting.
+    if (mode !== 'confirm') playGreeting();
     setMode('confirm');
   };
   const continueToKofi = () => {
     // Fired directly from the click so the popup keeps its user activation.
+    stopGreeting();
     window.open(kofiUrl, '_blank', 'noopener,noreferrer');
     setMode('ask');
   };
@@ -277,7 +324,10 @@ function BenchCore({
             </button>
             <button
               type="button"
-              onClick={() => setMode('ask')}
+              onClick={() => {
+                setMode('ask');
+                stopGreeting();
+              }}
               className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-600 transition-colors hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-stone-600 dark:text-stone-300 dark:hover:bg-stone-800"
             >
               Cancel

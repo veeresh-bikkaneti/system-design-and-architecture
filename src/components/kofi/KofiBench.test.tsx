@@ -450,3 +450,112 @@ describe('KofiBench dock pacing (owner: "waiting and walking around")', () => {
     }
   });
 });
+
+describe('KofiBench greeting voice (owner: old male narrator)', () => {
+  // jsdom ships no working audio: stand in for the Audio constructor so
+  // the tests can see the URL played and count play/pause calls.
+  function stubAudio() {
+    const created: { src: string; currentTime: number; play: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn> }[] = [];
+    class FakeAudio {
+      src: string;
+      currentTime = 0;
+      play = vi.fn(() => Promise.resolve());
+      pause = vi.fn();
+      constructor(src: string) {
+        this.src = src;
+        created.push(this);
+      }
+    }
+    vi.stubGlobal('Audio', FakeAudio);
+    return created;
+  }
+
+  it('tapping grandpa plays the greeting from the bench audio file', async () => {
+    const created = stubAudio();
+    try {
+      const user = userEvent.setup();
+      render(<KofiBench />);
+      await awaitAsk();
+      await user.click(screen.getByRole('button', { name: /grandpa/i }));
+      expect(created).toHaveLength(1);
+      expect(created[0].src).toMatch(/kofi-grandpa-greeting\.mp3$/);
+      expect(created[0].play).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('tapping the ask cloud also plays the greeting', async () => {
+    const created = stubAudio();
+    try {
+      const user = userEvent.setup();
+      render(<KofiBench />);
+      await awaitAsk();
+      await user.click(screen.getByRole('button', { name: /This course runs on coffee/ }));
+      expect(created).toHaveLength(1);
+      expect(created[0].play).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('a figure re-tap while the confirm is open does not replay the greeting', async () => {
+    const created = stubAudio();
+    try {
+      const user = userEvent.setup();
+      render(<KofiBench />);
+      await awaitAsk();
+      const figure = screen.getByRole('button', { name: /grandpa/i });
+      await user.click(figure);
+      expect(created[0].play).toHaveBeenCalledTimes(1);
+      await user.click(figure);
+      expect(created[0].play).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('Cancel stops the greeting', async () => {
+    const created = stubAudio();
+    try {
+      const user = userEvent.setup();
+      render(<KofiBench />);
+      await awaitAsk();
+      await user.click(screen.getByRole('button', { name: /grandpa/i }));
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(created[0].pause).toHaveBeenCalledTimes(1);
+      expect(screen.getByText(ASK)).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('Escape stops the greeting', async () => {
+    const created = stubAudio();
+    try {
+      const user = userEvent.setup();
+      render(<KofiBench />);
+      await awaitAsk();
+      await user.click(screen.getByRole('button', { name: /grandpa/i }));
+      await user.keyboard('{Escape}');
+      expect(created[0].pause).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('unmount stops the greeting', async () => {
+    const created = stubAudio();
+    try {
+      const user = userEvent.setup();
+      const { unmount } = render(<KofiBench />);
+      await awaitAsk();
+      await user.click(screen.getByRole('button', { name: /grandpa/i }));
+      unmount();
+      expect(created[0].pause).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
