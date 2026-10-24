@@ -36,19 +36,26 @@ export interface GrandpaSceneHandle {
 }
 
 // ---------------------------------------------------------------------------
-// Palette — matched to the SVG figure this scene replaces.
+// Palette. The set (bench, tree, kettle) keeps the scene's original
+// colours; the man himself is sampled from the owner's design
+// reference (docs/kofi-grandpa-reference.jpg): a flat vintage
+// cartoon — matte colour everywhere, no gloss.
 // ---------------------------------------------------------------------------
 const COLORS = {
   woodLight: 0x92400e,
   woodDark: 0x78350f,
   benchLeg: 0x44403c,
-  sweater: 0x0f7668,
-  skin: 0xfed7aa,
-  hair: 0xd6d3d1,
-  trousers: 0x57534e,
-  shoe: 0x292524,
+  cap: 0x1d100c, // near-black warm brown flat cap
+  skin: 0xef9550, // peach-orange
+  hair: 0xfdf8ec, // warm white — side hair and the big round mustache
+  blazer: 0xc08a5e, // tan/camel jacket
+  shirt: 0xfdfcf8, // white shirt front
+  tie: 0x241a14, // dark tie
+  trousers: 0x1c1713, // black
+  shoe: 0x17120f, // black, oversized
   eye: 0x1c1917,
-  mug: 0xf59e0b,
+  mug: 0x98908c, // grey mug
+  steam: 0xe7e2da, // pale steam curls
   kettle: 0xa8a29e,
   kettleDark: 0x78716c,
   stream: 0x38bdf8,
@@ -59,9 +66,19 @@ const COLORS = {
 // Small helpers.
 // ---------------------------------------------------------------------------
 
-/** A flat-shaded standard material — the one material style for the scene. */
+/** A flat-shaded standard material — the material style for the set and props. */
 function flat(color: number, extra: Partial<THREE.MeshStandardMaterialParameters> = {}): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0, flatShading: true, ...extra });
+}
+
+/**
+ * A flat matte material for the character himself — Lambert: a pure
+ * colour response with no specular gloss, like the reference's flat
+ * inks. (Toon shading without a gradient map bands unpredictably
+ * under this rig's hemisphere + directional mix.)
+ */
+function toon(color: number): THREE.MeshLambertMaterial {
+  return new THREE.MeshLambertMaterial({ color });
 }
 
 function mesh(geometry: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
@@ -234,8 +251,8 @@ function buildScene(): BuiltScene {
   // Legs: hip pivot → thigh, knee pivot → shin, ankle pivot → shoe.
   // Child offsets are (today's mesh centre − pivot position), so at zero
   // rotation every mesh lands exactly where the pre-rig build put it.
-  const trouserMat = flat(COLORS.trousers);
-  const shoeMat = flat(COLORS.shoe);
+  const trouserMat = toon(COLORS.trousers);
+  const shoeMat = toon(COLORS.shoe);
   const buildLeg = (side: -1 | 1) => {
     const hipPivot = new THREE.Group();
     hipPivot.position.set(gx + side * 0.24, 1.58, 0.02);
@@ -252,8 +269,10 @@ function buildScene(): BuiltScene {
     const anklePivot = new THREE.Group();
     anklePivot.position.set(0, -0.98, -0.04);
     kneePivot.add(anklePivot);
-    const shoe = mesh(new THREE.BoxGeometry(0.24, 0.14, 0.44), shoeMat);
-    shoe.position.set(0, -0.43, 0.1);
+    // Oversized black shoes, per the reference — same ankle anchor,
+    // just more shoe around it.
+    const shoe = mesh(new THREE.BoxGeometry(0.27, 0.17, 0.57), shoeMat);
+    shoe.position.set(0, -0.43, 0.12);
     anklePivot.add(shoe);
     hipsGroup.add(hipPivot);
     return { hipPivot, kneePivot, anklePivot };
@@ -261,22 +280,33 @@ function buildScene(): BuiltScene {
   const legL = buildLeg(-1);
   const legR = buildLeg(1);
 
-  // Torso in the teal sweater; breathing scales this mesh.
-  const torso = mesh(new THREE.CapsuleGeometry(0.52, 0.85, 4, 10), flat(COLORS.sweater));
+  // Torso in the tan blazer; breathing scales this mesh.
+  const torso = mesh(new THREE.CapsuleGeometry(0.52, 0.85, 4, 10), toon(COLORS.blazer));
   torso.position.set(gx, 2.5, -0.05);
   torso.rotation.x = -0.06;
   hipsGroup.add(torso);
 
+  // White shirt front + dark tie on the chest: flat panels half-sunk
+  // into the capsule, so only their front faces show.
+  const shirt = mesh(new THREE.BoxGeometry(0.27, 0.36, 0.07), toon(COLORS.shirt));
+  shirt.position.set(gx, 2.91, 0.43);
+  shirt.rotation.x = -0.06;
+  hipsGroup.add(shirt);
+  const tie = mesh(new THREE.BoxGeometry(0.1, 0.28, 0.03), toon(COLORS.tie));
+  tie.position.set(gx, 2.9, 0.48);
+  tie.rotation.x = -0.06;
+  hipsGroup.add(tie);
+
   // Resting arm (viewer's left): shoulder down to a hand on the thigh.
-  const sweaterMat = flat(COLORS.sweater);
-  const skinMat = flat(COLORS.skin);
+  const blazerMat = toon(COLORS.blazer);
+  const skinMat = toon(COLORS.skin);
   const restArm = new THREE.Group();
   restArm.position.set(gx - 0.56, 3.08, 0);
-  const restUpper = mesh(new THREE.CapsuleGeometry(0.13, 0.4, 3, 8), sweaterMat);
+  const restUpper = mesh(new THREE.CapsuleGeometry(0.13, 0.4, 3, 8), blazerMat);
   restUpper.position.set(-0.08, -0.28, 0.02);
   restUpper.rotation.z = -0.25;
   restArm.add(restUpper);
-  const restFore = mesh(new THREE.CapsuleGeometry(0.11, 0.34, 3, 8), sweaterMat);
+  const restFore = mesh(new THREE.CapsuleGeometry(0.11, 0.34, 3, 8), blazerMat);
   restFore.position.set(-0.16, -0.6, 0.28);
   restFore.rotation.x = -1.1;
   restArm.add(restFore);
@@ -289,11 +319,11 @@ function buildScene(): BuiltScene {
   // refill can raise the forearm + mug toward the body.
   const mugArm = new THREE.Group();
   mugArm.position.set(gx + 0.56, 3.08, 0);
-  const mugUpper = mesh(new THREE.CapsuleGeometry(0.13, 0.4, 3, 8), sweaterMat);
+  const mugUpper = mesh(new THREE.CapsuleGeometry(0.13, 0.4, 3, 8), blazerMat);
   mugUpper.position.set(0.08, -0.28, 0.02);
   mugUpper.rotation.z = 0.25;
   mugArm.add(mugUpper);
-  const mugFore = mesh(new THREE.CapsuleGeometry(0.11, 0.34, 3, 8), sweaterMat);
+  const mugFore = mesh(new THREE.CapsuleGeometry(0.11, 0.34, 3, 8), blazerMat);
   mugFore.position.set(0.18, -0.58, 0.28);
   mugFore.rotation.x = -1.15;
   mugArm.add(mugFore);
@@ -301,19 +331,32 @@ function buildScene(): BuiltScene {
   mugHand.position.set(0.2, -0.62, 0.52);
   mugArm.add(mugHand);
 
-  // The amber mug, held at lap height at rest — and in his hand through
+  // The grey mug, held at lap height at rest — and in his hand through
   // the whole walk (the mug arm keeps its seated bend; only its shoulder
   // swings, a few degrees, so nothing spills).
   const mugGroup = new THREE.Group();
   mugGroup.position.set(0.2, -0.55, 0.62);
-  const mugBody = mesh(
-    new THREE.CylinderGeometry(0.15, 0.13, 0.27, 12),
-    flat(COLORS.mug, { roughness: 0.55 }),
-  );
+  const mugBody = mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.27, 12), toon(COLORS.mug));
   mugGroup.add(mugBody);
-  const mugHandle = mesh(new THREE.TorusGeometry(0.09, 0.028, 6, 12), flat(COLORS.mug, { roughness: 0.55 }));
+  const mugHandle = mesh(new THREE.TorusGeometry(0.09, 0.028, 6, 12), toon(COLORS.mug));
   mugHandle.position.x = 0.17;
   mugGroup.add(mugHandle);
+  // Two thin steam curls over the mug — the reference's signature
+  // wisps. Children of the mug group, so they ride the walk and the
+  // refill raise with it; they stand ~0.44 clear of where the kettle
+  // hovers during the pour, so the two never meet.
+  const steamMat = new THREE.MeshLambertMaterial({ color: COLORS.steam, transparent: true, opacity: 0.55 });
+  const steamCurl = (x: number, height: number, sway: number): THREE.Mesh => {
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(x, 0.14, 0),
+      new THREE.Vector3(x + sway, 0.14 + height * 0.38, 0),
+      new THREE.Vector3(x - sway, 0.14 + height * 0.72, 0),
+      new THREE.Vector3(x + sway * 0.6, 0.14 + height, 0),
+    ]);
+    return mesh(new THREE.TubeGeometry(curve, 12, 0.016, 5), steamMat);
+  };
+  mugGroup.add(steamCurl(-0.05, 0.34, 0.035));
+  mugGroup.add(steamCurl(0.06, 0.42, -0.03));
   mugArm.add(mugGroup);
   hipsGroup.add(mugArm);
 
@@ -323,31 +366,62 @@ function buildScene(): BuiltScene {
   const head = mesh(new THREE.SphereGeometry(0.46, 14, 12), skinMat);
   head.position.y = 0.44;
   headGroup.add(head);
-  // Grey curls: a small arc of spheres over the top and back of the head.
-  const hairMat = flat(COLORS.hair);
-  const curlSpecs: Array<[number, number, number, number]> = [
-    [-0.3, 0.78, -0.05, 0.17],
-    [-0.12, 0.86, -0.1, 0.18],
-    [0.08, 0.87, -0.1, 0.18],
-    [0.28, 0.79, -0.05, 0.17],
-    [-0.4, 0.62, -0.14, 0.15],
-    [0.4, 0.63, -0.14, 0.15],
-    [0, 0.9, 0.08, 0.16],
+  // White hair: flattened tufts swept at the sides and back of the
+  // head — the top of the head belongs to the cap. Children of the
+  // head group like everything else here, so the sway/blink
+  // choreography and the seated zero pose are untouched.
+  const hairMat = toon(COLORS.hair);
+  const tuftSpecs: Array<[number, number, number, number, [number, number, number]]> = [
+    // [x, y, z, radius, scale] — flattened against the skull
+    [-0.42, 0.52, -0.08, 0.2, [0.55, 0.85, 0.95]],
+    [0.42, 0.52, -0.08, 0.2, [0.55, 0.85, 0.95]],
+    [0, 0.56, -0.38, 0.26, [1.2, 0.75, 0.55]],
   ];
-  for (const [x, y, z, r] of curlSpecs) {
-    const curl = mesh(new THREE.SphereGeometry(r, 8, 8), hairMat);
-    curl.position.set(x, y, z);
-    headGroup.add(curl);
+  for (const [x, y, z, r, s] of tuftSpecs) {
+    const tuft = mesh(new THREE.SphereGeometry(r, 10, 8), hairMat);
+    tuft.scale.set(s[0], s[1], s[2]);
+    tuft.position.set(x, y, z);
+    headGroup.add(tuft);
   }
-  // Beard: a flattened sphere tucked under the chin, front of the face.
-  const beard = mesh(new THREE.SphereGeometry(0.34, 10, 8), hairMat);
-  beard.scale.set(1.05, 0.85, 0.6);
-  beard.position.set(0, 0.16, 0.24);
-  headGroup.add(beard);
+  // The flat cap: a squashed sphere hugging the skull (its lower half
+  // is inside the head, so rim and skull meet with no gap), a short
+  // brim over the face, and the little button on top.
+  const capMat = toon(COLORS.cap);
+  const capDome = mesh(new THREE.SphereGeometry(0.5, 14, 10), capMat);
+  capDome.scale.set(1, 0.52, 1);
+  capDome.position.y = 0.66;
+  capDome.rotation.x = 0.06;
+  headGroup.add(capDome);
+  const capBrim = mesh(new THREE.BoxGeometry(0.5, 0.04, 0.26), capMat);
+  capBrim.position.set(0, 0.7, 0.44);
+  capBrim.rotation.x = 0.1;
+  headGroup.add(capBrim);
+  const capButton = mesh(new THREE.SphereGeometry(0.05, 8, 6), capMat);
+  capButton.position.set(0, 0.94, -0.02);
+  headGroup.add(capButton);
+  // Nose: a small round knob nestled into the top of the mustache.
+  const nose = mesh(new THREE.SphereGeometry(0.09, 8, 8), skinMat);
+  nose.position.set(0, 0.4, 0.44);
+  headGroup.add(nose);
+  // The mustache — the reference's dominant feature, and the end of
+  // the old beard (the reference has none): three flattened white
+  // spheres fused into one big round mass under the nose.
+  const mustacheSpecs: Array<[number, number, number, number]> = [
+    // [x, y, z, radius]
+    [-0.13, 0.26, 0.42, 0.17],
+    [0.13, 0.26, 0.42, 0.17],
+    [0, 0.29, 0.44, 0.15],
+  ];
+  for (const [x, y, z, r] of mustacheSpecs) {
+    const lobe = mesh(new THREE.SphereGeometry(r, 10, 8), hairMat);
+    lobe.scale.set(1.15, 0.8, 0.62);
+    lobe.position.set(x, y, z);
+    headGroup.add(lobe);
+  }
   // Eyes in their own group so a blink is one scale change.
   const eyesGroup = new THREE.Group();
   eyesGroup.position.y = 0.5;
-  const eyeMat = flat(COLORS.eye, { roughness: 0.4 });
+  const eyeMat = toon(COLORS.eye);
   for (const side of [-1, 1]) {
     const eye = mesh(new THREE.SphereGeometry(0.045, 6, 6), eyeMat);
     eye.position.set(side * 0.16, 0, 0.42);
