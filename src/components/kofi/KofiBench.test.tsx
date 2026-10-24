@@ -4,24 +4,19 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { KofiBench } from './KofiBench';
-import { mountGrandpaScene } from './GrandpaScene';
 import { useQaPanelStore } from '../../store/qaPanel';
 
-// The 3D scene needs WebGL, which jsdom does not have: by default the mount
-// "fails" (returns null) and KofiBench must fall back to the rendered still
-// of the same grandpa — that fallback path is what most of this file
-// exercises. The 3D-path tests override the mock with a fake handle and
-// drive the entrance through the captured mount options (onSeated).
-vi.mock('./GrandpaScene', () => ({
-  mountGrandpaScene: vi.fn(() => null),
-}));
-
-const mountMock = vi.mocked(mountGrandpaScene);
+// The figure is a flat 2D animated SVG (the owner's design reference) —
+// no WebGL, no mocks. He walks in and sits on a timer (2.7s), so tests
+// that need the cloud await it with a generous timeout.
 
 const KOFI_URL = 'https://ko-fi.com/examplepage';
 const ASK = 'This course runs on coffee. Care to buy me one?';
 
-type MountOpts = Parameters<typeof mountGrandpaScene>[1];
+/** The cloud appears only once grandpa is seated (~2.7s of walk + sit). */
+async function awaitAsk() {
+  await waitFor(() => expect(screen.getByText(ASK)).toBeTruthy(), { timeout: 6000 });
+}
 
 function setOnline(online: boolean) {
   Object.defineProperty(navigator, 'onLine', { value: online, configurable: true });
@@ -47,8 +42,6 @@ function stubNarrowViewport() {
 beforeEach(() => {
   setOnline(true);
   vi.stubEnv('VITE_KOFI_URL', KOFI_URL);
-  mountMock.mockReset();
-  mountMock.mockReturnValue(null);
   act(() => useQaPanelStore.setState({ open: false }));
 });
 
@@ -80,9 +73,9 @@ describe('KofiBench gates', () => {
 });
 
 describe('KofiBench ask and confirm', () => {
-  it('shows the seated ask cloud with the locked copy from the start (fallback path)', async () => {
+  it('shows the seated ask cloud with the locked copy once he sits', async () => {
     render(<KofiBench />);
-    await waitFor(() => expect(screen.getByText(ASK)).toBeTruthy());
+    await awaitAsk();
     expect(screen.getByText('Your refill keeps this course free.')).toBeTruthy();
     expect(screen.getByTestId('kofi-bench-scene')).toBeTruthy();
   });
@@ -90,7 +83,7 @@ describe('KofiBench ask and confirm', () => {
   it('swaps the same cloud to the confirm on tap — no second dialog', async () => {
     const user = userEvent.setup();
     render(<KofiBench />);
-    await waitFor(() => expect(screen.getByText(ASK)).toBeTruthy());
+    await awaitAsk();
     await user.click(screen.getByRole('button', { name: /This course runs on coffee/ }));
     expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
     expect(screen.getByText('The course is free, and stays free. A coffee is just a thank-you.')).toBeTruthy();
@@ -101,6 +94,7 @@ describe('KofiBench ask and confirm', () => {
   it('tapping grandpa also opens the confirm', async () => {
     const user = userEvent.setup();
     render(<KofiBench />);
+    await awaitAsk();
     await user.click(screen.getByRole('button', { name: /grandpa/i }));
     expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
   });
@@ -109,7 +103,7 @@ describe('KofiBench ask and confirm', () => {
     const user = userEvent.setup();
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<KofiBench />);
-    await waitFor(() => expect(screen.getByText(ASK)).toBeTruthy());
+    await awaitAsk();
     await user.click(screen.getByRole('button', { name: /This course runs on coffee/ }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(open).toHaveBeenCalledTimes(1);
@@ -121,7 +115,7 @@ describe('KofiBench ask and confirm', () => {
     const user = userEvent.setup();
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     render(<KofiBench />);
-    await waitFor(() => expect(screen.getByText(ASK)).toBeTruthy());
+    await awaitAsk();
     const askButton = screen.getByRole('button', { name: /This course runs on coffee/ });
     await user.click(askButton);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -135,7 +129,7 @@ describe('KofiBench ask and confirm', () => {
   it('Escape closes the confirm and focus returns to the ask button', async () => {
     const user = userEvent.setup();
     render(<KofiBench />);
-    await waitFor(() => expect(screen.getByText(ASK)).toBeTruthy());
+    await awaitAsk();
     const askButton = screen.getByRole('button', { name: /This course runs on coffee/ });
     await user.click(askButton);
     expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
@@ -145,55 +139,57 @@ describe('KofiBench ask and confirm', () => {
   });
 });
 
-describe('KofiBench grandpa figure (3D scene + rendered-still fallback)', () => {
-  it('falls back to the rendered still of the same grandpa — never an SVG figure — when the scene cannot mount', async () => {
+describe('KofiBench flat 2D grandpa', () => {
+  it('renders the grandpa as a flat SVG — no canvas, no still image, no WebGL', async () => {
     const { container } = render(<KofiBench />);
-    await waitFor(() => expect(mountMock).toHaveBeenCalled());
-    const img = container.querySelector('img');
-    expect(img).toBeTruthy();
-    expect(img?.getAttribute('src')).toContain('grandpa-seated');
-    expect(container.querySelector('svg')).toBeNull();
+    expect(container.querySelector('svg')).toBeTruthy();
     expect(container.querySelector('canvas')).toBeNull();
+    expect(container.querySelector('img')).toBeNull();
+    await awaitAsk();
   });
 
-  it('shows the canvas, withholds the cloud until seated, then plays the refill once and disposes on unmount', async () => {
-    const playRefill = vi.fn();
-    const dispose = vi.fn();
-    let opts: MountOpts | undefined;
-    mountMock.mockImplementation((_canvas, o) => {
-      opts = o;
-      return { playRefill, dispose };
-    });
-    const { container, unmount } = render(<KofiBench />);
-    await waitFor(() => expect(container.querySelector('canvas')).toBeTruthy());
-    await waitFor(() => expect(container.querySelector('img')).toBeNull());
-    // Mid-entrance: no cloud, and tapping grandpa does not open the confirm.
+  it('withholds the cloud until he sits, and grandpa is inert before that', async () => {
+    const user = userEvent.setup();
+    render(<KofiBench />);
     expect(screen.queryByText(ASK)).toBeNull();
-    expect(playRefill).not.toHaveBeenCalled();
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Buy Grandpa a coffee on Ko-fi' }));
+    await user.click(screen.getByRole('button', { name: 'Buy Grandpa a coffee on Ko-fi' }));
     expect(screen.queryByText("You're heading to Ko-fi.")).toBeNull();
-    // He sits: the cloud appears and the once-per-load refill follows.
-    act(() => opts?.onSeated?.());
-    expect(screen.getByText(ASK)).toBeTruthy();
-    await waitFor(() => expect(playRefill).toHaveBeenCalledTimes(1));
-    unmount();
-    expect(dispose).toHaveBeenCalledTimes(1);
+    await awaitAsk();
   });
 
-  it('falls back to the rendered still when the scene reports a lost WebGL context', async () => {
-    let capturedOpts: MountOpts | undefined;
-    mountMock.mockImplementation((_canvas, opts_) => {
-      capturedOpts = opts_;
-      return { playRefill: vi.fn(), dispose: vi.fn() };
-    });
-    const { container } = render(<KofiBench />);
-    await waitFor(() => expect(container.querySelector('img')).toBeNull());
-    expect(capturedOpts?.onContextLost).toBeTypeOf('function');
-    act(() => capturedOpts?.onContextLost?.());
-    await waitFor(() => expect(container.querySelector('img')).toBeTruthy());
-    expect(container.querySelector('svg')).toBeNull();
-    // The fallback is seated by construction: the cloud shows immediately.
-    expect(screen.getByText(ASK)).toBeTruthy();
+  it('plays the refill once per page load, and never replays it on an offline→online remount', async () => {
+    // Fresh module registry: the once-per-load latch is module scope, so
+    // this test imports its own copy of the bench and drives it with
+    // fake timers through both mounts.
+    vi.useFakeTimers();
+    try {
+      vi.resetModules();
+      const fresh = await import('./KofiBench');
+      const { container } = render(<fresh.KofiBench />);
+      const phase = () => container.querySelector('[data-phase]')?.getAttribute('data-phase');
+      // Walk (2.2s) + sit (0.5s) land him; the refill follows a beat later.
+      act(() => { vi.advanceTimersByTime(2700); });
+      expect(phase()).toBe('seated');
+      act(() => { vi.advanceTimersByTime(400); });
+      expect(phase()).toBe('refilling');
+      act(() => { vi.advanceTimersByTime(3600); });
+      expect(phase()).toBe('seated');
+      // Offline unmounts the figure; online remounts it. He walks and
+      // sits again — but the refill must NOT replay.
+      act(() => {
+        setOnline(false);
+        window.dispatchEvent(new Event('offline'));
+      });
+      expect(screen.queryByTestId('kofi-bench-scene')).toBeNull();
+      act(() => {
+        setOnline(true);
+        window.dispatchEvent(new Event('online'));
+      });
+      act(() => { vi.advanceTimersByTime(2700 + 400 + 3600); });
+      expect(phase()).toBe('seated');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -201,6 +197,7 @@ describe('KofiBench peer-review fixes', () => {
   it('returns focus to the grandpa figure when the figure opened the confirm', async () => {
     const user = userEvent.setup();
     render(<KofiBench />);
+    await awaitAsk();
     const figureButton = screen.getByRole('button', { name: 'Buy Grandpa a coffee on Ko-fi' });
     await user.click(figureButton);
     expect(screen.getByText("You're heading to Ko-fi.")).toBeTruthy();
@@ -209,45 +206,6 @@ describe('KofiBench peer-review fixes', () => {
     // The figure button never unmounts, so focus must land back on it —
     // not on the ask cloud button, which is what the old code always did.
     expect(document.activeElement).toBe(figureButton);
-  });
-
-  it('does not replay the refill when the figure remounts after an offline→online toggle', async () => {
-    const playRefill = vi.fn();
-    const dispose = vi.fn();
-    let latestOpts: MountOpts | undefined;
-    mountMock.mockImplementation((_canvas, o) => {
-      latestOpts = o;
-      return { playRefill, dispose };
-    });
-    const { container } = render(<KofiBench />);
-    await waitFor(() => expect(container.querySelector('img')).toBeNull());
-    act(() => latestOpts?.onSeated?.());
-    // Settle past the post-sit refill beat, then take the baseline. (The
-    // once-per-load flag is module scope: if an earlier test in this file
-    // already latched it, the baseline here is legitimately 0 — what this
-    // test proves is that the remount does not ADD a call.)
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 450));
-    });
-    const callsAfterFirstSit = playRefill.mock.calls.length;
-    // Offline: the whole bench unmounts (fail-closed). Online: it remounts.
-    // The refill is once per page load, so a remount must not replay it.
-    act(() => {
-      setOnline(false);
-      window.dispatchEvent(new Event('offline'));
-    });
-    expect(screen.queryByTestId('kofi-bench-scene')).toBeNull();
-    act(() => {
-      setOnline(true);
-      window.dispatchEvent(new Event('online'));
-    });
-    await waitFor(() => expect(container.querySelector('img')).toBeNull());
-    act(() => latestOpts?.onSeated?.());
-    // Give a (wrongly) rescheduled refill time to fire, then compare.
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 450));
-    });
-    expect(playRefill.mock.calls.length).toBe(callsAfterFirstSit);
   });
 });
 
