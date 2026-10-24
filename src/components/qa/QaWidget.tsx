@@ -1,4 +1,5 @@
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { useQaPanelStore } from '../../store/qaPanel';
 import { ChatBubbleIcon, CloseIcon } from './ChatWidgetIcons';
 
 /**
@@ -23,6 +24,14 @@ export function QaWidget() {
   // Mount the panel lazily on the first open and never unmount it, so a
   // close/reopen cycle keeps the transcript and composer state.
   const [panelMounted, setPanelMounted] = useState(false);
+
+  // Publish openness for neighbours sharing the bottom band (the Ko-fi
+  // bench yields while the panel is open on narrow viewports).
+  const publishOpen = useQaPanelStore((s) => s.setOpen);
+  useEffect(() => {
+    publishOpen(open);
+    return () => publishOpen(false);
+  }, [open, publishOpen]);
 
   function toggle() {
     setPanelMounted(true);

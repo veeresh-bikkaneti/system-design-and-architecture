@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getLessonBySlug, lessons, tierLabels, tierOrder } from '../lib/lessons';
 import type { Tier } from '../lib/lessons';
@@ -9,6 +9,13 @@ import { Button } from '../components/ui/Button';
 import { HeadingsProvider, OnThisPage } from '../components/OnThisPage';
 import { Seo, JsonLd } from '../components/Seo';
 import { ShareButtons } from '../components/ShareButtons';
+
+// The Ko-fi bench docks in-flow at the end of the lesson (agency panel
+// placement plan, 2026-10-24): no fixed overlay while reading. Lazy,
+// like every other heavy block on this page.
+const KofiBenchDock = lazy(() =>
+  import('../components/kofi/KofiBench').then((m) => ({ default: m.KofiBenchDock })),
+);
 import { LessonNarrator } from '../components/LessonNarrator';
 
 /** Thin reading-progress bar pinned to the top of the viewport. */
@@ -315,6 +322,10 @@ export function LessonPage() {
                   url={canonical}
                 />
               </div>
+
+              <Suspense fallback={null}>
+                <KofiBenchDock />
+              </Suspense>
 
               <nav aria-label="Lesson navigation" className="mt-6 grid gap-3 sm:grid-cols-2">
                 {prevLesson ? (
