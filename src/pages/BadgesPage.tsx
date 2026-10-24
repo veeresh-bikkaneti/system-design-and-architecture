@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { BadgeCard } from '../components/Badges/BadgeCard';
 import { Confetti } from '../components/Badges/Confetti';
@@ -166,6 +166,22 @@ export function BadgeDetailPage() {
     }
   }, [definition, unlocked, celebratedBadges, markBadgesCelebrated]);
 
+  // Offline (or missing) artwork: hide the art instead of showing a broken
+  // image — same treatment as the gallery tile. Removing the <img> cannot
+  // loop — a placeholder would refire onError unless loop-guarded, hiding
+  // cannot. Warn once, diagnostically (a 404 asset is not an app error, so
+  // warn, not error). Hooks sit before the early return below; the handler
+  // only runs when the hero <img> exists, so definition exists by then.
+  const [artFailed, setArtFailed] = useState(false);
+  const warnedRef = useRef(false);
+  const handleArtError = (): void => {
+    if (!warnedRef.current) {
+      warnedRef.current = true;
+      console.warn(definition?.iconFile);
+    }
+    setArtFailed(true);
+  };
+
   if (!definition) {
     return (
       <div className="mx-auto max-w-2xl text-center">
@@ -203,7 +219,13 @@ export function BadgeDetailPage() {
       <div className="mt-8 flex flex-col items-center text-center">
         <div className={`badge-hero ${unlocked ? '' : 'badge-hero--locked'}`}>
           {celebrate && <Confetti />}
-          <img src={badgeIconUrl(badge.iconFile)} alt={`${badge.name} badge artwork`} />
+          {!artFailed && (
+            <img
+              src={badgeIconUrl(badge.iconFile)}
+              alt={`${badge.name} badge artwork`}
+              onError={handleArtError}
+            />
+          )}
           {!unlocked && (
             <span className="badge-hero__lock" aria-hidden="true">
               <Icon name="lockFilled" className="h-12 w-12" />
