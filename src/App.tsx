@@ -160,7 +160,7 @@ const QaWidget = lazy(() =>
 // The Ko-fi bench renders nothing unless its build env var is set, so it
 // must not weigh down the entry shell: lazy, the same way as QaWidget.
 const KofiBench = lazy(() =>
-  import('./components/kofi/KofiBench').then((m) => ({ default: m.KofiBench })),
+  import('./components/kofi/KofiBench').then((m) => ({ default: m.KofiBenchGate })),
 );
 
 // Keep the viewport at the top when the route changes (e.g. Home -> lesson),

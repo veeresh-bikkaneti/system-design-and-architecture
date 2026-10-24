@@ -3,7 +3,9 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { KofiBench } from './KofiBench';
+import { MemoryRouter } from 'react-router-dom';
+
+import { KofiBench, KofiBenchDock, KofiBenchGate } from './KofiBench';
 import { useQaPanelStore } from '../../store/qaPanel';
 
 // The figure is a flat 2D animated SVG (the owner's design reference) —
@@ -20,6 +22,45 @@ async function awaitAsk() {
 
 function setOnline(online: boolean) {
   Object.defineProperty(navigator, 'onLine', { value: online, configurable: true });
+}
+
+/** Controllable IntersectionObserver: tests fire the callback by hand. */
+class FakeIO {
+  static instances: FakeIO[] = [];
+  cb: IntersectionObserverCallback;
+  constructor(cb: IntersectionObserverCallback) {
+    this.cb = cb;
+    FakeIO.instances.push(this);
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() { return []; }
+  trigger(isIntersecting: boolean) {
+    this.cb([{ isIntersecting } as IntersectionObserverEntry], this as unknown as IntersectionObserver);
+  }
+}
+
+function stubFakeIO() {
+  FakeIO.instances = [];
+  vi.stubGlobal('IntersectionObserver', FakeIO);
+}
+
+/** Stub matchMedia so the below-desktop query (max-width: 1023px) matches. */
+function stubMobileViewport() {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string) => ({
+      matches: query.includes('max-width: 1023px'),
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
 }
 
 /** Stub matchMedia so only the narrow-viewport query matches. */
@@ -233,5 +274,57 @@ describe('KofiBench placement + Q&A yield', () => {
     act(() => useQaPanelStore.setState({ open: true }));
     render(<KofiBench />);
     expect(screen.getByTestId('kofi-bench-scene').className).not.toContain('hidden');
+  });
+});
+
+describe('KofiBench placement plan (agency panel, 2026-10-24)', () => {
+  it('the route gate renders nothing on lesson routes — the dock owns lessons', () => {
+    render(
+      <MemoryRouter initialEntries={['/lesson/scaling-web-service']}>
+        <KofiBenchGate />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByTestId('kofi-bench-scene')).toBeNull();
+  });
+
+  it('the route gate renders the fixed bench on the home route', async () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <KofiBenchGate />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('kofi-bench-scene')).toBeTruthy();
+    await awaitAsk();
+  });
+
+  it('on mobile home, the bench waits until Start learning scrolls out of view, then appears', async () => {
+    stubMobileViewport();
+    stubFakeIO();
+    render(
+      <>
+        <a href="/lesson/scaling-web-service">Start learning</a>
+        <MemoryRouter initialEntries={['/']}>
+          <KofiBenchGate />
+        </MemoryRouter>
+      </>,
+    );
+    // The CTA still owns the first viewport: no bench at all yet.
+    expect(screen.queryByTestId('kofi-bench-scene')).toBeNull();
+    // The CTA scrolls away — the bench may come in.
+    act(() => FakeIO.instances.forEach((io) => io.trigger(false)));
+    expect(screen.getByTestId('kofi-bench-scene')).toBeTruthy();
+    await awaitAsk();
+  });
+
+  it('the lesson dock is in-flow, mounts the figure when scrolled into view, then shows the cloud after the sit', async () => {
+    stubFakeIO();
+    const { container } = render(<KofiBenchDock />);
+    const dock = screen.getByTestId('kofi-bench-dock');
+    expect(dock.className).not.toContain('fixed');
+    // Not yet in view: no figure mounted (the walk must not play off-screen).
+    expect(container.querySelector('svg')).toBeNull();
+    act(() => FakeIO.instances.forEach((io) => io.trigger(true)));
+    expect(container.querySelector('svg')).toBeTruthy();
+    await awaitAsk();
   });
 });

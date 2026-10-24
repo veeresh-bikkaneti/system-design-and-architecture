@@ -166,9 +166,9 @@ export function FlatGrandpa({ onSeated }: { onSeated: () => void }) {
         <ellipse cx="120" cy="148" rx="102" ry="6" fill="#1c1917" opacity="0.1" />
         {/* tree, to his left */}
         <path d="M29 147 L35 84 L45 84 L51 147 Z" fill="#6b4a2f" stroke={INK} strokeWidth="2.4" strokeLinejoin="round" />
-        <circle cx="40" cy="48" r="29" fill="#17765c" stroke={INK} strokeWidth="2.4" />
-        <circle cx="17" cy="64" r="16" fill="#1e8a68" stroke={INK} strokeWidth="2.4" />
-        <circle cx="63" cy="62" r="18" fill="#12614a" stroke={INK} strokeWidth="2.4" />
+        <circle cx="40" cy="48" r="29" fill="#43765f" stroke={INK} strokeWidth="2.4" />
+        <circle cx="17" cy="64" r="16" fill="#55856c" stroke={INK} strokeWidth="2.4" />
+        <circle cx="63" cy="62" r="18" fill="#386552" stroke={INK} strokeWidth="2.4" />
         {/* bench: back slats, seat, legs (he sits in front of the back) */}
         <rect x="98" y="80" width="126" height="10" rx="3" fill="#9c6b3d" stroke={INK} strokeWidth="2.4" />
         <rect x="98" y="95" width="126" height="10" rx="3" fill="#8a5a33" stroke={INK} strokeWidth="2.4" />
