@@ -291,9 +291,11 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
                   ? 'Getting ready · reading the lessons'
                   : modelStatus.phase === 'loading'
                     ? `Loading ${MODEL_LABEL} · ${modelStatus.progress}%`
-                    : modelStatus.phase === 'ready'
-                      ? modelStatus.detail
-                      : 'Runs in your browser · no API key'}
+                    : modelStatus.phase === 'failed'
+                      ? 'Model failed · lesson answers work'
+                      : modelStatus.phase === 'ready'
+                        ? modelStatus.detail
+                        : 'Runs in your browser · no API key'}
               </p>
             </div>
             <div className="flex items-center gap-1">
