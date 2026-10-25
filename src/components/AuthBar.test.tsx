@@ -187,6 +187,14 @@ describe('T-PWA-4b sync UI', () => {
   });
 });
 
+describe('signed-in offline-label e2e T5 (fills the 4b positive-Paused gap)', () => {
+  it('paused-label-reads-paused-when-paused', () => {
+    signInSession({ pausedAt: Date.now(), lastSyncedAt: Date.now() - 1000, dirty: false });
+    renderAuthBar();
+    expect(screen.getByText('Paused')).toBeTruthy();
+  });
+});
+
 describe('T-PWA-4b guards (must stay green)', () => {
   it('pat real rejection keeps rejection copy', async () => {
     vi.stubEnv('VITE_GITHUB_CLIENT_ID', '');
