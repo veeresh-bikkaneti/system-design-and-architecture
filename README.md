@@ -1,11 +1,11 @@
 # System Design Mastery
 
-**[🚀 Live course: 36 interactive lessons](https://veeresh-bikkaneti.github.io/system-design-and-architecture/)** — free, runs entirely in your browser. Nothing to install, no account required, no signup.
+**[🚀 Live course: 37 interactive lessons](https://veeresh-bikkaneti.github.io/system-design-and-architecture/)** — free, runs entirely in your browser. Nothing to install, no account required, no signup.
 
 ## How it works
 
 1. **Open the course** at the link above.
-2. **Follow the roadmap** from lesson 1 (beginner basics) to lesson 36 (frontier topics like AI agents and multi-region design) — or jump straight to any topic.
+2. **Follow the roadmap** from lesson 1 (beginner basics) to lesson 37 (frontier topics like AI agents and multi-region design) — or jump straight to any topic.
 3. **Learn by reading** — every lesson explains its topic in plain English with architecture diagrams, real-world analogies, and a short quiz to check your understanding.
 4. **Track progress and earn badges** — your progress and quiz scores are saved in your own browser. Finish lesson groups to earn badges you can show on LinkedIn.
 5. **Go deeper (optional)** — each lesson ends with hand-picked conference talks and tutorials when you want more than the lesson covers.

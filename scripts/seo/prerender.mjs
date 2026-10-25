@@ -369,7 +369,7 @@ ${lessonLinkList(metas)}`;
     head: headTags({
       title: `Roadmap | ${SITE_NAME}`,
       description:
-        'The complete system design learning path: 36 lessons from beginner to advanced, in syllabus order.',
+        'The complete system design learning path: 37 lessons from beginner to advanced, in syllabus order.',
       canonical,
       ogImage: `${siteUrl}og/roadmap.png`,
     }),

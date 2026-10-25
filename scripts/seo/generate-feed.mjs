@@ -21,7 +21,7 @@ const { siteUrl } = siteConfig();
 
 const CHANNEL_TITLE = 'System Design Mastery';
 const CHANNEL_DESCRIPTION =
-  'A free system design course — 36 lessons from beginner to master, with interactive quizzes and an AI tutor.';
+  'A free system design course — 37 lessons from beginner to master, with interactive quizzes and an AI tutor.';
 
 function lastModFor(paths) {
   try {

@@ -181,8 +181,8 @@ const pages = [
       eyebrow: 'A free, self-paced course',
       title: 'System Design Mastery',
       subtitle:
-        'Learn system design from zero to master — 36 lessons, diagrams that move, and an AI tutor that sketches with you.',
-      footerLeft: [pill('36 lessons'), meta('Beginner to Advanced')],
+        'Learn system design from zero to master — 37 lessons, diagrams that move, and an AI tutor that sketches with you.',
+      footerLeft: [pill('37 lessons'), meta('Beginner to Advanced')],
     }),
   },
   {
@@ -192,7 +192,7 @@ const pages = [
       eyebrow: 'System Design Mastery',
       title: 'Roadmap',
       subtitle: 'Your path from zero to master — every lesson in syllabus order, across three tiers.',
-      footerLeft: [pill('Syllabus'), meta('36 lessons')],
+      footerLeft: [pill('Syllabus'), meta('37 lessons')],
     }),
   },
   {
