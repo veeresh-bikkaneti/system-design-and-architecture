@@ -16,10 +16,12 @@ export function startIdleWatch(now: () => number = () => Date.now()): () => void
     pausedOnce = false;
   };
 
+  // Background sync failures are swallowed deliberately: idle sync must
+  // never surface as an unhandled rejection or throw to its caller.
   const onHidden = () => {
     const session = useSessionStore.getState();
     if (session.isSignedIn() && session.dirty) {
-      void syncNow({ evenIfPaused: true });
+      void syncNow({ evenIfPaused: true }).catch(() => {});
     }
   };
 
@@ -28,20 +30,20 @@ export function startIdleWatch(now: () => number = () => Date.now()): () => void
     const idleFor = now() - lastActivity;
 
     if (session.isSignedIn() && session.dirty && session.pausedAt === null) {
-      void syncNow();
+      void syncNow().catch(() => {});
     }
 
     if (idleFor >= IDLE_FLUSH_MS && !flushedIdle) {
       flushedIdle = true;
       if (session.isSignedIn() && session.dirty) {
-        void syncNow();
+        void syncNow().catch(() => {});
       }
     }
 
     if (idleFor >= IDLE_PAUSE_MS && !pausedOnce) {
       pausedOnce = true;
       if (session.isSignedIn()) {
-        void syncNow({ evenIfPaused: true });
+        void syncNow({ evenIfPaused: true }).catch(() => {});
         useSessionStore.getState().pause();
       }
     }
