@@ -15,7 +15,7 @@ export const OKF_CARDS: OkfCard[] = [
     title: "Open Knowledge Format (OKF)",
     tags: ["okf", "frontmatter", "markdown", "context", "knowledge"],
     summary: "Vendor-neutral markdown plus YAML frontmatter for agent context.",
-    body: "Open Knowledge Format (OKF) is a vendor-neutral way to store the context an agent needs: a folder of markdown files with YAML frontmatter. The only required field is a non-empty type. Title, description, tags, and links are recommended. There is no SDK, account, or database. A human can read a file; a model can be given just the few cards that match a question. This tutor's coursework lives as OKF cards (type Lesson or Guide). Retrieval picks two or three cards so the small model sees a clean slice, not all 36 lessons.",
+    body: "Open Knowledge Format (OKF) is a vendor-neutral way to store the context an agent needs: a folder of markdown files with YAML frontmatter. The only required field is a non-empty type. Title, description, tags, and links are recommended. There is no SDK, account, or database. A human can read a file; a model can be given just the few cards that match a question. This tutor's coursework lives as OKF cards (type Lesson or Guide). Retrieval picks two or three cards so the small model sees a clean slice, not all 37 lessons.",
   },
   {
     id: "langchain-tool-calling",
