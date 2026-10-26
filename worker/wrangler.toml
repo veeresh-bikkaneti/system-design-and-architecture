@@ -20,7 +20,7 @@ database_id = "6acf5d45-a6f1-47c9-a641-d15d5af36427"
 [[d1_databases]]
 binding = "DB_QA"
 database_name = "system-design-mastery-qa"
-database_id = "PENDING_QA_D1_CREATION"
+database_id = "96e80933-ace5-4b98-88b5-5fa75a55353c"
 
 # Self-hosted tutor model ("Veer"): a llama.cpp server on the owner's own
 # machine, OpenAI-compatible. The Worker calls it over HTTPS -- no
