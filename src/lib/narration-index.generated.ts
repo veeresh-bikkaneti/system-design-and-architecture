@@ -47,6 +47,8 @@ export const NARRATION_INDEX: ReadonlySet<string> = new Set([
   "graphql-vs-rest/us",
   "idempotency/uk",
   "idempotency/us",
+  "interview-framework/uk",
+  "interview-framework/us",
   "load-balancers/uk",
   "load-balancers/us",
   "message-queues/uk",
