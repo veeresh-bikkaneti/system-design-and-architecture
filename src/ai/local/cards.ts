@@ -15,7 +15,7 @@ export const OKF_CARDS: OkfCard[] = [
     title: "Open Knowledge Format (OKF)",
     tags: ["okf", "frontmatter", "markdown", "context", "knowledge"],
     summary: "Vendor-neutral markdown plus YAML frontmatter for agent context.",
-    body: "Open Knowledge Format (OKF) is a vendor-neutral way to store the context an agent needs: a folder of markdown files with YAML frontmatter. The only required field is a non-empty type. Title, description, tags, and links are recommended. There is no SDK, account, or database. A human can read a file; a model can be given just the few cards that match a question. This tutor's coursework lives as OKF cards (type Lesson or Guide). Retrieval picks two or three cards so the small model sees a clean slice, not all 37 lessons.",
+    body: "Open Knowledge Format (OKF) is a vendor-neutral way to store the context an agent needs: a folder of markdown files with YAML frontmatter. The only required field is a non-empty type. Title, description, tags, and links are recommended. There is no SDK, account, or database. A human can read a file; a model can be given just the few cards that match a question. This tutor's coursework lives as OKF cards (type Lesson or Guide). Retrieval picks two or three cards so the small model sees a clean slice, not all 39 lessons.",
   },
   {
     id: "langchain-tool-calling",
@@ -99,9 +99,27 @@ export const OKF_CARDS: OkfCard[] = [
     body: "A system design interview grades how you handle an underspecified problem out loud, not whether your diagram matches a hidden answer. Run four steps in 45 minutes. Scope first (3-10 minutes): agree the core features, the scale, and what is out of scope before drawing anything. Sketch the high-level design together (10-15): the boxes, a back-of-envelope estimate, one request walked end to end, and explicit buy-in from the interviewer. Deep-dive one or two components (10-25): name the credible options, pick one for stated reasons, and say the trade-off out loud - we chose X because Y, accepting Z. Wrap up (3-5): recap the scope, the key decisions, and what you would do with more time. The signature failures are drawing before scoping, drawing in silence, rabbit-holing on one component while others stay blank, and trailing off with no summary.",
   },
   {
-    id: "data-partitioning",
+    id: "back-of-envelope-estimation",
     type: "Lesson",
     order: 8,
+    title: "Back-of-the-Envelope Estimation",
+    tags: ["estimation", "latency", "capacity", "interview", "scale"],
+    summary: "Fermi's four moves: state assumptions, round, multiply with units, sanity-check.",
+    body: "A back-of-envelope estimate is a Fermi problem: split the unknown into pieces you can guess, round each to a friendly number, multiply, then sanity-check the order of magnitude against something known. Enrico Fermi estimated the Trinity bomb's yield from falling paper scraps this way. The four moves: state assumptions out loud, round to friendly numbers, multiply through carrying the units, and sanity-check the result. Reference weights that recur: a day holds about 100,000 seconds; memory answers in ~100 ns while a disk seek takes ~10 ms (a 100,000x gap); reads usually dwarf writes, so find the skew - a 50-to-1 read skew means caching and fan-out, not write sharding, is the design's hard part. HealthCare.gov is the cautionary tale: identity load-tested at ~2,000 concurrent users against an expected crowd in the tens of thousands, because the estimate never drove the build.",
+  },
+  {
+    id: "estimation-reference-numbers",
+    type: "Lesson",
+    order: 9,
+    title: "Estimation Reference Numbers: The Pocket Card",
+    tags: ["estimation", "latency", "availability", "reference", "powers-of-two"],
+    summary: "The three tables: full latency ladder, powers of two, and the nines priced in downtime.",
+    body: "The reference card every estimate stands on. Latency ladder: L1 cache 0.5 ns, memory 100 ns, SSD random read ~150,000 ns classic (tens of microseconds on modern NVMe), datacenter round trip ~0.5 ms, disk seek ~10 ms, transatlantic packet ~150 ms; on the human scale (L1 = 1 second) those read as minutes, days, months, and years, and the gaps - not the point values - drive design. Powers of two: each step (KB to MB to GB to TB to PB) multiplies by about 1,000, mirrored by thousand, million, billion, trillion; a million seconds is about 11.5 days and a billion seconds about 32 years. The nines price availability in downtime: a year holds 31,536,000 seconds, so 99.9% allows ~8.76 hours down a year, 99.99% ~52.6 minutes, 99.999% ~5.26 minutes - each extra nine divides downtime by ten and multiplies the engineering bill by much more.",
+  },
+  {
+    id: "data-partitioning",
+    type: "Lesson",
+    order: 10,
     title: "Data Partitioning (Sharding)",
     tags: ["partition", "shard", "hot key", "reshard"],
     summary: "Split a dataset so no node holds all of it.",
@@ -110,7 +128,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "url-shortener",
     type: "Lesson",
-    order: 9,
+    order: 11,
     title: "Design a URL Shortener",
     tags: ["url shortener", "base62", "hash", "cache", "interview"],
     summary: "Hashing, caching, and rate limits on an interview classic.",
@@ -119,7 +137,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "idempotency",
     type: "Lesson",
-    order: 10,
+    order: 12,
     title: "Idempotency: Making Retries Safe",
     tags: ["idempotency", "retry", "idempotency key", "exactly once"],
     summary: "Retries must not double-charge.",
@@ -128,7 +146,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "authn-authz",
     type: "Lesson",
-    order: 11,
+    order: 13,
     title: "AuthN and AuthZ",
     tags: ["auth", "authentication", "authorization", "jwt", "oauth", "session", "password"],
     summary: "Who you are, and what you may do.",
@@ -137,7 +155,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "caching-strategies",
     type: "Lesson",
-    order: 12,
+    order: 14,
     title: "Caching Strategies",
     tags: ["cache", "cache-aside", "write-through", "write-behind", "ttl", "stampede"],
     summary: "How data gets into a cache and how it goes stale.",
@@ -146,7 +164,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "cdns",
     type: "Lesson",
-    order: 13,
+    order: 15,
     title: "Content Delivery Networks",
     tags: ["cdn", "edge", "pop", "ttl", "purge", "origin"],
     summary: "Put bytes near the user.",
@@ -155,7 +173,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "cloud-native-architecture",
     type: "Lesson",
-    order: 14,
+    order: 16,
     title: "Cloud-Native Architecture",
     tags: ["cloud", "kubernetes", "serverless", "12-factor", "region", "az"],
     summary: "Building on someone else's computers.",
@@ -164,7 +182,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "message-queues",
     type: "Lesson",
-    order: 15,
+    order: 17,
     title: "Message Queues",
     tags: ["queue", "kafka", "rabbitmq", "sqs", "backpressure", "delivery"],
     summary: "Decouple producers from consumers.",
@@ -173,7 +191,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "api-gateways",
     type: "Lesson",
-    order: 16,
+    order: 18,
     title: "API Gateways",
     tags: ["api gateway", "reverse proxy", "routing", "rate limit"],
     summary: "The front door in front of many services.",
@@ -182,7 +200,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "bff-backend-for-frontend",
     type: "Lesson",
-    order: 17,
+    order: 19,
     title: "BFF: One API Per Client",
     tags: ["bff", "backend for frontend", "mobile", "aggregation"],
     summary: "A backend shaped for one kind of client.",
@@ -191,7 +209,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "replication-consistency-models",
     type: "Lesson",
-    order: 18,
+    order: 20,
     title: "Replication and Consistency Models",
     tags: ["replication", "quorum", "leader", "eventual", "linearizability", "async"],
     summary: "How copies stay in sync, and what clients observe.",
@@ -200,7 +218,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "rate-limiting",
     type: "Lesson",
-    order: 19,
+    order: 21,
     title: "Rate Limiting",
     tags: ["rate limit", "token bucket", "leaky bucket", "sliding window", "redis"],
     summary: "Stop one client from ruining the day.",
@@ -209,7 +227,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "microservices-vs-monolith",
     type: "Lesson",
-    order: 20,
+    order: 22,
     title: "Microservices vs Monolith",
     tags: ["monolith", "microservice", "modular monolith", "distributed monolith"],
     summary: "When splitting services pays off.",
@@ -218,7 +236,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "microservices-patterns-pitfalls",
     type: "Lesson",
-    order: 21,
+    order: 23,
     title: "Microservices Patterns and Pitfalls",
     tags: ["distributed monolith", "shared database", "temporal coupling", "chatty"],
     summary: "How microservices turn back into one system.",
@@ -227,7 +245,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "resilience-patterns",
     type: "Lesson",
-    order: 22,
+    order: 24,
     title: "Resilience Patterns",
     tags: ["timeout", "retry", "backoff", "circuit breaker", "bulkhead", "jitter"],
     summary: "Stop one slow dependency from taking everything down.",
@@ -236,7 +254,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "stream-vs-batch",
     type: "Lesson",
-    order: 23,
+    order: 25,
     title: "Stream vs Batch",
     tags: ["stream", "batch", "lambda", "kappa", "kafka"],
     summary: "Processing data that never stops, or data that can wait.",
@@ -245,7 +263,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "consensus-raft",
     type: "Lesson",
-    order: 24,
+    order: 26,
     title: "Consensus with Raft",
     tags: ["raft", "consensus", "leader election", "quorum", "log"],
     summary: "How unreliable machines agree on one log.",
@@ -254,7 +272,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "sharding-strategies",
     type: "Lesson",
-    order: 25,
+    order: 27,
     title: "Sharding Strategies",
     tags: ["sharding", "consistent hashing", "range", "directory", "virtual node"],
     summary: "Hash, range, and directory splits, and the cost of moving.",
@@ -263,7 +281,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "distributed-transactions",
     type: "Lesson",
-    order: 26,
+    order: 28,
     title: "Distributed Transactions",
     tags: ["2pc", "saga", "outbox", "transaction", "atomicity"],
     summary: "Atomicity across machines, and why it hurts.",
@@ -272,7 +290,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "observability",
     type: "Lesson",
-    order: 27,
+    order: 29,
     title: "Observability for Distributed Systems",
     tags: ["metrics", "logs", "traces", "sli", "slo", "red", "use", "cardinality"],
     summary: "Metrics, logs, and traces that answer a real question.",
@@ -281,7 +299,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "domain-driven-design",
     type: "Lesson",
-    order: 28,
+    order: 30,
     title: "Domain-Driven Design",
     tags: ["ddd", "bounded context", "aggregate", "ubiquitous language", "domain event", "outbox"],
     summary: "Model the business the way the business talks.",
@@ -290,7 +308,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "anti-corruption-layer",
     type: "Lesson",
-    order: 29,
+    order: 31,
     title: "Anti-Corruption Layer",
     tags: ["acl", "anti-corruption", "adapter", "strangler", "legacy"],
     summary: "A translation boundary so a messy outside world stays outside.",
@@ -299,7 +317,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "design-instagram",
     type: "Lesson",
-    order: 30,
+    order: 32,
     title: "Design Instagram",
     tags: ["instagram", "feed", "fan-out", "cdn", "upload", "news feed"],
     summary: "Uploads, metadata, CDNs, and the feed fan-out.",
@@ -308,7 +326,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "designing-ai-systems",
     type: "Lesson",
-    order: 31,
+    order: 33,
     title: "Designing AI Systems",
     tags: ["rag", "agent", "inference", "vector", "kv-cache", "quantization", "eval", "fine-tune"],
     summary: "RAG, agents, and the cost of inference.",
@@ -317,7 +335,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "agentic-ai-patterns",
     type: "Lesson",
-    order: 32,
+    order: 34,
     title: "Agentic AI Patterns",
     tags: ["agent", "multi-agent", "orchestration", "prompt injection", "tool"],
     summary: "Why multi-agent demos fail in production.",
@@ -326,7 +344,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "event-sourcing-cqrs",
     type: "Lesson",
-    order: 33,
+    order: 35,
     title: "Event Sourcing and CQRS",
     tags: ["event sourcing", "cqrs", "projection", "snapshot", "append-only"],
     summary: "Store the history, project the present.",
@@ -335,7 +353,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "designing-chat-at-scale",
     type: "Lesson",
-    order: 34,
+    order: 36,
     title: "Designing Chat at Scale",
     tags: ["chat", "websocket", "presence", "fan-out", "e2ee", "ordering"],
     summary: "Messaging like WhatsApp: connections, order, receipts.",
@@ -344,7 +362,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "graphql-vs-rest",
     type: "Lesson",
-    order: 35,
+    order: 37,
     title: "GraphQL vs REST",
     tags: ["graphql", "rest", "overfetch", "n+1", "caching", "versioning"],
     summary: "Fixed resources versus a query language.",
@@ -353,7 +371,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "multi-region-active-active",
     type: "Lesson",
-    order: 36,
+    order: 38,
     title: "Multi-Region Active-Active",
     tags: ["multi-region", "rpo", "rto", "active-active", "failover", "conflict"],
     summary: "Surviving a whole region going dark.",
@@ -362,7 +380,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "zero-trust-security",
     type: "Lesson",
-    order: 37,
+    order: 39,
     title: "Zero Trust",
     tags: ["zero trust", "mtls", "workload identity", "authenticate", "authorize"],
     summary: "Never trust the network. Verify every request.",

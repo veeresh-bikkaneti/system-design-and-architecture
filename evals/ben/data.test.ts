@@ -44,7 +44,7 @@ flowchart LR
   it('splits every lesson into sections short enough for the embedder', () => {
     const chunks = chunkAllLessons();
     const slugs = new Set(chunks.map((c: { slug: string }) => c.slug));
-    expect(slugs.size).toBe(37);
+    expect(slugs.size).toBe(39);
     for (const c of chunks) expect(c.text.split(/\s+/).length).toBeLessThanOrEqual(200);
   });
 });
