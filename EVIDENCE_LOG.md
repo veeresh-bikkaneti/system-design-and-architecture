@@ -142,3 +142,7 @@ Append-only record of completed work: what was attempted, what happened, and wha
   - Gate evidence completed: `npm run content:check` run on this branch's tree 2026-10-26 — OK: no h1 headings in lesson MDX.
   - Incident record (per this repo's self-incriminating standard): the first API push of this branch used a driver with stale constants and created the branch at the previous work's commit; the branch ref was deleted, the driver corrected, the commits re-replayed, and the remote tree verified identical to local before the PR opened. No wrong content was ever in the PR.
 - Chair verdict: PASS (both blocking attacks sustained as findings and remedied by adjudication + this record amendment; non-blocking attacks fixed where a remedy exists, recorded where not). Merge remains the owner's decision.
+
+### 2026-10-26 - chore/worker-undici-730 - T3 (Chair-resolved; see PR body)
+- What happened: Regenerated worker/package-lock.json via `npm update wrangler` (package.json unchanged — the existing ^4.151.1 range already admits 4.153.0). Resolution now: wrangler 4.153.0 -> miniflare 5.20261023.0-beta -> undici 7.30.1, clearing the last open Dependabot high alert (GHSA-xjj6-f33q-929c in worker/package-lock.json, undici 7.29.1 pinned exactly by the old miniflare). Verified locally before the PR: clean `npm ci` from scratch in a temp copy, worker typecheck pass, worker tests 23/23.
+- Blocker: none
