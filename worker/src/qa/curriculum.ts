@@ -12,7 +12,7 @@ export interface CurriculumEntry {
   topics: string[];
 }
 
-/** All 36 lessons in syllabus order. */
+/** All 39 lessons in syllabus order. */
 export const CURRICULUM: CurriculumEntry[] = [
   {
     slug: "scaling-web-service",
