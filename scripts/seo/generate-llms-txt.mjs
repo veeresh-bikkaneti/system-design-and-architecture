@@ -20,7 +20,7 @@ const lines = [
   '',
   '> Learn system design progressively, from beginner to master, with an AI tutor that draws you the diagrams.',
   '',
-  'A free, self-paced system design course: 37 lessons across beginner, intermediate, and advanced tiers, each with an interactive quiz. Interactive diagrams, an AI tutor, and badges for progress.',
+  'A free, self-paced system design course: 39 lessons across beginner, intermediate, and advanced tiers, each with an interactive quiz. Interactive diagrams, an AI tutor, and badges for progress.',
   '',
   '## Lessons',
   '',

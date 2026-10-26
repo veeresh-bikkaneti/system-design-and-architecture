@@ -1,6 +1,6 @@
 # System Design Mastery
 
-**[🚀 Live course: 37 interactive lessons](https://veeresh-bikkaneti.github.io/system-design-and-architecture/)** — free, runs entirely in your browser. Nothing to install, no account required, no signup.
+**[🚀 Live course: 39 interactive lessons](https://veeresh-bikkaneti.github.io/system-design-and-architecture/)** — free, runs entirely in your browser. Nothing to install, no account required, no signup.
 
 ## How it works
 
