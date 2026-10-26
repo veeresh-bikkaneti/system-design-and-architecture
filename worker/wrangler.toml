@@ -12,7 +12,10 @@ database_id = "6acf5d45-a6f1-47c9-a641-d15d5af36427"
 
 # Course Q&A tutor ("Veer") database -- a SEPARATE D1 from the cert DB
 # above (ADR 0003): migrations 0005-0007 belong to this database only and
-# are never applied to the cert DB (and 0001-0004 never to this one).
+# are never applied to the cert DB. Migration 0004 is the exception: its
+# generic rate_limit_counters table is shared machinery (qaThrottleByIp
+# increments it through the DB_QA binding), so 0004 is applied to BOTH
+# databases; 0001-0003 remain cert-only.
 # Created in the owner's Cloudflare account on 2026-10-26 (Manifest 1).
 [[d1_databases]]
 binding = "DB_QA"
