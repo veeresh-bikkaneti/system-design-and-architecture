@@ -216,7 +216,9 @@ export class ChatSelfHosted extends BaseChatModel<ChatSelfHostedCallOptions> {
   constructor(fields: ChatSelfHostedFields) {
     super(fields);
     this.model = fields.model ?? DEFAULT_QA_MODEL_ID;
-    this.baseUrl = fields.baseUrl.replace(/\/+$/, '');
+    let end = fields.baseUrl.length;
+    while (end > 0 && fields.baseUrl[end - 1] === '/') end--;
+    this.baseUrl = fields.baseUrl.slice(0, end);
     this.apiKey = fields.apiKey;
     this.fetchImpl = fields.fetchImpl ?? fetch;
   }
