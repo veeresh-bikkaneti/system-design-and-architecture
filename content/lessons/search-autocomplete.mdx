@@ -89,7 +89,7 @@ shortener:
   Freshness is the *next* lesson's whole subject; here, just register that the serving
   tier must leave a door open for it.
 
-@@VIDEOSLOT-V1@@
+<VideoCard videoId="fk5PFtdYA8U" title="Design Search Autocomplete (Typeahead) — System Design Interview" source="The Hot Path" description="The full problem worked end to end: capacity numbers, the tree of prefixes, precomputed suggestions per prefix, and the ranker — this lesson's design, drawn out loud." />
 
 ## Picture a friend who finishes your sentences
 
@@ -206,7 +206,8 @@ paper — the succinct-index approach to autocomplete search. ✅
       highlight: ["scan", "hash", "trie"],
     },
   ]}
-/>
+>
+</StepThrough>
 
 A pocket-sized piece of the trie, for three queries that start alike:
 
@@ -232,8 +233,6 @@ Two refinements keep the trie honest at scale:
 - **IDs, not strings.** Nodes store suggestion *IDs*; a side table maps ID → query text
   and its current score. Rebuilds then shuffle small integers instead of copying
   strings, and the ranking layer can re-score without touching the tree's shape.
-
-@@VIDEOSLOT-V2@@
 
 ## Ranking, in one paragraph (the next lesson gives it a chapter)
 
