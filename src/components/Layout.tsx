@@ -1,11 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Icon } from './ui/Icon';
 import { BadgeToastHost } from './ui/BadgeToast';
 import { useDisplayStore, resolveTheme } from '../store/display';
 import { AuthBar } from './AuthBar';
 import { focusMainContent, useModalFocus } from '../lib/focus';
+import { useIsDesktop } from '../lib/useDesktopViewport';
+
+// The Ko-fi bench renders nothing unless its build env var is set, so it
+// must not weigh down the app shell: lazy, the same way as QaWidget in
+// App.tsx. The bench chunk is shared by both mounts below (one module).
+const KofiBenchSidebar = lazy(() =>
+  import('./kofi/KofiBench').then((m) => ({ default: m.KofiBenchSidebar })),
+);
+const KofiBenchCard = lazy(() =>
+  import('./kofi/KofiBench').then((m) => ({ default: m.KofiBenchCard })),
+);
 
 function BrandMark({ className = 'h-9 w-9' }: { className?: string }) {
   return (
@@ -55,6 +66,16 @@ function ThemeToggle() {
 }
 
 export function Layout() {
+  // Grandpa placement (council ruling, 2026-10-27): exactly one bench
+  // mount per page, chosen by the shared desktop hook + the route —
+  // sidebar footer at ≥1024px (all routes), in-flow card at the end of
+  // <main> below that on non-lesson routes; lessons below desktop use
+  // the dock LessonPage mounts itself. Never mount the bench inside
+  // Sidebar.tsx: it is double-mounted (aside + mobile drawer).
+  const isDesktop = useIsDesktop();
+  const { pathname } = useLocation();
+  const isLessonRoute = pathname.startsWith('/lesson/');
+  const kofiUrl = import.meta.env.VITE_KOFI_URL?.trim();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -116,8 +137,23 @@ export function Layout() {
       </header>
       <div className="mx-auto flex w-full max-w-7xl flex-1">
         <aside className="hidden w-72 shrink-0 lg:block">
-          <div className="sticky top-16 h-[calc(100svh-4rem)] border-r border-stone-200/70 dark:border-stone-800">
-            <Sidebar />
+          {/* Flex-column sticky wrapper: the nav region scrolls
+              (flex:1, min-height:0) and grandpa is a shrink-0 footer
+              segment after it, DOM-last in the aside, outside the nav
+              landmark. On short viewports (<700px tall) the wrapper
+              itself becomes the scroll container and the bench stays
+              in-flow after the nav region — CSS-only switch, one mount. */}
+          <div className="sticky top-16 flex h-[calc(100svh-4rem)] flex-col border-r border-stone-200/70 dark:border-stone-800 [@media(max-height:699px)]:overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto [@media(max-height:699px)]:flex-none [@media(max-height:699px)]:overflow-visible">
+              <Sidebar />
+            </div>
+            {isDesktop && kofiUrl && (
+              <section aria-label="Support this course" className="shrink-0 px-4 pb-4 pt-2">
+                <Suspense fallback={null}>
+                  <KofiBenchSidebar />
+                </Suspense>
+              </section>
+            )}
           </div>
         </aside>
         {/* Page content. tabindex={-1} makes it a programmatic focus target
@@ -129,6 +165,14 @@ export function Layout() {
           className="min-w-0 flex-1 px-4 py-8 focus:outline-none sm:px-8 sm:py-10 lg:px-12"
         >
           <Outlet />
+          {/* Below desktop on non-lesson routes, grandpa is an in-flow
+              card at the very end of <main> (after the roadmap tiers on
+              the homepage) — never a fixed overlay. */}
+          {!isDesktop && !isLessonRoute && kofiUrl && (
+            <Suspense fallback={null}>
+              <KofiBenchCard />
+            </Suspense>
+          )}
         </main>
       </div>
 

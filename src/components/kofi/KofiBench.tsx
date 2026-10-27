@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { useLocation } from 'react-router-dom';
 
 import { FlatGrandpa } from './FlatGrandpa';
-import { useQaPanelStore } from '../../store/qaPanel';
+import { useIsDesktop } from '../../lib/useDesktopViewport';
 
 declare global {
   interface ImportMetaEnv {
@@ -38,26 +37,24 @@ declare global {
  * Adult audience — the confirm is the only step before leaving; there is
  * deliberately no grown-up gate and no Meridian copy or code here.
  *
- * Placement (agency UI/UX panel, 2026-10-24 — unanimous KEEP-WITH-
- * CHANGES, superseding the 2026-10-23 landscape review): bottom-left is
- * the right corner — bottom-right is owned by the Q&A widget (z-50),
- * the modal sits at z-[60], this bench at z-40 — but as one fixed rule
- * for every page it failed three measured contexts, so placement is
- * context-gated:
- * - Desktop home / badges / roadmap: fixed bottom-left, as measured
- *   clean (zero overlap with the Start learning CTA at 1280px).
- * - Mobile home: the bench box fully contained the Start learning CTA
- *   at scroll-top (390px), so below desktop width the bench waits —
- *   renders nothing — until that CTA has scrolled out of the viewport,
- *   then walks in. First paint belongs to the CTA.
- * - Lesson pages: no fixed overlay while reading (he masked sidebar
- *   lesson titles on desktop and the first content heading on mobile).
- *   LessonPage mounts KofiBenchDock instead: the same bench in-flow at
- *   the end of the lesson, walking in when scrolled into view.
- * The Q&A yield rule is unchanged for the fixed bench: below 650px the
- * open panel spans the whole bottom band, so the bench hides
- * (display:none — nothing unmounts; the walk and an open confirm
- * survive) and returns when the panel closes.
+ * Placement (grandpa-placement council ruling, 2026-10-27, superseding
+ * the 2026-10-24 panel plan): one grandpa per page, one tabbable
+ * instance, JS-rendered — never CSS-hidden. Three mutually exclusive
+ * mounts, all driven by the one shared (min-width: 1024px) hook
+ * (`useIsDesktop`):
+ * - Desktop (≥1024px), ALL routes: the sidebar footer. Layout mounts
+ *   the 'sidebar' variant as a shrink-0 footer segment of the aside,
+ *   sibling after the nav, DOM-last — in-flow, so it can never mask
+ *   sidebar lesson titles the way a fixed overlay did in 2024.
+ * - Below 1024px, non-lesson routes: the 'card' variant, in-flow at
+ *   the end of <main> (Layout mounts KofiBenchCard). No fixed overlay
+ *   anywhere: the old fixed bench sat on top of the homepage roadmap
+ *   tier cards on mobile once its CTA latch released.
+ * - Below 1024px, lessons: KofiBenchDock, the in-flow end-of-lesson
+ *   bench (unchanged). At ≥1024px the dock JS-unmounts — the sidebar
+ *   instance is the lesson's only grandpa there.
+ * Retired with the fixed overlay: the home-route CTA latch and the
+ * <650px Q&A yield — compensations with nothing left to compensate.
  */
 
 const ASK_LINE = 'This course runs on coffee. Care to buy me one?';
@@ -65,26 +62,18 @@ const ASK_SUB = 'Your refill keeps this course free.';
 const CONFIRM_TITLE = "You're heading to Ko-fi.";
 const CONFIRM_SUB = 'The course is free, and stays free. A coffee is just a thank-you.';
 
-type BenchVariant = 'fixed' | 'dock';
+type BenchVariant = 'sidebar' | 'card' | 'dock';
 
 /**
- * The bench itself, in two placements that share everything else —
+ * The bench itself, in three placements that share everything else —
  * gates, copy, cloud/confirm flow, focus handling, the figure.
  *
- * `deferUntilCtaGone` (fixed variant, home route only): below desktop
- * width the bench renders nothing until the hero's Start learning CTA
- * has scrolled out of the viewport. The latch is one-way — once he is
- * in, scrolling back up never dismisses him. If the CTA cannot be
- * found or IntersectionObserver is unavailable, he shows anyway:
- * a missing ask is worse than an early one.
+ * Cloud construction differs by placement: in-flow above the figure
+ * for 'sidebar' and 'card'; absolutely positioned above the figure in
+ * the dock, so its appearance never shifts the lesson content below
+ * it. Pacing is dock-only — the sidebar and card pass pace=false.
  */
-function BenchCore({
-  variant,
-  deferUntilCtaGone = false,
-}: {
-  variant: BenchVariant;
-  deferUntilCtaGone?: boolean;
-}) {
+function BenchCore({ variant }: { variant: BenchVariant }) {
   const kofiUrl = import.meta.env.VITE_KOFI_URL?.trim();
   const [online, setOnline] = useState<boolean>(() => navigator.onLine);
   const [mode, setMode] = useState<'ask' | 'confirm'>('ask');
@@ -125,73 +114,6 @@ function BenchCore({
   const invokerRef = useRef<HTMLButtonElement | null>(null);
   const wasConfirm = useRef(false);
   const reduceMotion = useReducedMotion();
-
-  // Yield to the Q&A panel on narrow viewports (fixed variant only):
-  // while it is open below 650px it covers every fixed spot in the
-  // bottom band, this one included.
-  const qaOpen = useQaPanelStore((s) => s.open);
-  const [narrow, setNarrow] = useState(false);
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const mq = window.matchMedia('(max-width: 649px)');
-    const update = () => setNarrow(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-  const yielded = variant === 'fixed' && qaOpen && narrow;
-
-  // Below-desktop detection for the mobile-home deferral.
-  const [belowDesktop, setBelowDesktop] = useState(false);
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const mq = window.matchMedia('(max-width: 1023px)');
-    const update = () => setBelowDesktop(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-  const deferralActive = variant === 'fixed' && deferUntilCtaGone && belowDesktop;
-  const [ctaGone, setCtaGone] = useState(false);
-  useEffect(() => {
-    if (!deferralActive || ctaGone) return;
-    let cancelled = false;
-    let observer: IntersectionObserver | undefined;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let tries = 0;
-    const findCta = () =>
-      [...document.querySelectorAll('a, button')].find((e) =>
-        e.textContent?.trim().startsWith('Start learning'),
-      );
-    const tick = () => {
-      if (cancelled) return;
-      const el = findCta();
-      if (!el) {
-        // The hero renders before this lazy chunk loads, so the CTA is
-        // normally already here; retry briefly, then fail open.
-        if (++tries <= 12) timer = setTimeout(tick, 250);
-        else setCtaGone(true);
-        return;
-      }
-      if (typeof IntersectionObserver === 'undefined') {
-        setCtaGone(true);
-        return;
-      }
-      observer = new IntersectionObserver((entries) => {
-        if (entries.some((en) => !en.isIntersecting)) {
-          setCtaGone(true);
-          observer?.disconnect();
-        }
-      });
-      observer.observe(el);
-    };
-    tick();
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-      observer?.disconnect();
-    };
-  }, [deferralActive, ctaGone]);
 
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -245,7 +167,6 @@ function BenchCore({
   );
 
   if (!kofiUrl || !online) return null;
-  if (deferralActive && !ctaGone) return null;
 
   const openConfirm = (e: ReactMouseEvent<HTMLElement>) => {
     invokerRef.current = e.currentTarget as HTMLButtonElement;
@@ -261,17 +182,28 @@ function BenchCore({
     setMode('ask');
   };
 
-  // The cloud: in flow above the figure for the fixed bench; absolutely
-  // positioned above the figure in the dock, so its appearance never
-  // shifts the lesson content below it. Its tail lands over grandpa's
-  // head in both placements.
+  // The cloud: in flow above the figure for the sidebar and card;
+  // absolutely positioned above the figure in the dock, so its
+  // appearance never shifts the lesson content below it. Its tail
+  // lands over grandpa's head in every placement.
+  //
+  // The border token is stone-500 in both themes (owner-approved
+  // contrast fix, 2026-10-27): the old stone-200 on the light page
+  // background measured ≈1.2:1 and stone-700 on the dark background
+  // ≈1.9:1 — both under the WCAG 1.4.11 3:1 non-text threshold for
+  // identifying the button. Stone-500 (#78716c) is the closest stone
+  // token that clears it in both themes: 4.59:1 against the light
+  // stone-50 background (stone-400 reaches only 2.41:1) and 4.12:1
+  // against the dark stone-950 background (stone-600 only 2.59:1).
+  // The tail follows the same token so it stays visually coherent.
   const cloudPos =
-    variant === 'fixed' ? 'relative mb-1 w-full' : 'absolute bottom-full left-0 mb-2 w-full';
-  const tailPos = variant === 'fixed' ? 'right-[52px] max-[480px]:right-10' : 'left-[104px]';
+    variant === 'dock' ? 'absolute bottom-full left-0 mb-2 w-full' : 'relative mb-1 w-full';
+  const tailPos =
+    variant === 'dock' ? 'left-[104px]' : 'right-[52px] max-[480px]:right-10';
   const tail = (
     <span
       aria-hidden="true"
-      className={`absolute -bottom-[5px] ${tailPos} h-3 w-3 rotate-45 border-b border-r border-stone-200 bg-white dark:border-stone-700 dark:bg-stone-900`}
+      className={`absolute -bottom-[5px] ${tailPos} h-3 w-3 rotate-45 border-b border-r border-stone-500 bg-white dark:bg-stone-900`}
     />
   );
 
@@ -287,7 +219,7 @@ function BenchCore({
           whileHover={reduceMotion ? undefined : { y: -2 }}
           whileTap={reduceMotion ? undefined : { scale: 0.98 }}
           transition={{ type: 'spring', stiffness: 480, damping: 30 }}
-          className={`pointer-events-auto ${cloudPos} rounded-2xl border border-stone-200 bg-white px-3.5 py-2.5 text-left shadow-[0_10px_30px_rgb(28_25_23/0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-stone-700 dark:bg-stone-900`}
+          className={`${cloudPos} rounded-2xl border border-stone-500 bg-white px-3.5 py-2.5 text-left shadow-[0_10px_30px_rgb(28_25_23/0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:bg-stone-900`}
         >
           <span className="block text-[13px] font-semibold leading-snug text-stone-800 dark:text-stone-100">
             {ASK_LINE}
@@ -305,7 +237,7 @@ function BenchCore({
           initial={reduceMotion ? false : { opacity: 0, y: 6, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 480, damping: 30 }}
-          className={`pointer-events-auto ${cloudPos} rounded-2xl border border-stone-200 bg-white px-3.5 py-3 shadow-[0_10px_30px_rgb(28_25_23/0.16)] dark:border-stone-700 dark:bg-stone-900`}
+          className={`${cloudPos} rounded-2xl border border-stone-500 bg-white px-3.5 py-3 shadow-[0_10px_30px_rgb(28_25_23/0.16)] dark:bg-stone-900`}
         >
           <p className="text-[13px] font-semibold leading-snug text-stone-800 dark:text-stone-100">
             {CONFIRM_TITLE}
@@ -350,7 +282,7 @@ function BenchCore({
       }}
       aria-disabled={!seated || pacing || undefined}
       aria-label="Buy Grandpa a coffee on Ko-fi"
-      className="pointer-events-auto w-[168px] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 max-[480px]:w-[128px]"
+      className="w-[168px] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 max-[480px]:w-[128px]"
     >
       <FlatGrandpa
         onSeated={() => setSeated(true)}
@@ -370,10 +302,27 @@ function BenchCore({
     );
   }
 
+  if (variant === 'sidebar') {
+    return (
+      // The min-height reserves the maximum (confirm-state) scene
+      // height from first paint — measured from the rendered component
+      // (see EVIDENCE_LOG.md, 2026-10-27 entry) — so the sidebar nav
+      // region never resizes during walk-in, seating, cloud
+      // appearance, or the ask→confirm swap.
+      <div
+        data-testid="kofi-bench-scene"
+        className="relative flex min-h-[256px] w-[212px] flex-col items-start"
+      >
+        {clouds}
+        {figureButton}
+      </div>
+    );
+  }
+
   return (
     <div
       data-testid="kofi-bench-scene"
-      className={`pointer-events-none fixed bottom-24 left-4 z-40 flex w-[212px] flex-col items-end sm:left-5 max-[480px]:w-[196px] ${yielded ? 'hidden' : ''}`}
+      className="relative flex w-[212px] max-w-full flex-col items-start max-[480px]:w-[196px]"
     >
       {clouds}
       {figureButton}
@@ -381,39 +330,24 @@ function BenchCore({
   );
 }
 
-/** The fixed bench on its own (non-lesson routes mount the Gate). */
-export function KofiBench() {
-  return <BenchCore variant="fixed" />;
+/** The desktop sidebar footer bench (Layout mounts it in the aside). */
+export function KofiBenchSidebar() {
+  return <BenchCore variant="sidebar" />;
 }
 
 /**
- * The app-shell mount: route-aware placement per the panel plan.
- * Lesson routes render nothing here — LessonPage docks the bench
- * in-flow at the end of the lesson instead. On the home route the
- * mobile deferral applies; everywhere else the fixed bench is
- * immediate.
+ * IntersectionObserver-gated in-flow mount, shared by the two
+ * below-desktop placements: the figure mounts only when the mount
+ * scrolls into view, so the walk-in plays for the reader who actually
+ * arrives there and never off-screen. A placeholder holds the space
+ * until then.
  */
-export function KofiBenchGate() {
-  const { pathname } = useLocation();
-  if (pathname.startsWith('/lesson/')) return null;
-  return <BenchCore variant="fixed" deferUntilCtaGone={pathname === '/'} />;
-}
-
-/**
- * The lesson-page dock: the same bench in-flow at the end of a lesson.
- * The figure mounts only when the dock scrolls into view, so the
- * walk-in plays for the reader who actually arrives at the end of the
- * lesson — the gratitude moment — and never off-screen. A same-size
- * placeholder holds the space until then (the cloud is absolutely
- * positioned, so nothing below the dock ever shifts).
- */
-export function KofiBenchDock() {
-  const kofiUrl = import.meta.env.VITE_KOFI_URL?.trim();
+function useInViewGate(enabled: boolean) {
   const [inView, setInView] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!kofiUrl || inView) return;
+    if (!enabled || inView) return;
     const el = ref.current;
     if (!el) return;
     if (typeof IntersectionObserver === 'undefined') {
@@ -431,9 +365,52 @@ export function KofiBenchDock() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [kofiUrl, inView]);
+  }, [enabled, inView]);
+
+  return { ref, inView };
+}
+
+/**
+ * The below-desktop card: the same bench in-flow at the end of <main>
+ * on non-lesson routes (Layout mounts it only when <1024px and the
+ * route is not a lesson). In-flow by construction — it can never
+ * overlay the content above it the way the retired fixed bench did.
+ */
+export function KofiBenchCard() {
+  const kofiUrl = import.meta.env.VITE_KOFI_URL?.trim();
+  const { ref, inView } = useInViewGate(Boolean(kofiUrl));
 
   if (!kofiUrl) return null;
+
+  return (
+    <div ref={ref} data-testid="kofi-bench-card" className="mt-10 flex justify-start">
+      {inView ? (
+        <BenchCore variant="card" />
+      ) : (
+        <div aria-hidden="true" className="h-[212px] w-[212px] max-w-full max-[480px]:w-[196px]" />
+      )}
+    </div>
+  );
+}
+
+/**
+ * The lesson-page dock: the same bench in-flow at the end of a lesson.
+ * The figure mounts only when the dock scrolls into view, so the
+ * walk-in plays for the reader who actually arrives at the end of the
+ * lesson — the gratitude moment — and never off-screen. A same-size
+ * placeholder holds the space until then (the cloud is absolutely
+ * positioned, so nothing below the dock ever shifts).
+ *
+ * At ≥1024px the dock JS-unmounts (returns null on the shared desktop
+ * query — the same gating pattern as its missing-URL case): the
+ * sidebar bench is the lesson's only grandpa on desktop.
+ */
+export function KofiBenchDock() {
+  const kofiUrl = import.meta.env.VITE_KOFI_URL?.trim();
+  const isDesktop = useIsDesktop();
+  const { ref, inView } = useInViewGate(Boolean(kofiUrl) && !isDesktop);
+
+  if (!kofiUrl || isDesktop) return null;
 
   return (
     // The tall top margin is the cloud's airspace: the cloud hangs
