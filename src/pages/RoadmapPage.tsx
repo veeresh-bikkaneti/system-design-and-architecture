@@ -171,7 +171,7 @@ export function RoadmapPage() {
     <div className="mx-auto max-w-5xl">
       <Seo
         title="Roadmap | System Design Mastery"
-        description="The complete system design learning path: 39 lessons from beginner to advanced, in syllabus order."
+        description="The complete system design learning path: 41 lessons from beginner to advanced, in syllabus order."
         path="/roadmap"
         image="roadmap"
       />
