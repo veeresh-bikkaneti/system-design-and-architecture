@@ -13,9 +13,41 @@ import {
 } from './auth';
 import { sha256Hex } from './crypto';
 import { exchangeGitHubCode } from './github-oauth';
+import {
+  handleQaAuthCallback,
+  handleQaAuthLogout,
+  handleQaAuthStart,
+  handleQaAuthStatus,
+} from './qa/oauth';
+import { cleanupExpiredQaData } from './qa/retention';
+import {
+  handleQaChat,
+  handleQaDeleteSession,
+  handleQaQuota,
+  qaCorsHeaders,
+} from './qa/routes';
 
 export interface Env {
   DB: D1Database;
+  // Course Q&A tutor ("Veer") database -- a SEPARATE D1 from the cert DB
+  // above (ADR 0003): the QA experiment can be dropped, re-migrated or
+  // backed up without ever touching exam/auth data. All qa_* tables live
+  // here (migrations 0005-0007 are applied to this database only).
+  DB_QA: D1Database;
+  // Self-hosted tutor model (llama.cpp server, OpenAI-compatible). Set in
+  // wrangler [vars]; when unset, createQaModel() returns null and
+  // /api/qa/chat answers AI_UNAVAILABLE instead of consuming quota.
+  MODEL_BASE_URL?: string;
+  // Shared bearer <redacted> the Worker sends to the model server. Set via
+  // `wrangler secret put MODEL_API_KEY`; must never appear in
+  // wrangler.toml or client-side code.
+  MODEL_API_KEY?: string;
+  // Model alias served by the llama.cpp server (--alias); defaults to
+  // DEFAULT_QA_MODEL_ID when unset.
+  QA_MODEL_ID?: string;
+  // Origin the QA OAuth callback page postMessages the result to (the
+  // Pages site origin). Defaults to the production Pages origin when unset.
+  PUBLIC_SITE_ORIGIN?: string;
   // Unset in local dev -- see auth.ts's sendMagicLinkEmail for what these
   // control. DEV_MODE must be set alongside RESEND_API_KEY being absent
   // for local testing to echo a magic link back instead of emailing it;
@@ -587,11 +619,19 @@ export default {
       return jsonResponse({ status: 'ok' });
     }
 
-    // Preflight for the /exam/* and /auth/* routes below -- a cross-origin
-    // POST with a JSON content-type (or, for /auth/session, an Authorization
-    // header) triggers a browser preflight before the real request.
-    if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/'))) {
-      return new Response(null, { status: 204, headers: corsHeaders(request.headers.get('Origin')) });
+    // Preflight for the /exam/*, /auth/* and /api/qa/* routes below -- a
+    // cross-origin POST with a JSON content-type (or, for /auth/session,
+    // an Authorization header) triggers a browser preflight before the
+    // real request.
+    if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/qa/'))) {
+      // Tutor routes are fetched with credentials:'include' cross-site,
+      // so their preflight must carry Access-Control-Allow-Credentials
+      // (plus the origin allowlist) or the browser blocks the real
+      // request. Exam/auth preflights are unchanged.
+      const preflightHeaders = url.pathname.startsWith('/api/qa/')
+        ? qaCorsHeaders(request.headers.get('Origin'))
+        : corsHeaders(request.headers.get('Origin'));
+      return new Response(null, { status: 204, headers: preflightHeaders });
     }
 
     if (url.pathname === '/exam/questions' && request.method === 'GET') {
@@ -629,6 +669,38 @@ export default {
       return handleExamSubmit(request, env);
     }
 
+    // Course Q&A tutor ("Veer"). The chat endpoint is login-gated (see
+    // worker/src/qa/oauth.ts); the OAuth routes below implement the
+    // GitHub sign-in flow. Lessons, /exam/*, /auth/* and /verify/* are
+    // intentionally NOT behind this -- only the tutor costs model calls.
+    if (url.pathname === '/api/qa/auth/github' && request.method === 'GET') {
+      return handleQaAuthStart(request, env);
+    }
+
+    if (url.pathname === '/api/qa/auth/github/callback' && request.method === 'GET') {
+      return handleQaAuthCallback(request, env);
+    }
+
+    if (url.pathname === '/api/qa/auth/status' && request.method === 'GET') {
+      return handleQaAuthStatus(request, env);
+    }
+
+    if (url.pathname === '/api/qa/auth/logout' && request.method === 'POST') {
+      return handleQaAuthLogout(request, env);
+    }
+
+    if (url.pathname === '/api/qa/session' && request.method === 'DELETE') {
+      return handleQaDeleteSession(request, env);
+    }
+
+    if (url.pathname === '/api/qa/chat' && request.method === 'POST') {
+      return handleQaChat(request, env);
+    }
+
+    if (url.pathname === '/api/qa/quota' && request.method === 'GET') {
+      return handleQaQuota(request, env);
+    }
+
     const verifyMatch = url.pathname.match(/^\/verify\/([A-Za-z0-9_-]+)$/);
     if (verifyMatch) {
       const id = verifyMatch[1] as string;
@@ -643,5 +715,12 @@ export default {
     }
 
     return new Response('Not found', { status: 404 });
+  },
+
+  // Daily cron (see wrangler.toml [triggers]): Veer transcript retention
+  // -- hard-delete messages + checkpoints 30 days after a user's last
+  // session expires (ADR 0003). Runs against the QA database only.
+  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(cleanupExpiredQaData(env.DB_QA));
   },
 } satisfies ExportedHandler<Env>;

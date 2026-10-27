@@ -5,6 +5,7 @@ import worker, { type Env } from './index';
 // binding is never touched; a stub is enough.
 const env = (over: Partial<Env> = {}): Env => ({
   DB: {} as D1Database,
+  DB_QA: {} as D1Database,
   GITHUB_CLIENT_ID: 'id',
   GITHUB_CLIENT_SECRET: 'secret',
   ...over,

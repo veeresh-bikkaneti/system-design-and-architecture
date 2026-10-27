@@ -105,6 +105,10 @@ jobs:
           # as repository *variables*; unset means the pasted-token fallback.
           VITE_GITHUB_CLIENT_ID: ${{ vars.VITE_GITHUB_CLIENT_ID }}
           VITE_WORKER_URL: ${{ vars.VITE_WORKER_URL }}
+          # Veer tutor API origin (Manifest 2). Public value, not a secret:
+          # the widget offers the Veer sign-in/mode only when this is set at
+          # build time; empty would hide Veer entirely (Ben-only build).
+          VITE_QA_API_BASE: https://system-design-mastery-cert.knowledgetest.workers.dev
           # Ko-fi ask (see src/components/kofi/). Public URL, set as a
           # repository *variable*; unset means the ask renders nothing.
           VITE_KOFI_URL: ${{ vars.VITE_KOFI_URL }}

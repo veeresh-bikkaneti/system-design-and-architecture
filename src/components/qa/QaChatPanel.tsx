@@ -19,13 +19,34 @@ import type { ChatTurn } from '../../ai/local/types';
 import { ChatMarkdown } from '../ChatMarkdown';
 import { CloseIcon } from './ChatWidgetIcons';
 import { useQaHistory } from './useQaHistory';
+import {
+  deleteSession,
+  getQuota,
+  isQaBackendConfigured,
+  QaApiError,
+  streamChat,
+  type QaQuota,
+  type QaStreamEvent,
+} from './qaApi';
+import { quotaLabel } from './quota';
+import { useQaAuth } from './useQaAuth';
 
 /**
- * There is no backend for the Q&A tutor: it runs entirely in the browser
+ * The default tutor (Ben) has no backend: it runs entirely in the browser
  * (see ../../ai/local/inference.ts), on any device, with no API key and no
  * server. The transcript is the browser's own memory -- useQaHistory
  * persists it to localStorage so it survives a reload.
+ *
+ * Veer (Manifest 2 port) is the opt-in escalation for signed-in students:
+ * a server-side tutor behind GitHub sign-in (./qaApi.ts), offered only
+ * when VITE_QA_API_BASE wired a backend into the build. Ben stays the
+ * default for everyone and the fallback whenever Veer is unavailable --
+ * the mode is always visible before the student sends.
  */
+
+/** Shown verbatim in Veer mode (Manifest 2; wording from ADR 0003). */
+const VEER_DISCLOSURE =
+  'Questions you ask Veer are sent to this course\'s own server and are deleted after 30 days.';
 
 const LESSON_IDS = new Set(OKF_CARDS.filter((card) => card.type === 'Lesson').map((card) => card.id));
 
@@ -121,6 +142,19 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
   const [streaming, setStreaming] = useState(false);
   const [modelStatus, setModelStatus] = useState<ModelStatus>(getModelStatus());
   const [semanticPhase, setSemanticPhase] = useState<SemanticPhase>('idle');
+  // Veer (server tutor) state. Ben is always the default mode; Veer is an
+  // opt-in escalation, reachable only when a backend is configured AND the
+  // student is signed in. Auth is probed lazily (see useQaAuth) so a
+  // Ben-only student never triggers a /api/qa/* request.
+  const backendReady = isQaBackendConfigured();
+  const auth = useQaAuth();
+  const signedIn = auth.state === 'signed-in';
+  const [mode, setMode] = useState<'ben' | 'veer'>('ben');
+  const veerActive = mode === 'veer' && signedIn;
+  const [quota, setQuota] = useState<QaQuota | null>(null);
+  const [signInHint, setSignInHint] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const veerAbortRef = useRef<AbortController | null>(null);
   // A restored transcript may already contain ids; never hand out one that collides.
   const nextId = useRef(messages.reduce((max, m) => Math.max(max, m.id + 1), 0));
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -148,6 +182,76 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
     }
   }, [messages, streaming]);
 
+  const refreshQuota = async () => {
+    try {
+      setQuota(await getQuota());
+    } catch {
+      // The badge is informational; a failed refresh must never break chat.
+    }
+  };
+
+  // Cancel any in-flight Veer stream if the panel unmounts.
+  useEffect(() => {
+    return () => {
+      veerAbortRef.current?.abort();
+    };
+  }, []);
+
+  async function handleVeerClick() {
+    if (!backendReady) return;
+    setNotice(null);
+    if (signedIn) {
+      setMode('veer');
+      setSignInHint(false);
+      void refreshQuota();
+      return;
+    }
+    // First Veer engagement: probe the session lazily (see useQaAuth) --
+    // signed-in students enter Veer mode directly; everyone else gets the
+    // sign-in affordance. Ben keeps answering meanwhile either way.
+    try {
+      const status = await auth.refresh();
+      if (status?.authenticated) {
+        setMode('veer');
+        setSignInHint(false);
+        void refreshQuota();
+      } else {
+        setSignInHint(true);
+      }
+    } catch {
+      // Backend unreachable: show the sign-in affordance anyway --
+      // attempting sign-in surfaces the real error, and Ben still works.
+      setSignInHint(true);
+    }
+  }
+
+  async function handleSignIn() {
+    setNotice(null);
+    const result = await auth.signIn();
+    if (result === 'ok') {
+      // signIn() already refreshed the hook, so the session is live:
+      // enter Veer mode straight away.
+      setMode('veer');
+      setSignInHint(false);
+      void refreshQuota();
+    } else if (result === 'blocked') {
+      setNotice('Your browser blocked the sign-in popup — allow popups for this site and try again.');
+    }
+    // 'dismissed' needs no message: the visitor simply closed the popup.
+  }
+
+  async function handleSignOut() {
+    try {
+      await auth.signOut();
+    } catch {
+      setNotice('Could not sign out. Please try again.');
+      return;
+    }
+    setMode('ben');
+    setQuota(null);
+    setSignInHint(false);
+  }
+
   function addMessage(role: QaMessage['role'], content: string, isError = false): number {
     const id = nextId.current++;
     setMessages((prev) => [...prev, { id, role, content, isError }]);
@@ -162,6 +266,7 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
     const text = input.trim().slice(0, MAX_MESSAGE_LENGTH);
     if (!text || streaming) return;
     setInput('');
+    setNotice(null);
     const history: ChatTurn[] = messages
       .filter((message) => !message.isError && message.content.length > 0)
       .map((message) => ({ role: message.role, content: message.content }));
@@ -169,6 +274,16 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
     const assistantId = addMessage('assistant', '');
 
     setStreaming(true);
+    try {
+      if (veerActive) await answerByVeer(text, history, assistantId);
+      else await answerWithBen(text, history, assistantId);
+    } finally {
+      setStreaming(false);
+    }
+  }
+
+  /** Ben's turn, exactly as before the port: semantic routing, keyword fallback. */
+  async function answerWithBen(text: string, history: ChatTurn[], assistantId: number) {
     try {
       const semantic = await semanticWithin(SEMANTIC_WAIT_MS);
       if (semantic) await answerByMeaning(semantic, text, history, assistantId);
@@ -178,8 +293,95 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
         content: 'I could not reach a source just now, so I will not guess.',
         confidence: { level: 'low', label: 'Low confidence · the source check failed' },
       });
+    }
+  }
+
+  /**
+   * Veer's turn: stream the server tutor into the assistant bubble. The
+   * Worker owns its memory, so only the new message crosses the wire.
+   *
+   * Failure semantics (Manifest 2 / U3): an AI_UNAVAILABLE error -- or the
+   * Worker being unreachable before any token streamed -- never dead-ends
+   * the student. The panel drops back to Ben mode and Ben answers the same
+   * question in the same session, no re-auth, no reload.
+   */
+  async function answerByVeer(text: string, history: ChatTurn[], assistantId: number) {
+    const controller = new AbortController();
+    veerAbortRef.current = controller;
+    let sawContent = false;
+    let unavailable = false;
+
+    const onEvent = (event: QaStreamEvent) => {
+      switch (event.type) {
+        case 'delta':
+          sawContent = true;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + event.delta } : m)),
+          );
+          break;
+        case 'sources': {
+          const sources: BubbleSource[] = event.lessons
+            .filter((lesson) => LESSON_IDS.has(lesson.slug))
+            .map((lesson) => ({ title: lesson.title, href: lessonHref(lesson.slug) }));
+          if (sources.length > 0) patchMessage(assistantId, { sources });
+          break;
+        }
+        case 'done':
+          break;
+        case 'error':
+          if (event.code === 'AI_UNAVAILABLE' && !sawContent) {
+            unavailable = true;
+          } else if (event.code === 'UNAUTHENTICATED') {
+            // The session died server-side (expiry/revocation): re-probe
+            // auth, drop to Ben mode, and show the sign-in affordance.
+            sawContent = true;
+            patchMessage(assistantId, { content: event.message, isError: true });
+            setMode('ben');
+            setSignInHint(true);
+            void auth.refresh().catch(() => {});
+          } else {
+            sawContent = true;
+            patchMessage(assistantId, { content: event.message, isError: true });
+          }
+          break;
+      }
+    };
+
+    try {
+      await streamChat({ message: text, signal: controller.signal, onEvent });
+      if (!unavailable && !sawContent) {
+        // A well-behaved stream ends with `done`; an empty stream with no
+        // content and no error must not leave a hanging bubble.
+        patchMessage(assistantId, {
+          content: 'The assistant returned an empty response. Please try again.',
+          isError: true,
+        });
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return; // Aborted by "New topic" or unmount; transcript was cleared.
+      }
+      if (!sawContent) {
+        // Worker unreachable before any token arrived: same as unavailable.
+        unavailable = true;
+      } else {
+        const message =
+          err instanceof QaApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : 'Something went wrong.';
+        patchMessage(assistantId, { content: message, isError: true });
+      }
     } finally {
-      setStreaming(false);
+      veerAbortRef.current = null;
+    }
+
+    void refreshQuota();
+    if (unavailable) {
+      setMode('ben');
+      setNotice('Veer is unavailable right now, so Ben answered instead.');
+      await answerWithBen(text, history, assistantId);
     }
   }
 
@@ -260,7 +462,12 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
 
   function handleNewTopic() {
     if (streaming) return;
+    veerAbortRef.current?.abort();
+    // Veer's memory lives server-side (per signed-in user); a new topic
+    // wipes it too. Best-effort -- the local transcript clears regardless.
+    if (signedIn) void deleteSession().catch(() => {});
     setMessages([]);
+    setNotice(null);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -284,16 +491,18 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                Ask Ben
+                {veerActive ? 'Ask Veer' : 'Ask Ben'}
               </h2>
               <p className="truncate text-xs text-stone-500 dark:text-stone-400">
-                {semanticPhase === 'loading'
-                  ? 'Getting ready · reading the lessons'
-                  : modelStatus.phase === 'loading'
-                    ? `Loading ${MODEL_LABEL} · ${modelStatus.progress}%`
-                    : modelStatus.phase === 'ready'
-                      ? modelStatus.detail
-                      : 'Runs in your browser · no API key'}
+                {veerActive
+                  ? `Deeper answers from the course server${auth.login ? ` · signed in as ${auth.login}` : ''}`
+                  : semanticPhase === 'loading'
+                    ? 'Getting ready · reading the lessons'
+                    : modelStatus.phase === 'loading'
+                      ? `Loading ${MODEL_LABEL} · ${modelStatus.progress}%`
+                      : modelStatus.phase === 'ready'
+                        ? modelStatus.detail
+                        : 'Runs in your browser · no API key'}
               </p>
             </div>
             <div className="flex items-center gap-1">
@@ -317,6 +526,94 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
               </button>
             </div>
           </div>
+          {backendReady && (
+            <div className="flex items-center gap-2 border-b border-stone-200/80 px-4 py-2 dark:border-stone-800">
+              <div
+                role="group"
+                aria-label="Choose your tutor"
+                className="flex shrink-0 overflow-hidden rounded-full border border-stone-300 dark:border-stone-700"
+              >
+                <button
+                  type="button"
+                  aria-label="Ask Ben"
+                  aria-pressed={!veerActive}
+                  onClick={() => {
+                    setMode('ben');
+                    setSignInHint(false);
+                  }}
+                  className={`px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 ${
+                    !veerActive
+                      ? 'bg-amber-700 text-white'
+                      : 'bg-white text-stone-600 hover:bg-stone-100 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700'
+                  }`}
+                >
+                  Ben
+                </button>
+                <button
+                  type="button"
+                  aria-label="Ask Veer"
+                  aria-pressed={veerActive}
+                  onClick={() => void handleVeerClick()}
+                  className={`px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 ${
+                    veerActive
+                      ? 'bg-amber-700 text-white'
+                      : 'bg-white text-stone-600 hover:bg-stone-100 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700'
+                  }`}
+                >
+                  Veer
+                </button>
+              </div>
+              <span className="min-w-0 flex-1 truncate text-[11px] text-stone-500 dark:text-stone-400">
+                {veerActive ? 'Deeper answers · course server' : 'On-device · private by default'}
+              </span>
+              {signedIn && quotaLabel(quota) && (
+                <span className="shrink-0 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                  {quotaLabel(quota)}
+                </span>
+              )}
+              {signedIn && (
+                <button
+                  type="button"
+                  onClick={() => void handleSignOut()}
+                  className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium text-stone-500 transition-colors hover:bg-stone-200/60 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                >
+                  Sign out
+                </button>
+              )}
+            </div>
+          )}
+          {backendReady && signInHint && !signedIn && (
+            <div className="border-b border-stone-200/80 bg-amber-50/40 px-4 py-2.5 dark:border-stone-800 dark:bg-stone-900">
+              <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-300">
+                Veer gives deeper, cited answers and remembers you across devices. Ben keeps
+                answering here either way.
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
+                {VEER_DISCLOSURE}
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleSignIn()}
+                disabled={auth.busy}
+                className="mt-2 rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50"
+              >
+                Sign in with GitHub to ask Veer
+              </button>
+            </div>
+          )}
+          {veerActive && (
+            <p className="border-b border-stone-200/80 bg-amber-50/40 px-4 py-1.5 text-[11px] text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300">
+              {VEER_DISCLOSURE}
+            </p>
+          )}
+          {notice && (
+            <p
+              role="status"
+              className="border-b border-stone-200/80 px-4 py-1.5 text-[11px] font-medium text-stone-600 dark:border-stone-800 dark:text-stone-300"
+            >
+              {notice}
+            </p>
+          )}
           {focusTitle && (
             <p className="border-b border-stone-200/80 bg-amber-50/40 px-4 py-1.5 text-[11px] text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300">
               This page: {focusTitle}

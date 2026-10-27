@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "predev": "node scripts/seo/generate-manifest.mjs && node scripts/ben/build-index.mjs --optional",
-    "prebuild": "node scripts/seo/generate-manifest.mjs && node scripts/seo/generate-sitemap.mjs && node scripts/seo/generate-feed.mjs && node scripts/seo/generate-llms-txt.mjs && node scripts/seo/generate-og-images.mjs && node scripts/ben/build-index.mjs",
+    "prebuild": "node scripts/seo/generate-manifest.mjs && node scripts/seo/generate-sitemap.mjs && node scripts/seo/generate-feed.mjs && node scripts/seo/generate-llms-txt.mjs && node scripts/seo/generate-og-images.mjs && node scripts/ben/build-index.mjs && node scripts/qa/build-index.mjs",
+    "qa:index": "node scripts/qa/build-index.mjs",
     "build": "tsc -b && vite build && node scripts/seo/prerender.mjs && node scripts/seo/check-snapshot-budget.mjs",
     "seo:budget": "node scripts/seo/check-snapshot-budget.mjs",
     "content:check": "python3 scripts/check_mdx_h1.py",

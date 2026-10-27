@@ -9,3 +9,47 @@ compatibility_date = "2026-09-10"
 binding = "DB"
 database_name = "system-design-mastery-cert"
 database_id = "6acf5d45-a6f1-47c9-a641-d15d5af36427"
+
+# Course Q&A tutor ("Veer") database -- a SEPARATE D1 from the cert DB
+# above (ADR 0003): migrations 0005-0007 belong to this database only and
+# are never applied to the cert DB. Migration 0004 is the exception: its
+# generic rate_limit_counters table is shared machinery (qaThrottleByIp
+# increments it through the DB_QA binding), so 0004 is applied to BOTH
+# databases; 0001-0003 remain cert-only.
+# Created in the owner's Cloudflare account on 2026-10-26 (Manifest 1).
+[[d1_databases]]
+binding = "DB_QA"
+database_name = "system-design-mastery-qa"
+database_id = "96e80933-ace5-4b98-88b5-5fa75a55353c"
+
+# Self-hosted tutor model ("Veer"): a llama.cpp server on the owner's own
+# machine, OpenAI-compatible. The Worker calls it over HTTPS -- no
+# Cloudflare AI binding, no third-party AI subscription.
+# The server must NOT be open to the internet: restrict it to Cloudflare's
+# IP ranges or hide it behind a Cloudflare Tunnel, and require the bearer
+# token below.
+[vars]
+# Origin of the OpenAI-compatible model API, e.g.
+# https://llm.example.com/v1  (or the Cloudflare Tunnel hostname + /v1).
+# Empty until the model server exists; /api/qa/chat answers
+# AI_UNAVAILABLE while unset.
+MODEL_BASE_URL = ""
+# Alias served by the llama.cpp server (--alias). The shared bearer <redacted>
+# is never in this file -- set it with: wrangler secret put MODEL_API_KEY
+QA_MODEL_ID = "veer-tutor"
+# Public GitHub OAuth App client id for the tutor sign-in flow.
+# MANIFEST 2 fills this in: the OAuth App does not exist yet (owner
+# creates it at the Manifest 2 stage). Until then this stays commented
+# out and the QA sign-in flow reports itself unconfigured. The client
+# SECRET is never in this file -- set it with:
+# wrangler secret put GITHUB_CLIENT_SECRET
+# GITHUB_CLIENT_ID = ""
+# Origin the OAuth callback page postMessages the sign-in result to (the
+# widget opens the flow in a popup and listens for it). Must exactly match
+# the site origin or the widget will ignore the message.
+PUBLIC_SITE_ORIGIN = "https://veeresh-bikkaneti.github.io"
+
+# Daily: Veer transcript retention sweep (30-day hard delete after
+# session expiry -- ADR 0003), handled by the Worker's scheduled handler.
+[triggers]
+crons = ["17 3 * * *"]
