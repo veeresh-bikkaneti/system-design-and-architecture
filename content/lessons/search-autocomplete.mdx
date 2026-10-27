@@ -173,41 +173,7 @@ you afford a million of them a second at peak. The research-grade version of thi
 into a succinct index so it fits in memory at web scale — is Bast & Weber's SIGIR 2006
 paper — the succinct-index approach to autocomplete search. ✅
 
-<StepThrough
-  title="Three ways to answer 'what starts with desi?'"
-  nodes={[
-    { id: "scan", label: "Scan all queries", x: 80, y: 150, w: 130 },
-    { id: "hash", label: "Hash map of prefixes", x: 240, y: 150, w: 150 },
-    { id: "trie", label: "Trie + precomputed top-k", x: 400, y: 150, w: 160 },
-  ]}
-  edges={[
-    { from: "scan", to: "hash" },
-    { from: "hash", to: "trie" },
-  ]}
-  steps={[
-    {
-      title: "Strategy 1: keep a sorted list, scan or binary-search it",
-      caption: "Store all 2 billion queries sorted; a prefix lookup binary-searches to the first match — then reads forward collecting candidates and ranking them on the spot. The search is fast, but every request pays for ranking work, and the hottest prefixes re-pay it up to a million times a second at peak. Ranking at read time is the cost we're trying to delete.",
-      highlight: ["scan"],
-    },
-    {
-      title: "Strategy 2: hash map from prefix to suggestion list",
-      caption: "Precompute a list for every prefix and store them in a giant hash map. Reads are one lookup — but ~30 billion distinct prefixes means the map is astronomically larger than the corpus, and most entries are never asked for. You precomputed answers to questions nobody poses.",
-      highlight: ["hash"],
-    },
-    {
-      title: "Strategy 3: trie with top-k stored at each node",
-      caption: "Prefixes share paths, so the structure stores each distinct prefix once; each node carries its own precomputed top-10. Serving = descend the prefix, read the list. Memory stays in the tens of GB, reads are memory-speed, and ranking cost is paid once per rebuild, not once per keystroke. This is the design.",
-      highlight: ["trie"],
-    },
-    {
-      title: "What the interviewer wants to hear",
-      caption: "Name the naive options and kill them with arithmetic: per-request ranking fails the latency budget at ~10^6 lookups/sec at peak; the all-prefixes hash map fails the memory budget at ~30 billion keys. The trie is what's left standing — and precomputing top-k at the node is the move that makes it a product instead of a data structure.",
-      highlight: ["scan", "hash", "trie"],
-    },
-  ]}
->
-</StepThrough>
+<StepThrough title="Three ways to answer 'what starts with desi?'" nodes={[ { id: "scan", label: "Scan all queries", x: 80, y: 150, w: 130 }, { id: "hash", label: "Hash map of prefixes", x: 240, y: 150, w: 150 }, { id: "trie", label: "Trie + precomputed top-k", x: 400, y: 150, w: 160 }, ]} edges={[ { from: "scan", to: "hash" }, { from: "hash", to: "trie" }, ]} steps={[ { title: "Strategy 1: keep a sorted list, scan or binary-search it", caption: "Store all 2 billion queries sorted; a prefix lookup binary-searches to the first match — then reads forward collecting candidates and ranking them on the spot. The search is fast, but every request pays for ranking work, and the hottest prefixes re-pay it up to a million times a second at peak. Ranking at read time is the cost we're trying to delete.", highlight: ["scan"], }, { title: "Strategy 2: hash map from prefix to suggestion list", caption: "Precompute a list for every prefix and store them in a giant hash map. Reads are one lookup — but ~30 billion distinct prefixes means the map is astronomically larger than the corpus, and most entries are never asked for. You precomputed answers to questions nobody poses.", highlight: ["hash"], }, { title: "Strategy 3: trie with top-k stored at each node", caption: "Prefixes share paths, so the structure stores each distinct prefix once; each node carries its own precomputed top-10. Serving = descend the prefix, read the list. Memory stays in the tens of GB, reads are memory-speed, and ranking cost is paid once per rebuild, not once per keystroke. This is the design.", highlight: ["trie"], }, { title: "What the interviewer wants to hear", caption: "Name the naive options and kill them with arithmetic: per-request ranking fails the latency budget at ~10^6 lookups/sec at peak; the all-prefixes hash map fails the memory budget at ~30 billion keys. The trie is what's left standing — and precomputing top-k at the node is the move that makes it a product instead of a data structure.", highlight: ["scan", "hash", "trie"], }, ]} />
 
 A pocket-sized piece of the trie, for three queries that start alike:
 
