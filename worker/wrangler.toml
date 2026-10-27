@@ -2,13 +2,13 @@ name = "system-design-mastery-cert"
 main = "src/index.ts"
 compatibility_date = "2026-09-10"
 
-# Created in the Cloudflare account on 2026-10-05 (name below). The id is an
-# identifier, not a secret. Migrations are applied by the "Deploy Worker"
-# workflow (or `npm run db:migrate:remote`), never by hand.
+# Created in the owner's Cloudflare account on 2026-10-27 (name below). The
+# id is an identifier, not a secret. Migrations are applied by the "Deploy
+# Worker" workflow (or `npm run db:migrate:remote`), never by hand.
 [[d1_databases]]
 binding = "DB"
 database_name = "system-design-mastery-cert"
-database_id = "6acf5d45-a6f1-47c9-a641-d15d5af36427"
+database_id = "b96fa640-5a95-4d40-8989-4505ff95b04a"
 
 # Course Q&A tutor ("Veer") database -- a SEPARATE D1 from the cert DB
 # above (ADR 0003): migrations 0005-0007 belong to this database only and
