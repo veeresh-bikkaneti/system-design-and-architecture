@@ -15,7 +15,7 @@ export const OKF_CARDS: OkfCard[] = [
     title: "Open Knowledge Format (OKF)",
     tags: ["okf", "frontmatter", "markdown", "context", "knowledge"],
     summary: "Vendor-neutral markdown plus YAML frontmatter for agent context.",
-    body: "Open Knowledge Format (OKF) is a vendor-neutral way to store the context an agent needs: a folder of markdown files with YAML frontmatter. The only required field is a non-empty type. Title, description, tags, and links are recommended. There is no SDK, account, or database. A human can read a file; a model can be given just the few cards that match a question. This tutor's coursework lives as OKF cards (type Lesson or Guide). Retrieval picks two or three cards so the small model sees a clean slice, not all 39 lessons.",
+    body: "Open Knowledge Format (OKF) is a vendor-neutral way to store the context an agent needs: a folder of markdown files with YAML frontmatter. The only required field is a non-empty type. Title, description, tags, and links are recommended. There is no SDK, account, or database. A human can read a file; a model can be given just the few cards that match a question. This tutor's coursework lives as OKF cards (type Lesson or Guide). Retrieval picks two or three cards so the small model sees a clean slice, not all 41 lessons.",
   },
   {
     id: "langchain-tool-calling",
@@ -135,9 +135,27 @@ export const OKF_CARDS: OkfCard[] = [
     body: "A URL shortener maps a short key to a long URL. Generate a unique id (database sequence or a hash of the URL) and encode it in base62 so the key is short. Reads dominate writes by orders of magnitude, so cache the mapping at the edge and in Redis. The redirect path must be fast and highly available; the create path can be slower. Estimate storage: keys are tiny, but you still plan for billions of rows and a retention policy. Rate-limit creates so one client cannot fill the keyspace. Analytics (click counts) should be async so the redirect never waits on a write.",
   },
   {
-    id: "idempotency",
+    id: "search-autocomplete",
     type: "Lesson",
     order: 12,
+    title: "Design Search Autocomplete",
+    tags: ["autocomplete", "typeahead", "trie", "top-k", "sharding", "interview"],
+    summary: "A trie with precomputed top-k answers, sharded and cached.",
+    body: "Autocomplete returns the ten most likely completions for a typed prefix on every keystroke. At 5 billion searches a day that is roughly 500,000 lookups a second on average, a million at peak, each due in tens of milliseconds, so there is no time to rank at request time. A trie (a tree where each step down adds one character) stores a precomputed top-10 list at every node; serving is a walk down the prefix plus one small list read. The corpus of about 2 billion queries (~80 GB) is sharded by opening characters, hot prefixes are replicated and cached at the edge (about 35 MB holds the top 100,000 lists), the client debounces keystrokes, and every response carries a sequence tag so a stale answer never overwrites a fresher one.",
+  },
+  {
+    id: "autocomplete-freshness-safety",
+    type: "Lesson",
+    order: 13,
+    title: "Keeping Autocomplete Fresh and Safe",
+    tags: ["autocomplete", "stream processing", "count-min sketch", "freshness", "policy gate", "interview"],
+    summary: "The counting pipeline, freshness overlay, and policy gate behind the dropdown.",
+    body: "Suggestions are learned, not authored. Every executed search is appended to a query log; a batch branch aggregates daily counts with decay (recent days weigh more, so old hits cannot outrank this morning's news), screens them against policy, and builds a versioned trie snapshot that serving nodes swap atomically, so a bad build rolls back by flipping a pointer, canary shards first. A stream branch counts the last few hours approximately (count-min sketch: collisions only push estimates up) into a freshness overlay scored by rate versus the query's own baseline, merged at read time so breaking stories appear in minutes. Popularity alone is not safe: in December 2016 Google's dropdown surfaced 'are women evil?' from faithfully counted real searches, so screening, overlay checks, and a human kill switch gate every layer.",
+  },
+  {
+    id: "idempotency",
+    type: "Lesson",
+    order: 14,
     title: "Idempotency: Making Retries Safe",
     tags: ["idempotency", "retry", "idempotency key", "exactly once"],
     summary: "Retries must not double-charge.",
@@ -146,7 +164,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "authn-authz",
     type: "Lesson",
-    order: 13,
+    order: 15,
     title: "AuthN and AuthZ",
     tags: ["auth", "authentication", "authorization", "jwt", "oauth", "session", "password"],
     summary: "Who you are, and what you may do.",
@@ -155,7 +173,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "caching-strategies",
     type: "Lesson",
-    order: 14,
+    order: 16,
     title: "Caching Strategies",
     tags: ["cache", "cache-aside", "write-through", "write-behind", "ttl", "stampede"],
     summary: "How data gets into a cache and how it goes stale.",
@@ -164,7 +182,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "cdns",
     type: "Lesson",
-    order: 15,
+    order: 17,
     title: "Content Delivery Networks",
     tags: ["cdn", "edge", "pop", "ttl", "purge", "origin"],
     summary: "Put bytes near the user.",
@@ -173,7 +191,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "cloud-native-architecture",
     type: "Lesson",
-    order: 16,
+    order: 18,
     title: "Cloud-Native Architecture",
     tags: ["cloud", "kubernetes", "serverless", "12-factor", "region", "az"],
     summary: "Building on someone else's computers.",
@@ -182,7 +200,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "message-queues",
     type: "Lesson",
-    order: 17,
+    order: 19,
     title: "Message Queues",
     tags: ["queue", "kafka", "rabbitmq", "sqs", "backpressure", "delivery"],
     summary: "Decouple producers from consumers.",
@@ -191,7 +209,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "api-gateways",
     type: "Lesson",
-    order: 18,
+    order: 20,
     title: "API Gateways",
     tags: ["api gateway", "reverse proxy", "routing", "rate limit"],
     summary: "The front door in front of many services.",
@@ -200,7 +218,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "bff-backend-for-frontend",
     type: "Lesson",
-    order: 19,
+    order: 21,
     title: "BFF: One API Per Client",
     tags: ["bff", "backend for frontend", "mobile", "aggregation"],
     summary: "A backend shaped for one kind of client.",
@@ -209,7 +227,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "replication-consistency-models",
     type: "Lesson",
-    order: 20,
+    order: 22,
     title: "Replication and Consistency Models",
     tags: ["replication", "quorum", "leader", "eventual", "linearizability", "async"],
     summary: "How copies stay in sync, and what clients observe.",
@@ -218,7 +236,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "rate-limiting",
     type: "Lesson",
-    order: 21,
+    order: 23,
     title: "Rate Limiting",
     tags: ["rate limit", "token bucket", "leaky bucket", "sliding window", "redis"],
     summary: "Stop one client from ruining the day.",
@@ -227,7 +245,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "microservices-vs-monolith",
     type: "Lesson",
-    order: 22,
+    order: 24,
     title: "Microservices vs Monolith",
     tags: ["monolith", "microservice", "modular monolith", "distributed monolith"],
     summary: "When splitting services pays off.",
@@ -236,7 +254,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "microservices-patterns-pitfalls",
     type: "Lesson",
-    order: 23,
+    order: 25,
     title: "Microservices Patterns and Pitfalls",
     tags: ["distributed monolith", "shared database", "temporal coupling", "chatty"],
     summary: "How microservices turn back into one system.",
@@ -245,7 +263,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "resilience-patterns",
     type: "Lesson",
-    order: 24,
+    order: 26,
     title: "Resilience Patterns",
     tags: ["timeout", "retry", "backoff", "circuit breaker", "bulkhead", "jitter"],
     summary: "Stop one slow dependency from taking everything down.",
@@ -254,7 +272,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "stream-vs-batch",
     type: "Lesson",
-    order: 25,
+    order: 27,
     title: "Stream vs Batch",
     tags: ["stream", "batch", "lambda", "kappa", "kafka"],
     summary: "Processing data that never stops, or data that can wait.",
@@ -263,7 +281,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "consensus-raft",
     type: "Lesson",
-    order: 26,
+    order: 28,
     title: "Consensus with Raft",
     tags: ["raft", "consensus", "leader election", "quorum", "log"],
     summary: "How unreliable machines agree on one log.",
@@ -272,7 +290,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "sharding-strategies",
     type: "Lesson",
-    order: 27,
+    order: 29,
     title: "Sharding Strategies",
     tags: ["sharding", "consistent hashing", "range", "directory", "virtual node"],
     summary: "Hash, range, and directory splits, and the cost of moving.",
@@ -281,7 +299,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "distributed-transactions",
     type: "Lesson",
-    order: 28,
+    order: 30,
     title: "Distributed Transactions",
     tags: ["2pc", "saga", "outbox", "transaction", "atomicity"],
     summary: "Atomicity across machines, and why it hurts.",
@@ -290,7 +308,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "observability",
     type: "Lesson",
-    order: 29,
+    order: 31,
     title: "Observability for Distributed Systems",
     tags: ["metrics", "logs", "traces", "sli", "slo", "red", "use", "cardinality"],
     summary: "Metrics, logs, and traces that answer a real question.",
@@ -299,7 +317,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "domain-driven-design",
     type: "Lesson",
-    order: 30,
+    order: 32,
     title: "Domain-Driven Design",
     tags: ["ddd", "bounded context", "aggregate", "ubiquitous language", "domain event", "outbox"],
     summary: "Model the business the way the business talks.",
@@ -308,7 +326,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "anti-corruption-layer",
     type: "Lesson",
-    order: 31,
+    order: 33,
     title: "Anti-Corruption Layer",
     tags: ["acl", "anti-corruption", "adapter", "strangler", "legacy"],
     summary: "A translation boundary so a messy outside world stays outside.",
@@ -317,7 +335,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "design-instagram",
     type: "Lesson",
-    order: 32,
+    order: 34,
     title: "Design Instagram",
     tags: ["instagram", "feed", "fan-out", "cdn", "upload", "news feed"],
     summary: "Uploads, metadata, CDNs, and the feed fan-out.",
@@ -326,7 +344,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "designing-ai-systems",
     type: "Lesson",
-    order: 33,
+    order: 35,
     title: "Designing AI Systems",
     tags: ["rag", "agent", "inference", "vector", "kv-cache", "quantization", "eval", "fine-tune"],
     summary: "RAG, agents, and the cost of inference.",
@@ -335,7 +353,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "agentic-ai-patterns",
     type: "Lesson",
-    order: 34,
+    order: 36,
     title: "Agentic AI Patterns",
     tags: ["agent", "multi-agent", "orchestration", "prompt injection", "tool"],
     summary: "Why multi-agent demos fail in production.",
@@ -344,7 +362,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "event-sourcing-cqrs",
     type: "Lesson",
-    order: 35,
+    order: 37,
     title: "Event Sourcing and CQRS",
     tags: ["event sourcing", "cqrs", "projection", "snapshot", "append-only"],
     summary: "Store the history, project the present.",
@@ -353,7 +371,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "designing-chat-at-scale",
     type: "Lesson",
-    order: 36,
+    order: 38,
     title: "Designing Chat at Scale",
     tags: ["chat", "websocket", "presence", "fan-out", "e2ee", "ordering"],
     summary: "Messaging like WhatsApp: connections, order, receipts.",
@@ -362,7 +380,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "graphql-vs-rest",
     type: "Lesson",
-    order: 37,
+    order: 39,
     title: "GraphQL vs REST",
     tags: ["graphql", "rest", "overfetch", "n+1", "caching", "versioning"],
     summary: "Fixed resources versus a query language.",
@@ -371,7 +389,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "multi-region-active-active",
     type: "Lesson",
-    order: 38,
+    order: 40,
     title: "Multi-Region Active-Active",
     tags: ["multi-region", "rpo", "rto", "active-active", "failover", "conflict"],
     summary: "Surviving a whole region going dark.",
@@ -380,7 +398,7 @@ export const OKF_CARDS: OkfCard[] = [
   {
     id: "zero-trust-security",
     type: "Lesson",
-    order: 39,
+    order: 41,
     title: "Zero Trust",
     tags: ["zero trust", "mtls", "workload identity", "authenticate", "authorize"],
     summary: "Never trust the network. Verify every request.",

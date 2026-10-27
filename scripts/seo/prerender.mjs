@@ -6,7 +6,7 @@
  * like OAI-SearchBot / PerplexityBot / Claude-SearchBot) see zero lesson
  * content, and every lesson lived behind a `#` fragment (one indexable URL).
  *
- * What this does: for each of the 39 indexable routes it writes a real static
+ * What this does: for each of the 41 indexable routes it writes a real static
  * HTML file (`lesson/<slug>/index.html`, …) containing the full SEO `<head>`
  * (title, description, canonical, Open Graph, JSON-LD) and the route's text
  * content in raw HTML. GitHub Pages serves these with HTTP 200.
@@ -369,7 +369,7 @@ ${lessonLinkList(metas)}`;
     head: headTags({
       title: `Roadmap | ${SITE_NAME}`,
       description:
-        'The complete system design learning path: 39 lessons from beginner to advanced, in syllabus order.',
+        'The complete system design learning path: 41 lessons from beginner to advanced, in syllabus order.',
       canonical,
       ogImage: `${siteUrl}og/roadmap.png`,
     }),

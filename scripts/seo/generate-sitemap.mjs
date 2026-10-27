@@ -1,7 +1,7 @@
 /**
  * Generates `public/sitemap.xml` (copied to `dist/` by the Vite build).
  *
- * 39 URLs: `/`, `/roadmap`, `/badges`, and one `/lesson/<slug>/` per lesson.
+ * 44 URLs: `/`, `/roadmap`, `/badges`, and one `/lesson/<slug>/` per lesson.
  * `/badges/:id` detail pages are intentionally excluded — 76 thin,
  * non-keyword-targeted pages; `/badges` is the indexable entry point.
  *
@@ -61,8 +61,8 @@ const xml =
 
 writeFileSync(join(repoRoot, 'public', 'sitemap.xml'), xml);
 console.log(`sitemap.xml: ${urls.length} URLs`);
-if (urls.length !== 39) {
+if (urls.length !== 44) {
   console.warn(
-    `warning: expected 39 URLs, got ${urls.length} — update this check if the route set intentionally changed`,
+    `warning: expected 44 URLs, got ${urls.length} — update this check if the route set intentionally changed`,
   );
 }
