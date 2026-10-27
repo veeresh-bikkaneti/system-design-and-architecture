@@ -9,6 +9,12 @@ name: Deploy Worker (Cloudflare)
 #   CLOUDFLARE_ACCOUNT_ID     the account that owns the D1 database
 #   OAUTH_GITHUB_CLIENT_ID    optional: GitHub OAuth app client id
 #   OAUTH_GITHUB_CLIENT_SECRET optional: GitHub OAuth app client secret
+#   MODEL_API_KEY             optional: shared bearer <redacted> for the
+#                             self-hosted tutor model (stored on the Worker
+#                             as MODEL_API_KEY; without it — and with
+#                             MODEL_BASE_URL empty in wrangler.toml — Veer
+#                             chat answers AI_UNAVAILABLE and the widget
+#                             falls back to Ben; sign-in is unaffected)
 # (GitHub reserves the GITHUB_ prefix for secret names, hence OAUTH_GITHUB_*;
 # they are stored on the Worker as GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET.)
 # Actions are pinned to commit SHAs, same as deploy.yml.
@@ -65,4 +71,13 @@ jobs:
             printf '%s' "$OAUTH_SECRET" | npx wrangler secret put GITHUB_CLIENT_SECRET
           else
             echo "OAuth secrets not provided; GitHub sign-in stays on the pasted-token path."
+          fi
+      - name: Store model API key on the Worker (optional)
+        env:
+          MODEL_KEY: ${{ secrets.MODEL_API_KEY }}
+        run: |
+          if [ -n "$MODEL_KEY" ]; then
+            printf '%s' "$MODEL_KEY" | npx wrangler secret put MODEL_API_KEY
+          else
+            echo "MODEL_API_KEY not provided; Veer chat stays AI_UNAVAILABLE (Ben fallback) until a model host exists."
           fi
