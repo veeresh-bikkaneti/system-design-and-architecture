@@ -292,6 +292,45 @@ describe('KofiBench placement (council ruling, 2026-10-27)', () => {
     expect(dialog.className).not.toContain('border-stone-200');
   });
 
+  // F1 fix (Accessibility Auditor, 2026-10-27): the ring is a box-shadow,
+  // which forced-colors rendering strips, and outline-none suppressed the
+  // outline — no focus indicator survived forced colors. Every control
+  // now carries a real outline that is transparent in normal mode (the
+  // ring shows there) and forced visible by forced-colors rendering.
+  it('all four bench controls carry the forced-colors-safe focus outline, not outline-none', async () => {
+    const user = userEvent.setup();
+    render(<KofiBenchSidebar />);
+    await awaitAsk();
+    const askButton = screen.getByRole('button', { name: /This course runs on coffee/ });
+    const figureButton = screen.getByRole('button', { name: 'Buy Grandpa a coffee on Ko-fi' });
+    await user.click(askButton);
+    const controls = [
+      askButton,
+      figureButton,
+      screen.getByRole('button', { name: 'Continue' }),
+      screen.getByRole('button', { name: 'Cancel' }),
+    ];
+    for (const control of controls) {
+      expect(control.className).toContain('focus-visible:outline-2');
+      expect(control.className).toContain('focus-visible:outline-offset-2');
+      expect(control.className).toContain('focus-visible:outline-transparent');
+      expect(control.className).toContain('focus-visible:ring-2');
+      expect(control.className).toContain('focus-visible:ring-teal-600');
+      expect(control.className).not.toContain('focus-visible:outline-none');
+    }
+  });
+
+  it('Continue carries a border matching its background, so forced colors keeps its boundary', async () => {
+    const user = userEvent.setup();
+    render(<KofiBenchSidebar />);
+    await awaitAsk();
+    await user.click(screen.getByRole('button', { name: /This course runs on coffee/ }));
+    const continueButton = screen.getByRole('button', { name: 'Continue' });
+    expect(continueButton.className).toContain('border');
+    expect(continueButton.className).toContain('border-teal-700');
+    expect(continueButton.className).toContain('hover:border-teal-800');
+  });
+
   it('the dock JS-unmounts at desktop width — the sidebar owns lessons there', () => {
     stubDesktopViewport();
     stubFakeIO();

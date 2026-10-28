@@ -196,6 +196,14 @@ function BenchCore({ variant }: { variant: BenchVariant }) {
   // stone-50 background (stone-400 reaches only 2.41:1) and 4.12:1
   // against the dark stone-950 background (stone-600 only 2.59:1).
   // The tail follows the same token so it stays visually coherent.
+  //
+  // Focus in forced-colors mode (Accessibility Auditor F1, 2026-10-27):
+  // the ring is a box-shadow, which forced-colors rendering strips, so
+  // every control carries a real outline that is transparent in normal
+  // mode (the ring shows there) and forced visible by forced-colors
+  // rendering; Continue's border matches its background in normal mode
+  // (an invisible seam) so forced colors can override it to a visible
+  // system colour and the button keeps a boundary.
   const cloudPos =
     variant === 'dock' ? 'absolute bottom-full left-0 mb-2 w-full' : 'relative mb-1 w-full';
   const tailPos =
@@ -219,7 +227,7 @@ function BenchCore({ variant }: { variant: BenchVariant }) {
           whileHover={reduceMotion ? undefined : { y: -2 }}
           whileTap={reduceMotion ? undefined : { scale: 0.98 }}
           transition={{ type: 'spring', stiffness: 480, damping: 30 }}
-          className={`${cloudPos} rounded-2xl border border-stone-500 bg-white px-3.5 py-2.5 text-left shadow-[0_10px_30px_rgb(28_25_23/0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:bg-stone-900`}
+          className={`${cloudPos} rounded-2xl border border-stone-500 bg-white px-3.5 py-2.5 text-left shadow-[0_10px_30px_rgb(28_25_23/0.16)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-transparent focus-visible:ring-2 focus-visible:ring-teal-600 dark:bg-stone-900`}
         >
           <span className="block text-[13px] font-semibold leading-snug text-stone-800 dark:text-stone-100">
             {ASK_LINE}
@@ -250,7 +258,7 @@ function BenchCore({ variant }: { variant: BenchVariant }) {
               ref={continueRef}
               type="button"
               onClick={continueToKofi}
-              className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+              className="rounded-lg border border-teal-700 bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:border-teal-800 hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-transparent focus-visible:ring-2 focus-visible:ring-teal-600"
             >
               Continue
             </button>
@@ -260,7 +268,7 @@ function BenchCore({ variant }: { variant: BenchVariant }) {
                 setMode('ask');
                 stopGreeting();
               }}
-              className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-600 transition-colors hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-stone-600 dark:text-stone-300 dark:hover:bg-stone-800"
+              className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-600 transition-colors hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-transparent focus-visible:ring-2 focus-visible:ring-teal-600 dark:border-stone-600 dark:text-stone-300 dark:hover:bg-stone-800"
             >
               Cancel
             </button>
@@ -282,7 +290,7 @@ function BenchCore({ variant }: { variant: BenchVariant }) {
       }}
       aria-disabled={!seated || pacing || undefined}
       aria-label="Buy Grandpa a coffee on Ko-fi"
-      className="w-[168px] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 max-[480px]:w-[128px]"
+      className="w-[168px] rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-transparent focus-visible:ring-2 focus-visible:ring-teal-600 max-[480px]:w-[128px]"
     >
       <FlatGrandpa
         onSeated={() => setSeated(true)}
