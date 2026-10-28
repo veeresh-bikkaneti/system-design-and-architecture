@@ -1,0 +1,24 @@
+# Site mirror — the same site build as GitHub Pages, published to this
+# Worker by the `deploy-mirror` job in .github/workflows/deploy.yml so the
+# two surfaces can never drift (docs/manifest-mirror-publish.md).
+#
+# Assets only, deliberately: no script entry and no bindings — the Worker
+# serves the static build at
+# https://systemdesignandarchitecture.knowledgetest.workers.dev/
+# The build it serves is made with VITE_BASE_PATH=/ (the mirror sits at
+# its root, unlike Pages) and WORKERS_CI=1 (keeps the over-cap ONNX
+# asyncify WASM out of the upload; see scripts/ben/embedder.mjs).
+#
+# Deployed from worker/ (that package's pinned wrangler, as in
+# deploy-worker.yml) with:
+#   npx wrangler deploy --config ../wrangler.mirror.toml
+# The assets directory below resolves relative to this file (repo root).
+name = "systemdesignandarchitecture"
+compatibility_date = "2026-10-19"
+
+[assets]
+directory = "dist"
+# Prerendered snapshots are real files and are served as-is; anything
+# else is a client-side route and gets the app shell (the Pages build's
+# 404.html plays the same role there).
+not_found_handling = "single-page-application"

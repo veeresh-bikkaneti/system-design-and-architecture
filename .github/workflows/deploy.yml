@@ -125,3 +125,51 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  deploy-mirror:
+    name: Deploy to Cloudflare mirror
+    needs: [checks, worker-checks, e2e]
+    runs-on: ubuntu-latest
+    environment:
+      name: cloudflare-mirror
+      url: https://systemdesignandarchitecture.knowledgetest.workers.dev/
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Same build as the Pages artifact, different base: the mirror serves
+      # the site at its root. WORKERS_CI=1 keeps the ONNX asyncify WASM
+      # (25.6 MiB, over the Workers per-asset cap) out of the upload —
+      # scripts/ben/embedder.mjs — so Ben on the mirror uses the plain
+      # WASM build, as it did under Cloudflare Workers Builds. The build
+      # gets its own job because prerender hardcodes dist/: the two
+      # surfaces' builds can never share a workspace.
+      - run: npm run build
+        env:
+          VITE_BASE_PATH: /
+          WORKERS_CI: "1"
+          # Same public build-time values as the `build` job above.
+          VITE_GITHUB_CLIENT_ID: ${{ vars.VITE_GITHUB_CLIENT_ID }}
+          VITE_WORKER_URL: ${{ vars.VITE_WORKER_URL }}
+          VITE_QA_API_BASE: https://system-design-mastery-cert.knowledgetest.workers.dev
+          VITE_KOFI_URL: ${{ vars.VITE_KOFI_URL }}
+      - name: Require Cloudflare credentials
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Set the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets first."
+            exit 1
+          fi
+      # Wrangler is worker/'s pinned devDependency; invoking it from
+      # worker/ (deploy-worker.yml's pattern) keeps one wrangler version
+      # for both Cloudflare deploys. The config's assets directory
+      # resolves relative to the config file (the repo root's dist/).
+      - run: npm ci
+        working-directory: worker
+      - run: npx wrangler deploy --config ../wrangler.mirror.toml
+        working-directory: worker
