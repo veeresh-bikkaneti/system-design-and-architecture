@@ -71,4 +71,33 @@ describe('POST /auth/github/exchange', () => {
     );
     expect(res.status).toBe(204);
   });
+
+  // The site mirror (deploy.yml publishes the same build there) is a
+  // first-class sign-in surface: its pages must be able to read the
+  // exchange response, or header sign-in on the mirror can never finish.
+  it('allows the site mirror origin to read the exchange response', async () => {
+    const res = await worker.fetch(
+      post({ code: 'abc' }, {
+        'Content-Type': 'application/json',
+        Origin: 'https://systemdesignandarchitecture.knowledgetest.workers.dev',
+      }),
+      env({ GITHUB_CLIENT_SECRET: undefined }),
+    );
+    expect(res.status).toBe(503);
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe(
+      'https://systemdesignandarchitecture.knowledgetest.workers.dev',
+    );
+  });
+
+  it('gives an unlisted origin no CORS headers', async () => {
+    const res = await worker.fetch(
+      post({ code: 'abc' }, {
+        'Content-Type': 'application/json',
+        Origin: 'https://evil.example',
+      }),
+      env({ GITHUB_CLIENT_SECRET: undefined }),
+    );
+    expect(res.status).toBe(503);
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  });
 });

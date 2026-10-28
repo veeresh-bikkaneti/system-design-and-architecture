@@ -225,6 +225,9 @@ const MAX_ATTEMPTS_PER_IP_PER_DAY = 10;
 // not from anything here.
 const ALLOWED_ORIGINS = new Set([
   'https://veeresh-bikkaneti.github.io',
+  // The site mirror: deploy.yml publishes the same build there, and its
+  // pages run the same sign-in exchange as the Pages origin.
+  'https://systemdesignandarchitecture.knowledgetest.workers.dev',
   'http://localhost:5173', // vite dev
   'http://localhost:4173', // vite preview
 ]);
