@@ -61,6 +61,15 @@ export interface Env {
   // means that route answers 503 and the site falls back to token paste.
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
+  // Feedback form (`POST /api/feedback`): the Discord webhook accepted
+  // submissions are posted to, and the Turnstile secret for server-side
+  // token verification. Both are workflow-owned secrets (deploy-worker.yml
+  // `wrangler secret put` steps); unset means the route answers 503.
+  // The webhook URL is a bearer credential: anyone holding it can post
+  // directly to the channel, bypassing every spam layer. It must never
+  // appear in wrangler.toml, client-side code, logs, or chat.
+  DISCORD_FEEDBACK_WEBHOOK_URL?: string;
+  TURNSTILE_SECRET_KEY?: string;
 }
 
 interface CredentialRow {
@@ -266,7 +275,7 @@ export function jsonResponse(data: unknown, init?: ResponseInit): Response {
   return Response.json(data, { ...init, headers });
 }
 
-export async function parseJsonBody(request: Request, cors: HeadersInit): Promise<{ body: unknown } | { errorResponse: Response }> {
+export async function parseJsonBody(request: Request, cors: HeadersInit, maxBytes: number = MAX_JSON_BODY_BYTES): Promise<{ body: unknown } | { errorResponse: Response }> {
   if (!(request.headers.get('Content-Type') ?? '').toLowerCase().startsWith('application/json')) {
     return {
       errorResponse: jsonResponse({ error: 'Content-Type must be application/json' }, { status: 415, headers: cors }),
@@ -275,9 +284,11 @@ export async function parseJsonBody(request: Request, cors: HeadersInit): Promis
   // Defense against memory/CPU exhaustion: these endpoints take small
   // payloads (answers, emails, codes), so reject anything absurd before
   // parsing. Check the declared length first, then enforce while reading
-  // for chunked bodies with no Content-Length.
+  // for chunked bodies with no Content-Length. Callers with a tighter
+  // budget (the feedback endpoint) pass maxBytes explicitly; the default
+  // keeps every existing caller's behavior unchanged.
   const declared = request.headers.get('Content-Length');
-  if (declared !== null && Number(declared) > MAX_JSON_BODY_BYTES) {
+  if (declared !== null && Number(declared) > maxBytes) {
     return {
       errorResponse: jsonResponse({ error: 'Request body too large' }, { status: 413, headers: cors }),
     };
@@ -293,7 +304,7 @@ export async function parseJsonBody(request: Request, cors: HeadersInit): Promis
       const { done, value } = await reader.read();
       if (done) break;
       total += value.byteLength;
-      if (total > MAX_JSON_BODY_BYTES) {
+      if (total > maxBytes) {
         await reader.cancel();
         return {
           errorResponse: jsonResponse({ error: 'Request body too large' }, { status: 413, headers: cors }),
@@ -614,6 +625,166 @@ async function handleLogout(request: Request, env: Env): Promise<Response> {
   return jsonResponse({ status: 'logged_out' }, { headers: cors });
 }
 
+// Feedback form (POST /api/feedback) — contracts pinned by the approved
+// Consensus Manifest. Order is contractual: parse → rate limit → field
+// validation → secrets → Turnstile → Discord. Error bodies are generic
+// (no field or layer names) except the 429 body, which is the one
+// explicitly allowed carve-out. The endpoint is public by design; the
+// real abuse gates are Turnstile + the rate limit, not CORS (CORS only
+// controls whether a browser page can read the response back).
+const FEEDBACK_MAX_LINKS = 5;
+const FEEDBACK_RATE_LIMIT_PER_HOUR = 5;
+const FEEDBACK_MIN_FILL_MS = 3000;
+const FEEDBACK_MAX_BODY_BYTES = 16 * 1024;
+const FEEDBACK_CATEGORIES = new Set(['bug', 'lesson-idea', 'general']);
+const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+const DISCORD_WEBHOOK_PREFIX = 'https://discord.com/api/webhooks/';
+const TURNSTILE_HOSTS = new Set([
+  'veeresh-bikkaneti.github.io',
+  'systemdesignandarchitecture.knowledgetest.workers.dev',
+]);
+const FEEDBACK_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Count each link once: markdown targets first (removed as counted), then
+// bare https?:// URLs, then bare www. hosts (after https URLs are removed,
+// so https://www.example.com is not double-counted).
+function countLinks(text: string): number {
+  const markdownMatches = text.match(/\[([^\]]*)\]\(([^)]+)\)/g) ?? [];
+  const withoutMarkdown = text.replace(/\[([^\]]*)\]\(([^)]+)\)/g, ' ');
+  const urlMatches = withoutMarkdown.match(/https?:\/\/[^\s)]+/g) ?? [];
+  const withoutUrls = withoutMarkdown.replace(/https?:\/\/[^\s)]+/g, ' ');
+  const wwwMatches = withoutUrls.match(/www\.[^\s)]+/g) ?? [];
+  return markdownMatches.length + urlMatches.length + wwwMatches.length;
+}
+
+// Escape Discord markdown in user-supplied fields so a crafted message
+// cannot render spoofed links or fake headings. Mention abuse is handled
+// separately by allowed_mentions (see below), not by this escaping.
+function escapeDiscordMarkdown(value: string): string {
+  return value.replace(/([\\`*_~|[\]()#>])/g, '\\$1');
+}
+
+async function handleFeedback(request: Request, env: Env): Promise<Response> {
+  const cors = corsHeaders(request.headers.get('Origin'));
+
+  const parsed = await parseJsonBody(request, cors, FEEDBACK_MAX_BODY_BYTES);
+  if ('errorResponse' in parsed) return parsed.errorResponse;
+  const body = parsed.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return jsonResponse({ error: 'Invalid submission' }, { status: 400, headers: cors });
+  }
+  const b = body as Record<string, unknown>;
+
+  // Rate limit runs before field validation, and uses the repo's D1-backed
+  // counter (same table as the auth throttles). No CF-Connecting-IP
+  // (local dev / non-edge) falls back to a shared dev key at the same cap,
+  // so the behavior stays throttled and testable instead of silently
+  // unthrottled. Only a hash ever reaches the table, never a raw IP.
+  const ip = request.headers.get('CF-Connecting-IP');
+  const bucketKey = ip ? `feedback:ip:${await hashIp(ip)}` : 'feedback:ip:dev';
+  const withinLimit = await checkRateLimit(env.DB, bucketKey, currentWindowHour(), FEEDBACK_RATE_LIMIT_PER_HOUR);
+  if (!withinLimit) {
+    return jsonResponse({ error: 'too many messages, try later' }, { status: 429, headers: cors });
+  }
+
+  const invalid = () =>
+    jsonResponse({ error: 'Invalid submission' }, { status: 400, headers: cors });
+
+  const category = b['category'];
+  if (typeof category !== 'string' || !FEEDBACK_CATEGORIES.has(category)) return invalid();
+
+  const rawMessage = b['message'];
+  if (typeof rawMessage !== 'string') return invalid();
+  const message = rawMessage.trim();
+  if (message.length < 1 || message.length > 2000) return invalid();
+  if (countLinks(message) > FEEDBACK_MAX_LINKS) return invalid();
+
+  const rawName = b['name'];
+  const name = typeof rawName === 'string' ? rawName.trim() : '';
+  if (name.length > 100) return invalid();
+
+  const rawEmail = b['email'];
+  const email = typeof rawEmail === 'string' ? rawEmail.trim() : '';
+  if (email !== '' && !FEEDBACK_EMAIL_RE.test(email)) return invalid();
+
+  const rawLesson = b['lesson'];
+  const lesson = typeof rawLesson === 'string' ? rawLesson.trim() : '';
+  if (lesson.length > 100) return invalid();
+
+  const honeypot = b['honeypot'];
+  if (honeypot !== undefined && honeypot !== null && honeypot !== '') return invalid();
+
+  const startedAt = b['startedAt'];
+  if (typeof startedAt !== 'number' || !Number.isFinite(startedAt)) return invalid();
+  if (Date.now() - startedAt < FEEDBACK_MIN_FILL_MS) return invalid();
+
+  const token = b['turnstileToken'];
+  if (typeof token !== 'string' || token === '') return invalid();
+
+  // Secrets are checked before any upstream call: a misconfigured worker
+  // answers 503 instead of burning a Turnstile verification it cannot
+  // deliver, and a webhook secret that is not a Discord webhook URL fails
+  // closed rather than POSTing user feedback to an arbitrary host.
+  const webhookUrl = env.DISCORD_FEEDBACK_WEBHOOK_URL;
+  const turnstileSecret = env.TURNSTILE_SECRET_KEY;
+  if (!webhookUrl || !webhookUrl.startsWith(DISCORD_WEBHOOK_PREFIX) || !turnstileSecret) {
+    return jsonResponse({ error: 'Service not configured' }, { status: 503, headers: cors });
+  }
+
+  // Turnstile: every token verified exactly once via siteverify, never
+  // cached (tokens are single-use by design — replay dies here). The
+  // response hostname must be one of the two hosts the widget serves.
+  // redirect: 'manual': fetch follows redirects by default, and a 307/308
+  // would carry the POST body (secret + token) to the redirect target.
+  let verify: { success?: unknown; hostname?: unknown };
+  try {
+    const verifyRes = await fetch(TURNSTILE_VERIFY_URL, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: turnstileSecret, response: token }),
+    });
+    verify = (await verifyRes.json()) as { success?: unknown; hostname?: unknown };
+  } catch {
+    return jsonResponse({ error: 'Could not verify submission' }, { status: 502, headers: cors });
+  }
+  if (verify.success !== true || typeof verify.hostname !== 'string' || !TURNSTILE_HOSTS.has(verify.hostname)) {
+    return invalid();
+  }
+
+  // Discord: exactly one attempt, no retry loop. The message goes in the
+  // embed description only (content stays empty); allowed_mentions parses
+  // nothing, so @everyone/@here/user pings can never fire. Never log the
+  // fetch error object — it could carry the webhook URL; only the status
+  // category is returned to the client.
+  const fields: Array<{ name: string; value: string }> = [
+    { name: 'Category', value: category },
+  ];
+  if (lesson !== '') fields.push({ name: 'Lesson', value: escapeDiscordMarkdown(lesson) });
+  if (name !== '') fields.push({ name: 'Name', value: escapeDiscordMarkdown(name) });
+  if (email !== '') fields.push({ name: 'Email', value: escapeDiscordMarkdown(email) });
+  fields.push({ name: 'Received', value: new Date().toISOString() });
+  let discordRes: Response;
+  try {
+    discordRes = await fetch(webhookUrl, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: '',
+        embeds: [{ description: escapeDiscordMarkdown(message), fields }],
+        allowed_mentions: { parse: [] },
+      }),
+    });
+  } catch {
+    return jsonResponse({ error: 'could not send, try again' }, { status: 502, headers: cors });
+  }
+  if (!discordRes.ok) {
+    return jsonResponse({ error: 'could not send, try again' }, { status: 502, headers: cors });
+  }
+  return jsonResponse({ status: 'ok' }, { headers: cors });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -622,11 +793,13 @@ export default {
       return jsonResponse({ status: 'ok' });
     }
 
-    // Preflight for the /exam/*, /auth/* and /api/qa/* routes below -- a
-    // cross-origin POST with a JSON content-type (or, for /auth/session,
-    // an Authorization header) triggers a browser preflight before the
-    // real request.
-    if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/qa/'))) {
+    // Preflight for the /exam/*, /auth/*, /api/qa/* and /api/feedback
+    // routes below -- a cross-origin POST with a JSON content-type (or,
+    // for /auth/session, an Authorization header) triggers a browser
+    // preflight before the real request. The feedback route uses the
+    // plain corsHeaders helper (like /exam/* and /auth/*), NOT the
+    // credentials-carrying qaCorsHeaders used by /api/qa/*.
+    if (request.method === 'OPTIONS' && (url.pathname.startsWith('/exam/') || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/qa/') || url.pathname === '/api/feedback')) {
       // Tutor routes are fetched with credentials:'include' cross-site,
       // so their preflight must carry Access-Control-Allow-Credentials
       // (plus the origin allowlist) or the browser blocks the real
@@ -670,6 +843,10 @@ export default {
 
     if (url.pathname === '/exam/submit' && request.method === 'POST') {
       return handleExamSubmit(request, env);
+    }
+
+    if (url.pathname === '/api/feedback' && request.method === 'POST') {
+      return handleFeedback(request, env);
     }
 
     // Course Q&A tutor ("Veer"). The chat endpoint is login-gated (see
