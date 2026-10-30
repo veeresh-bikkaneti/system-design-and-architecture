@@ -433,6 +433,57 @@ ${tierBadges}
   };
 }
 
+// Static snapshot for the feedback form page. The form itself is
+// client-side (it posts to the worker), so the snapshot carries the page
+// description, not the interactive form — same as the badges snapshot,
+// which describes rather than reproduces the app.
+async function buildContact() {
+  const canonical = `${siteUrl}contact/`;
+  const body = `<h1>Contact</h1>
+<p>Send feedback about ${esc(SITE_NAME)} — bugs, lesson ideas, or anything else. No account needed; anonymous feedback is welcome.</p>
+<p>The feedback form loads in the app — open the course to send a message.</p>`;
+  return {
+    out: 'contact/index.html',
+    head: headTags({
+      title: `Contact | ${SITE_NAME}`,
+      description:
+        'Send feedback about System Design Mastery — bugs, lesson ideas, or anything else. No account needed.',
+      canonical,
+    }),
+    body,
+  };
+}
+
+// Static snapshot for the privacy page. Mirrors the live page's six
+// sections in condensed form; the live page carries the full text.
+async function buildPrivacy() {
+  const canonical = `${siteUrl}privacy/`;
+  const body = `<h1>Privacy</h1>
+<p>By default this course collects nothing about you. The two optional features below are the only ways anything leaves your browser.</p>
+<h2>What we do not collect</h2>
+<p>Progress and quiz scores stay in your own browser, Ben the tutor runs on your device, and no account is needed. No analytics product is used.</p>
+<h2>GitHub sign-in (optional)</h2>
+<p>Progress syncs to a private gist in your own GitHub account. The sync runs in your browser and the access token lives in session storage only.</p>
+<h2>Feedback form (optional)</h2>
+<p>The contact form sends exactly what you type — category, message, and, only if you give them, name, email, and lesson — to a private Discord channel. A name or email is used only for a reply, never published.</p>
+<h2>Spam checks</h2>
+<p>The feedback form runs Cloudflare Turnstile, which sends Cloudflare your IP address and browser signals for bot verification only — not for tracking or advertising. See <a href="https://developers.cloudflare.com/turnstile/reference/turnstile-privacy-addendum/">Cloudflare's Turnstile Privacy Addendum</a>.</p>
+<h2>Hosting logs</h2>
+<p>GitHub Pages and Cloudflare Workers keep standard request logs, which include IP addresses. Those logs belong to the hosts, not to this course.</p>
+<h2>Questions</h2>
+<p>Questions about this page? Use the <a href="${base}contact/">contact form</a> itself.</p>`;
+  return {
+    out: 'privacy/index.html',
+    head: headTags({
+      title: `Privacy | ${SITE_NAME}`,
+      description:
+        'What System Design Mastery collects (almost nothing), what the optional sign-in and feedback form do with your data, and what Cloudflare Turnstile sees.',
+      canonical,
+    }),
+    body,
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* assemble                                                            */
 /* ------------------------------------------------------------------ */
@@ -491,7 +542,7 @@ function applyRoute(tpl, { head, body }) {
   return html;
 }
 
-const routes = [await buildHome(), await buildRoadmap(), await buildBadges()];
+const routes = [await buildHome(), await buildRoadmap(), await buildBadges(), await buildContact(), await buildPrivacy()];
 for (const meta of metas) routes.push(await buildLesson(meta));
 
 for (const route of routes) {
