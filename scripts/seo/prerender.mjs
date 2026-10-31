@@ -454,16 +454,18 @@ async function buildContact() {
   };
 }
 
-// Static snapshot for the privacy page. Mirrors the live page's six
+// Static snapshot for the privacy page. Mirrors the live page's seven
 // sections in condensed form; the live page carries the full text.
 async function buildPrivacy() {
   const canonical = `${siteUrl}privacy/`;
   const body = `<h1>Privacy</h1>
-<p>By default this course collects nothing about you. The two optional features below are the only ways anything leaves your browser.</p>
+<p>By default this course collects nothing about you. The three optional features below are the only ways anything leaves your browser.</p>
 <h2>What we do not collect</h2>
 <p>Progress and quiz scores stay in your own browser, Ben the tutor runs on your device, and no account is needed. No analytics product is used.</p>
 <h2>GitHub sign-in (optional)</h2>
 <p>Progress syncs to a private gist in your own GitHub account. The sync runs in your browser and the access token lives in session storage only.</p>
+<h2>Veer (optional)</h2>
+<p>Ben stays on your device. Veer is a separate choice, and only after you sign in. Questions you ask Veer are sent to this course's own server and are deleted after 30 days.</p>
 <h2>Feedback form (optional)</h2>
 <p>The contact form sends exactly what you type — category, message, and, only if you give them, name, email, and lesson — to a private Discord channel. A name or email is used only for a reply, never published.</p>
 <h2>Spam checks</h2>
