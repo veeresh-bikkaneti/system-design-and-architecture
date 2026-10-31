@@ -36,7 +36,10 @@ export function applySnapshot(snap: ProgressSnapshot): void {
     seenBadges: snap.seenBadges,
     celebratedBadges: snap.celebratedBadges,
   });
-  useSessionStore.getState().markClean(snap.rev);
+  // Pull must NOT mark clean: only a successful push marks clean (see
+  // pushSnapshot). Marking clean here stranded merged progress whenever
+  // the push then failed, and suppressed the push entirely on the next
+  // syncNow via its dirty early-return.
 }
 
 async function github<T>(token: string, path: string, init?: RequestInit): Promise<T> {

@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import mdx from '@mdx-js/rollup'
 import remarkGfm from 'remark-gfm'
+import { VitePWA } from 'vite-plugin-pwa'
 import { asyncifyShipped } from './scripts/ben/embedder.mjs'
 
 /**
@@ -52,5 +53,52 @@ export default defineConfig({
     react({ include: /\.(jsx|js|mdx|md|tsx|ts)$/ }),
     tailwindcss(),
     dropDuplicateOrtWasm(),
+    // T-PWA-2 (Chair PASS): service worker LAST, so its precache manifest is
+    // computed on the final bundle after dropDuplicateOrtWasm runs.
+    // Precache = dist/assets JS/CSS + 404.html ONLY (<=20 MB gate, FT-SW1).
+    // No runtime caching in v1: no audio/ort/models/og, no gist, no
+    // worker/auth routes. registerType 'prompt' = non-auto update: no
+    // skipWaiting, no auto-reload (the prompt is T-PWA-3). manifest: false
+    // preserves the static T-PWA-1 manifest — the plugin must never
+    // generate, merge, or overwrite it (FT-SW2 blocks on any overwrite).
+    // injectRegister: null — registration is manual in src/main.tsx only.
+    // devOptions disabled: no dev service worker; gates run on the
+    // production preview build only.
+    // KNOWN DEVIATION from Chair scenario S6 (flagged, not hidden): Workbox's
+    // NavigationRoute + createHandlerBoundToURL serves the fallback for
+    // every matching navigation while the worker controls the page — it is
+    // NOT failure-gated, so an online navigation under SW control serves
+    // the 404 shell (which boots the SPA and renders the correct lesson
+    // from precached chunks) instead of the prerendered lesson HTML.
+    // Prerendered HTML still serves first visits, crawlers, and any page
+    // before the worker takes control. A failure-gated (network-first)
+    // navigation handler needs injectManifest + a custom SW file, which is
+    // a 4th file outside this task's cap — that is a Chair round-2 call,
+    // not a silent workaround here.
+    VitePWA({
+      registerType: 'prompt',
+      injectRegister: null,
+      manifest: false,
+      devOptions: { enabled: false },
+      workbox: {
+        globPatterns: ['assets/**/*.{js,css}'],
+        navigateFallback: '404.html',
+        // 404.html cannot be glob-precached: prerender writes it AFTER the
+        // vite build (npm run build runs vite, then prerender), and vite
+        // empties dist first, so no 404.html exists when this plugin runs.
+        // Pin it explicitly instead. Revision is a build timestamp so the
+        // shell is refetched on every deploy — its content changes with
+        // every bundle (hashed asset refs), and a null revision would let
+        // a stale shell survive updates and point at purged old assets.
+        additionalManifestEntries: [
+          { url: '404.html', revision: String(Date.now()) },
+        ],
+        // Workbox's default per-file precache cap is 2 MiB, but the core
+        // lib chunk is 6.04 MB and must be precached for the shell to boot
+        // offline. Raise the per-file cap to 10 MiB; the TOTAL precache
+        // budget (<=20 MB, FT-SW1) is unchanged and still enforced.
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+      },
+    }),
   ],
 })

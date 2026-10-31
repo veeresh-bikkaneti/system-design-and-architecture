@@ -26,18 +26,37 @@ function ToastItem({
 }) {
   const interactionHandlers = usePausableDismiss(TOAST_MS, onDismiss);
 
+  // Offline (or missing) artwork: hide the art instead of showing a broken
+  // image — same treatment as the gallery tile and detail hero. Removing
+  // the <img> cannot loop — a placeholder would refire onError unless
+  // loop-guarded, hiding cannot. Warn once, diagnostically (a 404 asset
+  // is not an app error, so warn, not error). The flex row just widens
+  // the text — no empty box, unlike the fixed tile/hero boxes.
+  const [artFailed, setArtFailed] = useState(false);
+  const warnedRef = useRef(false);
+  const handleArtError = (): void => {
+    if (!warnedRef.current) {
+      warnedRef.current = true;
+      console.warn(toast.iconFile);
+    }
+    setArtFailed(true);
+  };
+
   return (
     <div
       ref={containerRef}
       {...interactionHandlers}
       className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border border-amber-200/80 bg-white/95 px-4 py-3 shadow-lift backdrop-blur dark:border-amber-900/60 dark:bg-stone-900/95"
     >
-      <img
-        src={badgeIconUrl(toast.iconFile)}
-        alt=""
-        aria-hidden="true"
-        className="h-10 w-10 shrink-0"
-      />
+      {!artFailed && (
+        <img
+          src={badgeIconUrl(toast.iconFile)}
+          alt=""
+          aria-hidden="true"
+          className="h-10 w-10 shrink-0"
+          onError={handleArtError}
+        />
+      )}
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
           Badge earned
