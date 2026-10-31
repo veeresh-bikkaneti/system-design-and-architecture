@@ -644,6 +644,9 @@ const TURNSTILE_HOSTS = new Set([
   'systemdesignandarchitecture.knowledgetest.workers.dev',
 ]);
 const FEEDBACK_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Practical mailbox limit (RFC 5321). A longer address still matches the
+// regex, so length has to fail closed before siteverify or Discord.
+const FEEDBACK_EMAIL_MAX = 254;
 
 // Count each link once: markdown targets first (removed as counted), then
 // bare https?:// URLs, then bare www. hosts (after https URLs are removed,
@@ -705,6 +708,7 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
 
   const rawEmail = b['email'];
   const email = typeof rawEmail === 'string' ? rawEmail.trim() : '';
+  if (email.length > FEEDBACK_EMAIL_MAX) return invalid();
   if (email !== '' && !FEEDBACK_EMAIL_RE.test(email)) return invalid();
 
   const rawLesson = b['lesson'];
