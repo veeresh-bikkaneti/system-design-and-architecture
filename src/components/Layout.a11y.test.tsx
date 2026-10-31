@@ -82,6 +82,27 @@ describe('Layout mobile nav drawer accessibility', () => {
     expect(document.activeElement).toBe(first);
   });
 
+  it('keeps Contact and Privacy in a fixed drawer footer under the scrolling course list', () => {
+    const { dialog } = renderLayout();
+    fireEvent.click(screen.getByRole('button', { name: 'Open course navigation' }));
+
+    const contact = Array.from(dialog.querySelectorAll<HTMLElement>('a')).find(
+      (el) => el.textContent === 'Contact',
+    );
+    expect(contact).toBeDefined();
+    const courseNav = dialog.querySelector('nav[aria-label="Course"]');
+    expect(courseNav).not.toBeNull();
+    // The course list is tall. The footer must be a sibling of that scroller,
+    // not a block after an h-full nav, or a phone viewport clips the links.
+    const scroller = courseNav!.parentElement as HTMLElement;
+    const footer = contact!.parentElement as HTMLElement;
+    expect(scroller.className).toContain('overflow-y-auto');
+    expect(scroller.className).toContain('min-h-0');
+    expect(footer.className).toContain('shrink-0');
+    expect(footer.parentElement).toBe(scroller.parentElement);
+    expect(scroller.contains(contact!)).toBe(false);
+  });
+
   it('skip link moves focus into the main landmark', () => {
     renderLayout();
     const skipLink = screen.getByRole('link', { name: 'Skip to main content' });

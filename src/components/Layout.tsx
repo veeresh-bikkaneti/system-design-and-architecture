@@ -230,15 +230,18 @@ export function Layout() {
               <Icon name="x" className="h-5 w-5" />
             </button>
           </div>
-          <div
-            className="min-h-0 flex-1"
-            // Close the drawer when the user picks a destination.
-            onClick={closeDrawer}
-          >
-            <Sidebar />
+          <div className="flex min-h-0 flex-1 flex-col">
+            {/* Course list scrolls. Sidebar is h-full, so the links cannot
+                sit after it in the same box or a phone clips them. */}
+            <div className="min-h-0 flex-1 overflow-y-auto" onClick={closeDrawer}>
+              <Sidebar />
+            </div>
             {/* Utility links, so Contact/Privacy stay reachable on mobile
                 where the header nav links hide below the sm breakpoint. */}
-            <div className="border-t border-stone-200/70 px-4 py-3 dark:border-stone-800">
+            <div
+              className="shrink-0 border-t border-stone-200/70 px-4 py-3 dark:border-stone-800"
+              onClick={closeDrawer}
+            >
               <Link to="/contact" className="text-sm font-medium text-stone-600 dark:text-stone-300">Contact</Link>
               <span aria-hidden="true" className="mx-2 text-stone-400">·</span>
               <Link to="/privacy" className="text-sm font-medium text-stone-600 dark:text-stone-300">Privacy</Link>
