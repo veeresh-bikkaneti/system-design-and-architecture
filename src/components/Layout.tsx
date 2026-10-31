@@ -132,6 +132,8 @@ export function Layout() {
             <ThemeToggle />
             <Link to="/" className="hidden rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-200/60 sm:inline-flex dark:text-stone-300 dark:hover:bg-stone-800">Course</Link>
             <Link to="/badges" className="hidden rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-200/60 sm:inline-flex dark:text-stone-300 dark:hover:bg-stone-800">Badges</Link>
+            <Link to="/contact" className="hidden rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-200/60 sm:inline-flex dark:text-stone-300 dark:hover:bg-stone-800">Contact</Link>
+            <Link to="/privacy" className="hidden rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-200/60 sm:inline-flex dark:text-stone-300 dark:hover:bg-stone-800">Privacy</Link>
           </nav>
         </div>
       </header>
@@ -173,6 +175,21 @@ export function Layout() {
               <KofiBenchCard />
             </Suspense>
           )}
+          {/* Lesson feedback link (D4): rendered here, not in LessonPage,
+              so the feature stays inside this file's Manifest scope. The
+              slug comes from the route path (basename-stripped, like
+              isLessonRoute above); the contact page blanks anything that
+              is not a real lesson slug. */}
+          {isLessonRoute && pathname.split('/')[2] && (
+            <div className="mt-10 text-center">
+              <Link
+                to={`/contact?lesson=${pathname.split('/')[2]}`}
+                className="text-sm text-stone-500 underline hover:text-stone-950 dark:text-stone-400 dark:hover:text-stone-50"
+              >
+                Send feedback on this lesson
+              </Link>
+            </div>
+          )}
         </main>
       </div>
 
@@ -213,12 +230,22 @@ export function Layout() {
               <Icon name="x" className="h-5 w-5" />
             </button>
           </div>
-          <div
-            className="min-h-0 flex-1"
-            // Close the drawer when the user picks a destination.
-            onClick={closeDrawer}
-          >
-            <Sidebar />
+          <div className="flex min-h-0 flex-1 flex-col">
+            {/* Course list scrolls. Sidebar is h-full, so the links cannot
+                sit after it in the same box or a phone clips them. */}
+            <div className="min-h-0 flex-1 overflow-y-auto" onClick={closeDrawer}>
+              <Sidebar />
+            </div>
+            {/* Utility links, so Contact/Privacy stay reachable on mobile
+                where the header nav links hide below the sm breakpoint. */}
+            <div
+              className="shrink-0 border-t border-stone-200/70 px-4 py-3 dark:border-stone-800"
+              onClick={closeDrawer}
+            >
+              <Link to="/contact" className="text-sm font-medium text-stone-600 dark:text-stone-300">Contact</Link>
+              <span aria-hidden="true" className="mx-2 text-stone-400">·</span>
+              <Link to="/privacy" className="text-sm font-medium text-stone-600 dark:text-stone-300">Privacy</Link>
+            </div>
           </div>
         </div>
       </div>

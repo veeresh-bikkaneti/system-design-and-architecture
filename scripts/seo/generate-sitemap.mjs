@@ -42,6 +42,8 @@ const urls = [
   { loc: siteUrl, lastmod: lastModFor(['index.html', 'src/pages/HomePage.tsx']) },
   { loc: `${siteUrl}roadmap/`, lastmod: lastModFor(['src/pages/RoadmapPage.tsx']) },
   { loc: `${siteUrl}badges/`, lastmod: lastModFor(['src/pages/BadgesPage.tsx']) },
+  { loc: `${siteUrl}contact/`, lastmod: lastModFor(['src/pages/ContactPage.tsx']) },
+  { loc: `${siteUrl}privacy/`, lastmod: lastModFor(['src/pages/PrivacyPage.tsx']) },
   ...metas.map((m) => ({
     loc: `${siteUrl}lesson/${m.slug}/`,
     lastmod: lastModFor([`content/lessons/${m.slug}.mdx`]),
@@ -61,8 +63,8 @@ const xml =
 
 writeFileSync(join(repoRoot, 'public', 'sitemap.xml'), xml);
 console.log(`sitemap.xml: ${urls.length} URLs`);
-if (urls.length !== 44) {
+if (urls.length !== 46) {
   console.warn(
-    `warning: expected 44 URLs, got ${urls.length} — update this check if the route set intentionally changed`,
+    `warning: expected 46 URLs, got ${urls.length} — update this check if the route set intentionally changed`,
   );
 }

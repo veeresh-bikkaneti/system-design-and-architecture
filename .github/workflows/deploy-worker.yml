@@ -81,3 +81,18 @@ jobs:
           else
             echo "MODEL_API_KEY not provided; Veer chat stays AI_UNAVAILABLE (Ben fallback) until a model host exists."
           fi
+      - name: Store feedback secrets on the Worker (optional)
+        env:
+          FEEDBACK_WEBHOOK: ${{ secrets.DISCORD_FEEDBACK_WEBHOOK_URL }}
+          FEEDBACK_TURNSTILE: ${{ secrets.TURNSTILE_SECRET_KEY }}
+        run: |
+          if [ -n "$FEEDBACK_WEBHOOK" ]; then
+            printf '%s' "$FEEDBACK_WEBHOOK" | npx wrangler secret put DISCORD_FEEDBACK_WEBHOOK_URL
+          else
+            echo "DISCORD_FEEDBACK_WEBHOOK_URL not provided; /api/feedback stays on its 503 path."
+          fi
+          if [ -n "$FEEDBACK_TURNSTILE" ]; then
+            printf '%s' "$FEEDBACK_TURNSTILE" | npx wrangler secret put TURNSTILE_SECRET_KEY
+          else
+            echo "TURNSTILE_SECRET_KEY not provided; /api/feedback stays on its 503 path."
+          fi

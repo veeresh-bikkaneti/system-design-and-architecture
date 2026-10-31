@@ -112,6 +112,10 @@ jobs:
           # Ko-fi ask (see src/components/kofi/). Public URL, set as a
           # repository *variable*; unset means the ask renders nothing.
           VITE_KOFI_URL: ${{ vars.VITE_KOFI_URL }}
+          # Contact form spam check (see src/pages/ContactPage.tsx). Public
+          # site key, set as a repository *variable*; unset means the form
+          # renders its not-configured notice instead of sending.
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
@@ -159,6 +163,7 @@ jobs:
           VITE_WORKER_URL: ${{ vars.VITE_WORKER_URL }}
           VITE_QA_API_BASE: https://system-design-mastery-cert.knowledgetest.workers.dev
           VITE_KOFI_URL: ${{ vars.VITE_KOFI_URL }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
       - name: Require Cloudflare credentials
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
