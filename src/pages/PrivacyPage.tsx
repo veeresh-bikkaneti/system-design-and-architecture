@@ -5,7 +5,8 @@ import { Seo } from '../components/Seo';
 // below was checked against the shipped behavior: progress in browser
 // storage, Ben on-device, gist sync from the browser (see
 // src/lib/gist-sync.ts — the token never leaves the visitor's browser for
-// a course server), feedback delivered to a private Discord channel.
+// a course server), feedback delivered to a private Discord channel,
+// and Veer questions sent to the course server (deleted after 30 days).
 export function PrivacyPage() {
   return (
     <>
@@ -18,10 +19,10 @@ export function PrivacyPage() {
         Privacy
       </h1>
       <p className="mt-2 max-w-[65ch] text-sm text-stone-500 dark:text-stone-400">
-        Short version: by default this course collects nothing about you. The
-        two optional features below — sign-in and the feedback form — are the
-        only ways anything leaves your browser, and each section says exactly
-        what it sends and where it goes.
+        Short version: by default this course collects nothing about you.
+        Three optional features can send something out: GitHub sign-in, the
+        feedback form, and Veer, the signed-in tutor. Each section says
+        exactly what it sends and where it goes.
       </p>
 
       <div className="mt-8 max-w-[65ch] space-y-8">
@@ -47,6 +48,18 @@ export function PrivacyPage() {
             is no course server that sees your gist contents — and the access
             token lives in session storage only, so it goes away when you
             close the tab.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl font-semibold text-stone-950 dark:text-stone-50">
+            Veer (optional)
+          </h2>
+          <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">
+            Ben stays on your device. Veer is a separate choice, and only
+            after you sign in. Questions you ask Veer are sent to this
+            course&apos;s own server and are deleted after 30 days. Until you
+            choose Veer, that question is not sent.
           </p>
         </section>
 
