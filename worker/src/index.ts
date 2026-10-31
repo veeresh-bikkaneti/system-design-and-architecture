@@ -625,9 +625,9 @@ async function handleLogout(request: Request, env: Env): Promise<Response> {
   return jsonResponse({ status: 'logged_out' }, { headers: cors });
 }
 
-// Feedback form (POST /api/feedback) — contracts pinned by the approved
-// Consensus Manifest. Order is contractual: parse → rate limit → field
-// validation → secrets → Turnstile → Discord. Error bodies are generic
+// Feedback form (POST /api/feedback). Order: parse → field validation →
+// rate limit → secrets → Turnstile → Discord. A validation 400 must not
+// burn the counter. Error bodies are generic
 // (no field or layer names) except the 429 body, which is the one
 // explicitly allowed carve-out. The endpoint is public by design; the
 // real abuse gates are Turnstile + the rate limit, not CORS (CORS only
@@ -678,18 +678,6 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
   }
   const b = body as Record<string, unknown>;
 
-  // Rate limit runs before field validation, and uses the repo's D1-backed
-  // counter (same table as the auth throttles). No CF-Connecting-IP
-  // (local dev / non-edge) falls back to a shared dev key at the same cap,
-  // so the behavior stays throttled and testable instead of silently
-  // unthrottled. Only a hash ever reaches the table, never a raw IP.
-  const ip = request.headers.get('CF-Connecting-IP');
-  const bucketKey = ip ? `feedback:ip:${await hashIp(ip)}` : 'feedback:ip:dev';
-  const withinLimit = await checkRateLimit(env.DB, bucketKey, currentWindowHour(), FEEDBACK_RATE_LIMIT_PER_HOUR);
-  if (!withinLimit) {
-    return jsonResponse({ error: 'too many messages, try later' }, { status: 429, headers: cors });
-  }
-
   const invalid = () =>
     jsonResponse({ error: 'Invalid submission' }, { status: 400, headers: cors });
 
@@ -724,6 +712,17 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
 
   const token = b['turnstileToken'];
   if (typeof token !== 'string' || token === '') return invalid();
+
+  // Count only a body that already passed validation. A 400 (bad fields,
+  // too-fast submit, missing token) must not burn the 5/hour counter.
+  // No CF-Connecting-IP (local dev / non-edge) falls back to a shared dev
+  // key at the same cap. Only a hash ever reaches the table, never a raw IP.
+  const ip = request.headers.get('CF-Connecting-IP');
+  const bucketKey = ip ? `feedback:ip:${await hashIp(ip)}` : 'feedback:ip:dev';
+  const withinLimit = await checkRateLimit(env.DB, bucketKey, currentWindowHour(), FEEDBACK_RATE_LIMIT_PER_HOUR);
+  if (!withinLimit) {
+    return jsonResponse({ error: 'too many messages, try later' }, { status: 429, headers: cors });
+  }
 
   // Secrets are checked before any upstream call: a misconfigured worker
   // answers 503 instead of burning a Turnstile verification it cannot
