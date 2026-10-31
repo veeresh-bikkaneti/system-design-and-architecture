@@ -79,9 +79,20 @@ export function ContactPage() {
         // it as a spam-check failure instead of a silent dead form.
       }
     };
+    // Both paths must tear the widget down. The early return used to skip
+    // this, so a second visit left the previous widget mounted.
+    const removeWidget = () => {
+      try {
+        if (widgetIdRef.current && window.turnstile) {
+          window.turnstile.remove(widgetIdRef.current);
+        }
+      } catch {
+        // Teardown must never break unmount.
+      }
+    };
     if (window.turnstile) {
       renderWidget();
-      return;
+      return removeWidget;
     }
     const script = document.createElement('script');
     script.src = TURNSTILE_SCRIPT_URL;
@@ -93,13 +104,7 @@ export function ContactPage() {
     };
     document.body.appendChild(script);
     return () => {
-      try {
-        if (widgetIdRef.current && window.turnstile) {
-          window.turnstile.remove(widgetIdRef.current);
-        }
-      } catch {
-        // Teardown must never break unmount.
-      }
+      removeWidget();
       script.remove();
     };
   }, [siteKey]);
