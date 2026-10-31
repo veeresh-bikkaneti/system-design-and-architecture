@@ -82,8 +82,8 @@ import { fileURLToPath } from 'node:url';
 const TARGET = 'http://127.0.0.1:4173';
 const LESSON_SLUG = 'scaling-web-service';
 const LESSON_TITLE_TEXT = 'From Zero to Millions';
-const DEEP_SLUG = 'designing-ai-systems';
-const DEEP_TITLE_TEXT = 'Designing AI Systems';
+const DEEP_SLUG = 'solid-principles';
+const DEEP_TITLE_TEXT = 'Object-Oriented Design That Ages Well';
 const BEN_QUESTION = 'How do you scale a web service from zero to millions?';
 const LNA_REASON =
   'sandbox-only skip: Chromium blocks direct localhost navigation ' +
@@ -340,7 +340,8 @@ test.describe('PWA offline (SW-controlled)', () => {
     await expect(
       page.getByRole('heading', { name: new RegExp(DEEP_TITLE_TEXT) }).first(),
     ).toBeVisible({ timeout: 20000 });
-    expect(page.locator('section[aria-label="All lessons"]')).toHaveCount(0);
+    await expect(page.getByText('Locked lesson')).toHaveCount(0);
+    await expect(page.locator('section[aria-label="All lessons"]')).toHaveCount(0);
     await assertSwServedLesson(page, capture, DEEP_TITLE_TEXT, 'OFF3 deep-link navigation');
   });
 
