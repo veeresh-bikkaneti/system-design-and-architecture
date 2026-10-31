@@ -29,6 +29,7 @@ describe('PrivacyPage', () => {
     for (const name of [
       'What we do not collect',
       'GitHub sign-in (optional)',
+      'Veer (optional)',
       'Feedback form (optional)',
       'Spam checks',
       'Hosting logs',
@@ -36,6 +37,15 @@ describe('PrivacyPage', () => {
     ]) {
       expect(screen.getByRole('heading', { name })).toBeDefined();
     }
+  });
+
+  it('names Veer as a way a question leaves the browser, and does not call sign-in and the form the only exits', () => {
+    const { container } = renderPrivacy();
+    const text = container.textContent ?? '';
+    expect(text).toContain(
+      "Questions you ask Veer are sent to this course's own server and are deleted after 30 days.",
+    );
+    expect(text).not.toContain('the only ways anything leaves your browser');
   });
 
   it('states what is not collected and that no analytics product is used', () => {
