@@ -746,7 +746,11 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
       method: 'POST',
       redirect: 'manual',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret: turnstileSecret, response: token }),
+      body: JSON.stringify({
+        secret: turnstileSecret,
+        response: token,
+        ...(ip ? { remoteip: ip } : {}),
+      }),
     });
     verify = (await verifyRes.json()) as { success?: unknown; hostname?: unknown };
   } catch {
