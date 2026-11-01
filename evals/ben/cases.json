@@ -139,6 +139,12 @@
     { "id": "trap-replicate-painting", "q": "How do I replicate a famous painting at home?", "intent": "off_topic", "action": "redirect" },
     { "id": "trap-because-everything", "q": "I feel like everything becomes harder because of work, what do you think", "intent": "off_topic", "action": "redirect" },
 
+    { "id": "env-setup-report", "q": "I want to setup my ai env can you help", "intent": "course", "action": "lesson", "lessons": ["tutor-loop"] },
+    { "id": "env-setup-2", "q": "help me set up my AI environment", "intent": "course", "action": "lesson", "lessons": ["tutor-loop"] },
+    { "id": "env-setup-3", "q": "can you help me get the ai set up", "intent": "course", "action": "lesson", "lessons": ["tutor-loop"] },
+    { "id": "env-own-python", "q": "set up my python ai env with venv and CUDA", "intent": "tech", "action": "parametric_fallback", "alsoOk": ["clarify"] },
+    { "id": "env-own-conda", "q": "set up conda environment for ai", "intent": "tech", "action": "parametric_fallback", "alsoOk": ["clarify"] },
+
     { "id": "s-hello", "q": "hello Ben", "intent": "self", "action": "self" },
     { "id": "s-who", "q": "who ar eyou", "intent": "self", "action": "self" },
     { "id": "s-boss", "q": "Hello Ben who's your boss", "intent": "self", "action": "self" },
