@@ -266,3 +266,13 @@ Append-only record of completed work: what was attempted, what happened, and wha
 - **UNVERIFIED:** live Edge after deploy. First Prompt-API-absent wording call still fetches Hub. Live DDD and local-AI ranking stay wrong until the follow-up PR.
 - **Blocker:** none for the shrink. Liz owns merge. `#125` / `#109` untouched; parent checkout stays on `feat/contact-feedback`.
 
+## 2026-11-01 — Unique-tag ranking pin (branch `fix/ben-ranking-unique-tag`)
+
+- **Tier:** T2 (semantic ranking behavior; no T1 paths). Owner take-over after PR #127 CORS-only merged (`4c744aa`). Live `DDD` led Anti-Corruption Layer; live `tell me about local AI` led Designing AI Systems.
+- **Consensus Manifest:** Pin unique tags *before* the 0.45 nearest-chunk return. Include Guides so `tutor-loop` can lead. Uniqueness is over Lesson+Guide names (id/title/tags), not tags alone. Lesson pins stay acronym-short (≤4); Guides may pin a longer unique tag (`local`). Keep `namedLessons` Lesson-only. No new eval cases (D8 still holds). Rejected: tags-only uniqueness (stole `frontend` → MVC on `c-bff-2`); pin after 0.45 (dead on ACL); expanding `DISTINCT_NAMES` to Guides (would drop shared tokens such as `react` from the MVC name boost).
+- **Scoped files:** `src/ai/local/semantic/router.ts`, `src/ai/local/semantic/semantic.test.ts`, `TODOS.md`. This log is the required T2 record.
+- **Failing-first:** competing ACL-chunk `route('DDD')` led `anti-corruption-layer`; competing Designing AI Systems chunk `route('tell me about local AI')` led `designing-ai-systems`; `namedTagLessons` was not a function. After the pin those tests pass for the intended reasons. A first tags-only pin stole `c-bff-2` onto MVC and dropped top-1 92.9% → 91.8%; name uniqueness + acronym cap restored 92.9%.
+- **Evidence:** root vitest **474/474** (48 files; +3 pin tests). oxlint **0 errors** on the touched files. `eval:ben` semantic-router **87.5%**, top-1 **92.9%**, top-3 **95.9%** (matches last measured #127 head). Regenerated `evals/ben/REPORT.md` not committed.
+- **UNVERIFIED:** live Chrome/Edge after deploy. Empty-chunk Guide answers fall through to `spokenAnswer` on the OKF card.
+- **Blocker:** none for the branch. `#125` / `#109` next. Parent checkout stays on `feat/contact-feedback`.
+
