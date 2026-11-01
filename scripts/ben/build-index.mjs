@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { repoRoot } from '../seo/lesson-meta.mjs';
-import { chunkAllLessons } from './chunk-lessons.mjs';
+import { chunkAllLessons, isFragment, splitSentences } from './chunk-lessons.mjs';
 import { copyRuntimeAssets, EMBEDDER_DIMS, EMBEDDER_FILES, EMBEDDER_REPO, loadNodeEmbedder } from './embedder.mjs';
 import { isMainModule } from './is-main.mjs';
 
@@ -48,9 +48,41 @@ export function loadExemplars() {
   return raw.examples;
 }
 
+/**
+ * Trim section text to TEXT_LIMIT characters at a sentence boundary. If the
+ * very first sentence is already longer, keep it whole and say so: a long
+ * sentence beats half a sentence.
+ */
+export function shippedText(chunk) {
+  if (chunk.text.length <= TEXT_LIMIT) return chunk.text;
+  const kept = [];
+  let length = 0;
+  for (const sentence of splitSentences(chunk.text)) {
+    if (kept.length > 0 && length + 1 + sentence.length > TEXT_LIMIT) break;
+    kept.push(sentence);
+    length += (kept.length > 1 ? 1 : 0) + sentence.length;
+  }
+  if (length > TEXT_LIMIT) console.warn(`ben: ${chunk.id} keeps one ${length}-char sentence past the ${TEXT_LIMIT}-char limit`);
+  return kept.join(' ');
+}
+
+/** Fail the build if any shipped section starts or stops mid-sentence. */
+export function assertNoFragments(chunks) {
+  const bad = chunks.filter((chunk) => isFragment(chunk.text)).map((chunk) => chunk.id);
+  if (bad.length > 0) {
+    throw new Error(
+      `ben: ${bad.length} lesson section(s) start or stop mid-sentence: ${bad.join(', ')}. ` +
+        'Fix the chunker (scripts/ben/chunk-lessons.mjs) or the lesson prose.',
+    );
+  }
+}
+
 export async function buildIndex() {
-  const embed = await loadNodeEmbedder();
   const chunks = chunkAllLessons();
+  // Gate the text Ben actually shows, after trimming, not the pre-trim original.
+  const shipped = chunks.map((chunk) => ({ ...chunk, text: shippedText(chunk) }));
+  assertNoFragments([...chunks, ...shipped]);
+  const embed = await loadNodeEmbedder();
   const exemplars = loadExemplars();
 
   // The heading and lesson title travel with the text: "Why this matters" alone means nothing.
@@ -73,11 +105,11 @@ export async function buildIndex() {
     model: EMBEDDER_REPO,
     dims: EMBEDDER_DIMS,
     content,
-    chunks: chunks.map((chunk) => ({
+    chunks: shipped.map((chunk) => ({
       id: chunk.id,
       slug: chunk.slug,
       heading: chunk.heading,
-      text: chunk.text.length > TEXT_LIMIT ? `${chunk.text.slice(0, TEXT_LIMIT).replace(/\s+\S*$/, '')}…` : chunk.text,
+      text: chunk.text,
     })),
     chunkVectors: encodeVectors(chunkVectors),
     intents: exemplars.map((example) => example.intent),
