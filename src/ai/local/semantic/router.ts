@@ -134,12 +134,23 @@ const DISTINCT_TAG_PINS: Map<string, string> = (() => {
   return out;
 })();
 
-/** Setup of this tutor, including the spaced verb "set up" that tokenize splits. */
+/**
+ * Setup of this tutor, including the spaced verb "set up" that tokenize splits.
+ *
+ * "Set up my AI env" is a coin toss: Ben's own on-device AI, or the student's
+ * own dev box? UNVERIFIED, low-confidence call: with no other clue we read it
+ * as Ben (that's the live report). Any own-machine signal (Python, venv,
+ * CUDA, conda, pip, "dev environment", "my machine/project") skips the pin,
+ * so the normal clarify / parametric_fallback path handles it. No bare "ai"
+ * pin: "set up an AI pipeline" belongs to Designing AI Systems.
+ */
 function isTutorSetupQuestion(question: string): boolean {
   const text = question.toLowerCase();
   const setup = /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text);
   const tutor = /\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\btutor\b|\bben\b/.test(text);
-  return setup && tutor;
+  const aiEnv = /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
+  const ownBox = /\bpython\b|\bvenv\b|\bcuda\b|\bconda\b|\bpip\b|\bdev(elopment)?\s+env|\bmy\s+(machine|project)\b/.test(text);
+  return setup && (tutor || (aiEnv && !ownBox));
 }
 
 export function namedTagLessons(question: string): string[] {

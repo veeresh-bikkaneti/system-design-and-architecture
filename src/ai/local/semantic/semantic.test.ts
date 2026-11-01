@@ -212,6 +212,46 @@ describe('router', () => {
     expect(namedTagLessons('how to set up postgres')).toEqual([]);
     expect(namedTagLessons('how to set up local redis')).toEqual([]);
   });
+
+  // "My AI env" with no other clue is read as Ben's own setup: that is the
+  // live report. Python, venv, CUDA, conda, pip, "dev environment", "my
+  // machine" or "my project" mean the student's own box, which Ben can't see.
+  it.each([
+    'I want to setup my ai env can you help',
+    'help me set up my AI environment',
+    'how do I set up the ai env',
+    'setup ai env',
+    'can you help me get the ai set up',
+    'I want to set up my ai env',
+  ])('pins "%s" to tutor-loop with the setup answer', (question) => {
+    expect(namedTagLessons(question)).toEqual(['tutor-loop']);
+    const competing: BenIndex = {
+      ...index,
+      chunks: [chunk('designing-ai-systems', 5)],
+    };
+    const decision = route({ question, vector: vec(5, [0.6]), index: competing });
+    expect(decision.action).toBe('lesson');
+    expect(decision.lessons[0]?.slug).toBe('tutor-loop');
+    expect(decision.pinned).toEqual(['tutor-loop']);
+    const turn = buildTurn(question, [], decision);
+    expect(turn.sources.map((source) => source.id)).toEqual(['tutor-loop']);
+    expect(turn.answer).toMatch(/WebLLM|Prompt API/i);
+    expect(turn.answer).not.toMatch(/narrow and careful/);
+    expect(turn.confidence.level).toBe('high');
+    expect(turn.confidence.label).toBe('High confidence · from How this tutor runs');
+  });
+
+  it.each([
+    'set up my python ai env with venv and CUDA',
+    'help me set up an ai dev environment on my machine',
+    'configure the ai env for my project',
+    'set up conda environment for ai',
+  ])('does not pin tutor-loop for own-environment "%s"', (question) => {
+    expect(namedTagLessons(question)).not.toContain('tutor-loop');
+    const decision = route({ question, vector: vec(1), index });
+    expect(decision.pinned).toBeUndefined();
+    expect(decision.action).toBe('parametric_fallback');
+  });
 });
 
 describe('turn', () => {
