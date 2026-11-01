@@ -32,7 +32,6 @@ export interface Decision {
   intentScores: Record<Intent, number>;
   lessons: LessonHit[];
   reasons: string[];
-  /** Slugs from `namedTagLessons`. Empty unless a unique-tag pin fired. */
   pinned?: string[];
 }
 

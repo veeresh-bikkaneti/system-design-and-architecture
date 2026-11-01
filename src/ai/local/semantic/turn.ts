@@ -117,8 +117,6 @@ export function buildTurn(question: string, history: ChatTurn[], decision: Decis
   }
 
   // Answer from the lesson. A close runner-up is cited too; it is often the other half.
-  // A unique-tag pin is a name match, not a cosine. Cite only the pin so a
-  // synthetic 0.45 Guide hit cannot pull in a nearby Lesson as a source pill.
   const pinSlugs = decision.pinned ?? [];
   const chosen =
     pinSlugs.length > 0

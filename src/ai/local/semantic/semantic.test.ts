@@ -170,7 +170,7 @@ describe('router', () => {
     expect(turn.context).toBe('');
   });
 
-  it('answers how to setup local AI from the tutor-loop wording sentences', () => {
+  it('answers how to setup local AI with the browser-neutral setup sentence', () => {
     const competing: BenIndex = {
       ...index,
       chunks: [chunk('designing-ai-systems', 5)],
