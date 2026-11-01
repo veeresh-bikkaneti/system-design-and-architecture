@@ -4,7 +4,7 @@ Allow: /
 
 # Training-preference signal from an individual IETF draft,
 # draft-kelley-aipref-training-preference-signal-00 (2026-10-30). It is
-# voluntary, not a crawl block, and not endorsed by any vendor as of writing.
+# voluntary, not a crawl block, and no vendor endorsement is claimed here.
 # "User-agent: *" does not match this token, so it needs its own group.
 User-agent: __usage_ai-training
 Disallow: /
