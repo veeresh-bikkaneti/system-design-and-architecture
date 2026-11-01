@@ -3,7 +3,7 @@ import { encodeVectors } from '../../../../scripts/ben/build-index.mjs';
 import { OFF_COURSE } from '../agent.ts';
 import { decodeVectors, dot, normalize, type BenIndex, type Intent, type LessonChunk } from './codec.ts';
 import { namedLessons, route, THRESHOLDS } from './router.ts';
-import { buildTurn, sectionLead } from './turn.ts';
+import { buildTurn, NO_SOURCE, sectionLead } from './turn.ts';
 
 /** Unit vector pointing mostly along `axis` in a small space, nudged by `tilt`. */
 function vec(axis: number, tilt: number[] = []): Float32Array {
@@ -125,10 +125,24 @@ describe('router', () => {
   it('boosts a lesson the student names outright', () => {
     expect(namedLessons('what is MVC')).toContain('mvc-to-react');
     expect(namedLessons('how does raft work')).toContain('consensus-raft');
+    expect(namedLessons('DDD')).toContain('domain-driven-design');
   });
 });
 
 describe('turn', () => {
+  it('keeps a parametric turn even when no lesson ranked', () => {
+    const turn = buildTurn('what is amazon', [], {
+      action: 'parametric_fallback',
+      intent: 'tech',
+      intentConfidence: 1,
+      intentScores: { course: 0, tech: 1, debate: 0, off_topic: 0, self: 0 },
+      lessons: [],
+      reasons: ['general tech, no lesson covers it'],
+    });
+    expect(turn.action).toBe('parametric_fallback');
+    expect(turn.answer).toBe(NO_SOURCE);
+  });
+
   it('redirects without citing anything', () => {
     const decision = route({ question: 'Is it wrong to eat meat?', vector: vec(2), index });
     const turn = buildTurn('Is it wrong to eat meat?', [], decision);

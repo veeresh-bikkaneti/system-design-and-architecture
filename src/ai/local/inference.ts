@@ -32,6 +32,7 @@ interface Engine {
 }
 
 export const MODEL_LABEL = 'On-device AI';
+export const MODEL_UNAVAILABLE = 'On-device model unavailable · answering from the lessons';
 
 let status: ModelStatus = { phase: 'idle', progress: 0, detail: 'Not loaded' };
 const listeners = new Set<(next: ModelStatus) => void>();
@@ -140,9 +141,9 @@ function loadEngine(): Promise<Engine> {
       if (promptApi) return promptApi;
       return loadWebLlm();
     })().catch((error: unknown) => {
-      enginePromise = null;
-      const message = error instanceof Error ? error.message : 'Could not load the model';
-      publish({ phase: 'failed', progress: 0, detail: message });
+      // Keep the rejected promise so a later wording call does not refetch Hub weights.
+      console.error(error);
+      publish({ phase: 'failed', progress: 0, detail: MODEL_UNAVAILABLE });
       throw error;
     });
   }

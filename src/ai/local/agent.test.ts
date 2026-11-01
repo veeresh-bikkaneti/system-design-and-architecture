@@ -30,6 +30,19 @@ describe('local OKF tutor', () => {
     expect(turn.traces.map((trace) => trace.name)).toEqual(['search_lessons', 'read_concept']);
   });
 
+  it('answers a one-word DDD from the domain-driven-design lesson', () => {
+    const turn = prepareTurn('DDD');
+    expect(turn.inScope).toBe(true);
+    expect(turn.sources[0]?.id).toBe('domain-driven-design');
+  });
+
+  it('answers an eval-harness question from an AI lesson', () => {
+    const turn = prepareTurn('tell me about ai harness');
+    expect(turn.inScope).toBe(true);
+    expect(turn.sources[0]?.id).toBe('agentic-ai-patterns');
+    expect(turn.answer).toMatch(/An agent is a loop/i);
+  });
+
   it('answers the plain-English name of MVC', () => {
     const turn = prepareTurn('what is model view controller?');
     expect(turn.inScope).toBe(true);
