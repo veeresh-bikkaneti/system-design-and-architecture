@@ -6,7 +6,7 @@ Ben is the chat button on the course site. He runs in the student's browser. Git
 
 You do not install a model for Ben. Open the [live course](https://veeresh-bikkaneti.github.io/system-design-and-architecture/), tap the chat button, and ask a question. That is setup.
 
-Try asking: `how to setup local AI`
+Try asking: `how to setup local AI` or `how to set up local AI`
 
 Ben should say:
 
