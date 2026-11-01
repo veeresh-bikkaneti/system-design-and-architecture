@@ -131,6 +131,7 @@ describe('router', () => {
   it('treats a unique single-token tag as a named lesson, including Guides', () => {
     expect(namedTagLessons('DDD')).toContain('domain-driven-design');
     expect(namedTagLessons('tell me about local AI')).toContain('tutor-loop');
+    expect(namedTagLessons('how to setup local AI')).toContain('tutor-loop');
     expect(namedTagLessons('hmm that thing with the two sides')).toEqual([]);
     expect(namedTagLessons('backend for frontend pattern')).toEqual([]);
     expect(namedTagLessons('why does my replica show old data')).toEqual([]);
@@ -156,7 +157,20 @@ describe('router', () => {
     expect(decision.lessons[0]?.slug).toBe('tutor-loop');
     const turn = buildTurn('tell me about local AI', [], decision);
     expect(turn.sources[0]?.id).toBe('tutor-loop');
-    expect(turn.answer).toMatch(/GitHub Pages/i);
+    expect(turn.answer).toMatch(/WebLLM|Prompt API/i);
+  });
+
+  it('answers how to setup local AI from the tutor-loop wording sentences', () => {
+    const competing: BenIndex = {
+      ...index,
+      chunks: [chunk('designing-ai-systems', 5)],
+    };
+    const decision = route({ question: 'how to setup local AI', vector: vec(5, [0.6]), index: competing });
+    expect(decision.lessons[0]?.slug).toBe('tutor-loop');
+    const turn = buildTurn('how to setup local AI', [], decision);
+    expect(turn.sources[0]?.id).toBe('tutor-loop');
+    expect(turn.answer).toMatch(/WebLLM|Prompt API/i);
+    expect(turn.answer).not.toMatch(/The course site is static/);
   });
 });
 

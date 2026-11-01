@@ -190,9 +190,23 @@ export function askShape(question: string): AskShape {
   return "plain";
 }
 
-function plain(card: OkfCard): string {
+function plain(card: OkfCard, question = ""): string {
   const parts = sentences(card.body).filter((sentence) => !/\banalog/i.test(sentence));
   if (parts.length <= 2) return parts.join(" ");
+  const tokens = tokenize(question);
+  if (tokens.length > 0) {
+    const scored = parts
+      .map((sentence) => {
+        const inSentence = new Set(tokenize(sentence));
+        return { sentence, hits: tokens.filter((token) => inSentence.has(token)).length };
+      })
+      .filter((row) => row.hits > 0)
+      .sort((a, b) => b.hits - a.hits);
+    if (scored.length > 0) {
+      const keep = new Set(scored.slice(0, 2).map((row) => row.sentence));
+      return parts.filter((sentence) => keep.has(sentence)).join(" ");
+    }
+  }
   return `${parts[0]} ${parts[parts.length - 1]}`;
 }
 
@@ -245,7 +259,7 @@ export function spokenAnswer(question: string, cards: OkfCard[], history: ChatTu
   const [lead] = cards;
   if (!lead) return OUT_OF_SCOPE;
   let shape = askShape(question);
-  let text = shape === "analogy" ? analogy(lead) : shape === "example" ? example(lead) : shape === "simpler" ? simpler(lead) : plain(lead);
+  let text = shape === "analogy" ? analogy(lead) : shape === "example" ? example(lead) : shape === "simpler" ? simpler(lead) : plain(lead, question);
   const previous = [...history].reverse().find((turn) => turn.role === "assistant")?.content.trim();
   if (previous && text.trim() === previous) {
     text = shape === "example" ? simpler(lead) : example(lead);
