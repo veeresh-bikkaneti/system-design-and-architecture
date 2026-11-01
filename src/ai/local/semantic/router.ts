@@ -134,10 +134,19 @@ const DISTINCT_TAG_PINS: Map<string, string> = (() => {
   return out;
 })();
 
+/** Setup of this tutor, including the spaced verb "set up" that tokenize splits. */
+function isTutorSetupQuestion(question: string): boolean {
+  const text = question.toLowerCase();
+  const setup = /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text);
+  const tutor = /\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\btutor\b|\bben\b/.test(text);
+  return setup && tutor;
+}
+
 export function namedTagLessons(question: string): string[] {
   const tokens = tokenize(question);
-  if (tokens.length === 0 || tokens.length > THRESHOLDS.nameBoostMaxTokens) return [];
   const slugs = new Set<string>();
+  if (isTutorSetupQuestion(question)) slugs.add('tutor-loop');
+  if (tokens.length === 0 || tokens.length > THRESHOLDS.nameBoostMaxTokens) return [...slugs];
   for (const token of tokens) {
     const slug = DISTINCT_TAG_PINS.get(token);
     if (slug) slugs.add(slug);

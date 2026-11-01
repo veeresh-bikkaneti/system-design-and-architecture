@@ -188,8 +188,29 @@ describe('router', () => {
     expect(turn.context).toBe('');
   });
 
-  it('does not unique-tag pin the four-token set-up phrasing', () => {
-    expect(namedTagLessons('how to set up local AI')).toEqual([]);
+  it('pins the four-token set-up phrasing to tutor-loop', () => {
+    expect(namedTagLessons('how to set up local AI')).toEqual(['tutor-loop']);
+    const competing: BenIndex = {
+      ...index,
+      chunks: [chunk('designing-ai-systems', 5)],
+    };
+    const decision = route({ question: 'how to set up local AI', vector: vec(5, [0.6]), index: competing });
+    expect(decision.action).toBe('lesson');
+    expect(decision.lessons[0]?.slug).toBe('tutor-loop');
+    expect(decision.pinned).toEqual(['tutor-loop']);
+    const turn = buildTurn('how to set up local AI', [], decision);
+    expect(turn.sources.map((source) => source.id)).toEqual(['tutor-loop']);
+    expect(turn.answer).toMatch(/WebLLM|Prompt API/i);
+    expect(turn.answer).not.toMatch(/Chrome's Prompt API/);
+    expect(turn.answer).not.toMatch(/narrow and careful/);
+    expect(turn.confidence.level).toBe('high');
+    expect(turn.confidence.label).toBe('High confidence · from How this tutor runs');
+    expect(turn.context).toBe('');
+  });
+
+  it('does not pin tutor-loop for unrelated set-up questions', () => {
+    expect(namedTagLessons('how to set up postgres')).toEqual([]);
+    expect(namedTagLessons('how to set up local redis')).toEqual([]);
   });
 });
 
