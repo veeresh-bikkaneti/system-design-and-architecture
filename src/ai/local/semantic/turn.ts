@@ -78,17 +78,6 @@ export function buildTurn(question: string, history: ChatTurn[], decision: Decis
     };
   }
 
-  if (decision.action === 'redirect' || !lead) {
-    return {
-      action: 'redirect',
-      answer: OFF_COURSE,
-      sources: [],
-      traces,
-      context: '',
-      confidence: { level: 'low', label: 'Off topic · outside this course' },
-    };
-  }
-
   if (decision.action === 'parametric_fallback') {
     // No grounded material exists for this question -- the caller (QaWidget)
     // asks the model directly instead of using `answer`. NO_SOURCE is kept
@@ -100,6 +89,17 @@ export function buildTurn(question: string, history: ChatTurn[], decision: Decis
       traces,
       context: '',
       confidence: GENERAL_KNOWLEDGE_CONFIDENCE,
+    };
+  }
+
+  if (decision.action === 'redirect' || !lead) {
+    return {
+      action: 'redirect',
+      answer: OFF_COURSE,
+      sources: [],
+      traces,
+      context: '',
+      confidence: { level: 'low', label: 'Off topic · outside this course' },
     };
   }
 

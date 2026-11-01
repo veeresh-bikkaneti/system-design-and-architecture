@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { OKF_CARDS } from './cards.ts';
-import { isGeneralTechQuestion, OFF_COURSE, prepareTurn } from './agent.ts';
+import { expandQuestion, isGeneralTechQuestion, OFF_COURSE, prepareTurn } from './agent.ts';
 import { searchCards } from './retrieve.ts';
 
 describe('local OKF tutor', () => {
@@ -28,6 +28,21 @@ describe('local OKF tutor', () => {
     expect(turn.sources[0]?.id).toBe('mvc-to-react');
     expect(turn.answer).toMatch(/Model/);
     expect(turn.traces.map((trace) => trace.name)).toEqual(['search_lessons', 'read_concept']);
+  });
+
+  it('expands DDD the same way as MVC', () => {
+    expect(expandQuestion('DDD').toLowerCase()).toMatch(/domain driven design/);
+  });
+
+  it('answers a one-word DDD from the domain-driven-design lesson', () => {
+    const turn = prepareTurn('DDD');
+    expect(turn.inScope).toBe(true);
+    expect(turn.sources[0]?.id).toBe('domain-driven-design');
+  });
+
+  it('answers an eval-harness question from an AI lesson', () => {
+    const turn = prepareTurn('tell me about ai harness');
+    expect(turn.inScope).toBe(true);
   });
 
   it('answers the plain-English name of MVC', () => {

@@ -92,6 +92,29 @@ export function namedLessons(question: string): string[] {
   return [...slugs];
 }
 
+/**
+ * Unique single-token tags the student typed ("DDD", "MVC", "CAP").
+ * Hyphenated tags ("powers-of-two") must not promote on a leftover word
+ * like "two", or a vague question becomes a false lesson hit.
+ */
+export function namedTagLessons(question: string): string[] {
+  const tokens = tokenize(question);
+  if (tokens.length === 0 || tokens.length > THRESHOLDS.nameBoostMaxTokens) return [];
+  const tokenSet = new Set(tokens);
+  const slugs = new Set<string>();
+  for (const card of OKF_CARDS) {
+    if (!LESSON_SLUGS.has(card.id)) continue;
+    for (const tag of card.tags) {
+      const tagTokens = tokenize(tag);
+      if (tagTokens.length !== 1) continue;
+      const tagToken = tagTokens[0];
+      if (!tagToken || !tokenSet.has(tagToken)) continue;
+      if (DISTINCT_NAMES.get(tagToken) === card.id) slugs.add(card.id);
+    }
+  }
+  return [...slugs];
+}
+
 /** The text to embed: short follow-ups ("give an example") carry the previous question. */
 export function queryText(question: string, history: ChatTurn[] = []): string {
   return buildQuery(question, history);
@@ -214,6 +237,23 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   // reads like a general tech question, but the MVC lesson answers it.
   if (topScore >= THRESHOLDS.lesson) {
     return { ...base, action: 'lesson', reasons: ['a lesson covers this', ...reasons] };
+  }
+  // Acronyms embed poorly. A unique lesson tag ("DDD") must not fall through
+  // to Qwen just because the vector looks like general tech.
+  const namedTags = namedTagLessons(question);
+  if (namedTags.length > 0) {
+    const pinned = namedTags.map((slug) => {
+      const hit = lessons.find((lesson) => lesson.slug === slug);
+      return hit ?? { slug, score: THRESHOLDS.lesson, best: THRESHOLDS.lesson, chunks: [] };
+    });
+    const rest = lessons.filter((lesson) => !namedTags.includes(lesson.slug));
+    return {
+      ...base,
+      action: 'lesson',
+      intent: 'course',
+      lessons: [...pinned, ...rest].slice(0, 3),
+      reasons: [`named tag ${namedTags.join(', ')}`, ...reasons],
+    };
   }
   if (vote.intent === 'tech') {
     return { ...base, action: 'parametric_fallback', reasons: ['general tech, no lesson covers it', ...reasons] };
