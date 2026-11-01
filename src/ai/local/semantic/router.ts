@@ -150,8 +150,12 @@ function isTutorSetupQuestion(question: string): boolean {
   const setup = /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text);
   const tutor = /\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\btutor\b|\bben\b/.test(text);
   if (setup && tutor) return true;
-  // "the ai setup" is a noun ("what is the ai setup netflix uses"), not a verb.
-  const verb = /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text.replace(/\bthe\s+ai\s+setup\b/g, ''));
+  // "the ai set up / setup" is a thing ("what is the ai setup netflix uses"),
+  // so it doesn't count as the verb... unless it follows "get": "get the ai
+  // set up" is someone asking for help. ponytail: "get" is the only request
+  // verb read here; add "have"/"need" if a real report needs it.
+  const request = /\bget\s+the\s+ai\s+set\s*up\b/.test(text);
+  const verb = request || /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text.replace(/\bthe\s+ai\s+set\s*up\b/g, ''));
   const aiEnv = /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
   const ownBox =
     /\b(python|venv|cuda|conda|pip|pipenv|docker|laptop|mac|macbook|wsl|jupyter|gpu|variables|api key)\b|\bdev(elopment)?\s+env|\bmy\s+(machine|project)\b|\b(open|azure)\s+ai\b/.test(

@@ -223,6 +223,7 @@ describe('router', () => {
     'setup ai env',
     'can you help me get the ai set up',
     'I want to set up my ai env',
+    'can you help me get the ai setup',
   ])('pins "%s" to tutor-loop with the setup answer', (question) => {
     expect(namedTagLessons(question)).toEqual(['tutor-loop']);
     const competing: BenIndex = {
@@ -254,6 +255,7 @@ describe('router', () => {
     'set up azure ai environment',
     'install pipenv for my ai env',
     'what is the ai setup netflix uses',
+    'what is the ai set up netflix uses',
   ])('does not pin tutor-loop for own-environment "%s"', (question) => {
     expect(namedTagLessons(question)).not.toContain('tutor-loop');
     const decision = route({ question, vector: vec(1), index });
