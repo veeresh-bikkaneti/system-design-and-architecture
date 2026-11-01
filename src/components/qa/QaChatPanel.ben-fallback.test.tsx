@@ -96,15 +96,15 @@ describe('QaChatPanel Ben wording-engine fallback', () => {
     expect(screen.getByText(FAILED_COPY)).toBeTruthy();
   });
 
-  it('answers DDD from the lesson when Qwen is down', async () => {
+  it('answers an in-scope parametric question from the lessons when Qwen is down', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => {
       throw new Error('no fetch expected');
     }));
     const Panel = await loadPanel();
     renderPanel(Panel);
-    await ask(userEvent.setup(), 'DDD');
+    await ask(userEvent.setup(), 'tell me about ai harness');
     await waitFor(() => {
-      expect(screen.getByText(/Ubiquitous language/i)).toBeTruthy();
+      expect(screen.getByText(/An agent is a loop/i)).toBeTruthy();
     });
     expect(screen.queryByText(/I could not find a source/i)).toBeNull();
   });

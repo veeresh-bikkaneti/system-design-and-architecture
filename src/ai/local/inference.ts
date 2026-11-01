@@ -142,6 +142,7 @@ function loadEngine(): Promise<Engine> {
       return loadWebLlm();
     })().catch((error: unknown) => {
       // Keep the rejected promise so a later wording call does not refetch Hub weights.
+      console.error(error);
       publish({ phase: 'failed', progress: 0, detail: MODEL_UNAVAILABLE });
       throw error;
     });

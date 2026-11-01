@@ -18,12 +18,16 @@ describe('WebLLM load failure', () => {
   });
 
   it('does not call CreateMLCEngine again after the first load fails', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { answerParametrically, getModelStatus } = await import('./inference.ts');
     expect(await answerParametrically('what is amazon', '')).toBeNull();
     expect(getModelStatus().phase).toBe('failed');
     expect(createEngine).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy.mock.calls[0]?.[0]).toBeInstanceOf(Error);
 
     expect(await answerParametrically('what is amazon', '')).toBeNull();
     expect(createEngine).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 });

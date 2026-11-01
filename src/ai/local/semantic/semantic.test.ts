@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { encodeVectors } from '../../../../scripts/ben/build-index.mjs';
 import { OFF_COURSE } from '../agent.ts';
 import { decodeVectors, dot, normalize, type BenIndex, type Intent, type LessonChunk } from './codec.ts';
-import { namedLessons, namedTagLessons, route, THRESHOLDS } from './router.ts';
+import { namedLessons, route, THRESHOLDS } from './router.ts';
 import { buildTurn, NO_SOURCE, sectionLead } from './turn.ts';
 
 /** Unit vector pointing mostly along `axis` in a small space, nudged by `tilt`. */
@@ -126,14 +126,6 @@ describe('router', () => {
     expect(namedLessons('what is MVC')).toContain('mvc-to-react');
     expect(namedLessons('how does raft work')).toContain('consensus-raft');
     expect(namedLessons('DDD')).toContain('domain-driven-design');
-    expect(namedTagLessons('DDD')).toContain('domain-driven-design');
-    expect(namedTagLessons('hmm that thing with the two sides')).toEqual([]);
-  });
-
-  it('answers a named lesson acronym even when the embedding looks like general tech', () => {
-    const decision = route({ question: 'DDD', vector: vec(1), index });
-    expect(decision.action).toBe('lesson');
-    expect(decision.lessons[0]?.slug).toBe('domain-driven-design');
   });
 });
 

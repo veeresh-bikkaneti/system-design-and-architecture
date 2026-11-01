@@ -256,3 +256,13 @@ Append-only record of completed work: what was attempted, what happened, and wha
 - **UNVERIFIED:** live Edge on the Cloudflare mirror after deploy. The wording engine still fetches HuggingFace on the first Prompt-API-absent wording call; the sticky failure only stops the retry storm.
 - **Blocker:** none for the branch. Liz owns merge. `#125` / `#109` untouched; parent checkout stays on `feat/contact-feedback`.
 
+## 2026-11-01 — PR #127 CORS-only shrink (eng review D3–D9)
+
+- **Tier:** T2 (same branch; ranking cut from this PR). `/plan-eng-review` of PR #127: live `DDD` is Medium confidence closest lesson Anti-Corruption Layer because `content/lessons/anti-corruption-layer.mdx` quotes the DDD books, so `namedTagLessons` after the 0.45 gate never ran. Advisor locked CORS-only.
+- **Consensus (locked decisions):** D3 drop `namedTagLessons` and the DDD `PLAIN_ENGLISH` alias. D5 keep Qwen then keyword. D6 `console.error` the Hub error once. D7 panel example is `tell me about ai harness`. D8 `eval:ben` with no new cases. D9 add ranking follow-up to `TODOS.md`.
+- **Change:** (1) `src/ai/local/semantic/router.ts` — remove `namedTagLessons`. (2) `src/ai/local/agent.ts` — remove DDD expand. (3) `src/ai/local/inference.ts` — `console.error` in `loadEngine` catch; subtitle stays `MODEL_UNAVAILABLE`; rejected promise kept. (4) panel test asks `tell me about ai harness`. (5) `TODOS.md` ranking follow-up. Kept: `turn.ts` parametric-before-empty-lead, `QaChatPanel.tsx` keyword fallback, failed subtitle.
+- **Failing-first:** `inference.test.ts` expected `console.error` once and got 0, then the log line made it pass. `prepareTurn('DDD')` still in-scope on the `ddd` tag without expand.
+- **Evidence:** root vitest **471/471** (48 files; −2 tests that only covered the dropped pin). oxlint **0 errors** on the touched files. `eval:ben` semantic-router **87.5%**, top-1 **92.9%**, top-3 **95.9%** (same as main). Regenerated `evals/ben/REPORT.md` not committed.
+- **UNVERIFIED:** live Edge after deploy. First Prompt-API-absent wording call still fetches Hub. Live DDD and local-AI ranking stay wrong until the follow-up PR.
+- **Blocker:** none for the shrink. Liz owns merge. `#125` / `#109` untouched; parent checkout stays on `feat/contact-feedback`.
+

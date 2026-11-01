@@ -61,7 +61,6 @@ const PLAIN_ENGLISH: { pattern: RegExp; extra: string }[] = [
   { pattern: /backend\s+for\s+frontend|\bbff\b/i, extra: "bff" },
   { pattern: /\bcqrs\b|event[\s-]*sourcing/i, extra: "cqrs event sourcing" },
   { pattern: /\brag\b|retrieval[\s-]*augmented/i, extra: "rag" },
-  { pattern: /\bddd\b|domain[\s-]*driven/i, extra: "domain driven design" },
 ];
 
 /** Students say "MVC" or "model view controller". Search both. */
