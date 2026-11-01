@@ -276,3 +276,13 @@ Append-only record of completed work: what was attempted, what happened, and wha
 - **UNVERIFIED:** live Chrome/Edge after deploy. Empty-chunk Guide answers fall through to `spokenAnswer` on the OKF card.
 - **Blocker:** none for the branch. `#125` / `#109` next. Parent checkout stays on `feat/contact-feedback`.
 
+
+## 2026-11-01 — "Set up my AI env" pin (branch `fix/ben-ai-env-pin`)
+
+- **Tier:** T2 (semantic routing behavior; no T1 paths). Live `I want to setup my ai env can you help` got a Designing AI Systems answer ("narrow and careful") instead of the tutor-loop setup answer.
+- **Consensus Manifest:** Widen the existing `isTutorSetupQuestion` pin in `router.ts`: a setup verb plus `ai env(ironment)` or `the ai set up` pins `tutor-loop`, unless an own-machine signal is present (python, venv, cuda, conda, pip, dev environment, my machine/project). Ambiguity ruling **UNVERIFIED, low confidence**: bare "my ai env" means Ben's own setup; own-machine phrasings fall through to normal routing. Rejected: a bare `ai` pin (steals Designing AI Systems), threshold changes, exemplar-only routing (ADR 0001 overfitting precedent), touching the chunker.
+- **Scoped files:** `src/ai/local/semantic/router.ts`, `src/ai/local/semantic/semantic.test.ts`, `evals/ben/cases.json`, `evals/ben/data.test.ts` (slug hygiene now accepts Guide slugs so `tutor-loop` can be a scored answer), `evals/ben/REPORT.md`, this log.
+- **Failing-first:** 6 new positive unit tests failed with `expected [] to deeply equal [ 'tutor-loop' ]` (no pin). With the new cases and the old router, eval showed `env-setup-report` → parametric_fallback (designing-ai-systems), `env-setup-2/3` → lesson designing-ai-systems. 4 own-environment guard tests pass both before and after (the python/venv one is load-bearing for the `ownBox` check).
+- **Evidence:** root vitest **489/489** (48 files). oxlint **0 errors** (pre-existing warnings only). Build OK with `VITE_BASE_PATH=/system-design-and-architecture/` (snapshot budget OK; generated public/ and worker/ artifacts reverted). content:validate 41 OK, content:check OK. `eval:ben` fresh baseline on main: all **87.5%**, holdout **87.5%**, top-1 **92.9%** (committed REPORT.md said 86.5%/91.8%, stale). After: all **87.8%** (cases 87.9%), holdout **87.5%** (unchanged), top-1 **93.1%**, top-3 **96.0%**; all 5 new cases correct; miss list identical to baseline, no previously-correct case lost. `evals/ben/REPORT.md` regenerated.
+- **UNVERIFIED:** live browser after deploy. Own-machine guards depend on the embedder for clarify vs parametric_fallback.
+- **Blocker:** none. Liz owns merge.
