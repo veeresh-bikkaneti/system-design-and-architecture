@@ -32,6 +32,7 @@ export interface Decision {
   intentScores: Record<Intent, number>;
   lessons: LessonHit[];
   reasons: string[];
+  pinned?: string[];
 }
 
 export const THRESHOLDS = {
@@ -276,6 +277,7 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
       ...base,
       action: 'lesson',
       lessons: [...pinned, ...rest].slice(0, 3),
+      pinned: namedTags,
       reasons: [`named tag ${namedTags.join(', ')}`, ...reasons],
     };
   }

@@ -145,6 +145,11 @@ describe('router', () => {
     const decision = route({ question: 'DDD', vector: vec(5, [0.6]), index: competing });
     expect(decision.action).toBe('lesson');
     expect(decision.lessons[0]?.slug).toBe('domain-driven-design');
+    expect(decision.pinned).toEqual(['domain-driven-design']);
+    const turn = buildTurn('DDD', [], decision);
+    expect(turn.sources.map((source) => source.id)).toEqual(['domain-driven-design']);
+    expect(turn.confidence.level).toBe('high');
+    expect(decision.lessons[0]?.best).toBeLessThan(0.55);
   });
 
   it('pins the tutor-loop Guide over a competing Designing AI Systems chunk', () => {
@@ -155,22 +160,36 @@ describe('router', () => {
     const decision = route({ question: 'tell me about local AI', vector: vec(5, [0.6]), index: competing });
     expect(decision.action).toBe('lesson');
     expect(decision.lessons[0]?.slug).toBe('tutor-loop');
+    expect(decision.pinned).toEqual(['tutor-loop']);
     const turn = buildTurn('tell me about local AI', [], decision);
-    expect(turn.sources[0]?.id).toBe('tutor-loop');
+    expect(turn.sources.map((source) => source.id)).toEqual(['tutor-loop']);
     expect(turn.answer).toMatch(/WebLLM|Prompt API/i);
+    expect(turn.answer).not.toMatch(/Chrome's Prompt API/);
+    expect(turn.confidence.level).toBe('high');
+    expect(turn.confidence.label).toMatch(/How this tutor runs/);
+    expect(turn.context).toBe('');
   });
 
-  it('answers how to setup local AI from the tutor-loop wording sentences', () => {
+  it('answers how to setup local AI with the browser-neutral setup sentence', () => {
     const competing: BenIndex = {
       ...index,
       chunks: [chunk('designing-ai-systems', 5)],
     };
     const decision = route({ question: 'how to setup local AI', vector: vec(5, [0.6]), index: competing });
     expect(decision.lessons[0]?.slug).toBe('tutor-loop');
+    expect(decision.pinned).toEqual(['tutor-loop']);
     const turn = buildTurn('how to setup local AI', [], decision);
-    expect(turn.sources[0]?.id).toBe('tutor-loop');
+    expect(turn.sources.map((source) => source.id)).toEqual(['tutor-loop']);
     expect(turn.answer).toMatch(/WebLLM|Prompt API/i);
     expect(turn.answer).not.toMatch(/The course site is static/);
+    expect(turn.answer).not.toMatch(/Chrome's Prompt API/);
+    expect(turn.confidence.level).toBe('high');
+    expect(turn.confidence.label).toBe('High confidence · from How this tutor runs');
+    expect(turn.context).toBe('');
+  });
+
+  it('does not unique-tag pin the four-token set-up phrasing', () => {
+    expect(namedTagLessons('how to set up local AI')).toEqual([]);
   });
 });
 
