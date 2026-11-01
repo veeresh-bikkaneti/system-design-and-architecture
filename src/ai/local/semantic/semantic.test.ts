@@ -242,10 +242,18 @@ describe('router', () => {
   });
 
   it.each([
+    // Each of these says "set up ... ai env", so only the own-machine /
+    // vendor / noun checks keep them off tutor-loop.
     'set up my python ai env with venv and CUDA',
-    'help me set up an ai dev environment on my machine',
-    'configure the ai env for my project',
-    'set up conda environment for ai',
+    'set up my ai env with pip',
+    'set up my ai env on my machine',
+    'set up my ai env in docker',
+    'set up my ai env on my laptop',
+    'setup ai environment variables for the API',
+    'set up my open ai env',
+    'set up azure ai environment',
+    'install pipenv for my ai env',
+    'what is the ai setup netflix uses',
   ])('does not pin tutor-loop for own-environment "%s"', (question) => {
     expect(namedTagLessons(question)).not.toContain('tutor-loop');
     const decision = route({ question, vector: vec(1), index });
