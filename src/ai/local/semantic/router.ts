@@ -92,6 +92,58 @@ export function namedLessons(question: string): string[] {
   return [...slugs];
 }
 
+/**
+ * Unique single-token tags the student typed ("DDD", "local").
+ * Uniqueness is over Lesson+Guide *names* (id, title, tags), not tags
+ * alone: "frontend" is only a tag on MVC, but BFF's title also says
+ * frontend, so pinning MVC would steal "backend for frontend pattern".
+ * Lesson pins stay acronym-short; longer unique tags ("replica") are
+ * ordinary words. Guides still pin on a longer unique tag ("local")
+ * because `tutor-loop` is not in the lesson index.
+ * `namedLessons` stays Lesson-only so a Guide sharing "react" does not
+ * drop the MVC name boost.
+ */
+const DISTINCT_TAG_PINS: Map<string, string> = (() => {
+  const owners = new Map<string, Set<string>>();
+  for (const card of OKF_CARDS) {
+    if (card.type !== 'Lesson' && card.type !== 'Guide') continue;
+    for (const token of nameTokens(card)) {
+      if (token.length < 3) continue;
+      const set = owners.get(token) ?? new Set<string>();
+      set.add(card.id);
+      owners.set(token, set);
+    }
+  }
+  const unique = new Map<string, string>();
+  for (const [token, set] of owners) {
+    if (set.size === 1) unique.set(token, [...set][0] as string);
+  }
+  const out = new Map<string, string>();
+  for (const card of OKF_CARDS) {
+    if (card.type !== 'Lesson' && card.type !== 'Guide') continue;
+    for (const tag of card.tags) {
+      const tagTokens = tokenize(tag);
+      if (tagTokens.length !== 1) continue;
+      const tagToken = tagTokens[0];
+      if (!tagToken || unique.get(tagToken) !== card.id) continue;
+      if (card.type !== 'Guide' && tagToken.length > 4) continue;
+      out.set(tagToken, card.id);
+    }
+  }
+  return out;
+})();
+
+export function namedTagLessons(question: string): string[] {
+  const tokens = tokenize(question);
+  if (tokens.length === 0 || tokens.length > THRESHOLDS.nameBoostMaxTokens) return [];
+  const slugs = new Set<string>();
+  for (const token of tokens) {
+    const slug = DISTINCT_TAG_PINS.get(token);
+    if (slug) slugs.add(slug);
+  }
+  return [...slugs];
+}
+
 /** The text to embed: short follow-ups ("give an example") carry the previous question. */
 export function queryText(question: string, history: ChatTurn[] = []): string {
   return buildQuery(question, history);
@@ -209,6 +261,24 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   // you"-style examples to get Ben's own about-me answer -- a real drift bug,
   // not a feature. An unconfirmed 'self' vote now falls through to the rest
   // of the policy table instead, same as any other question no lesson covers.
+
+  // Unique tags beat nearest-chunk ranking. Live "DDD" otherwise leads
+  // Anti-Corruption Layer because that MDX quotes the DDD books, and the
+  // 0.45 gate would return before a later pin could fire.
+  const namedTags = namedTagLessons(question);
+  if (namedTags.length > 0) {
+    const pinned = namedTags.map((slug) => {
+      const hit = lessons.find((lesson) => lesson.slug === slug);
+      return hit ?? { slug, score: THRESHOLDS.lesson, best: THRESHOLDS.lesson, chunks: [] };
+    });
+    const rest = lessons.filter((lesson) => !namedTags.includes(lesson.slug));
+    return {
+      ...base,
+      action: 'lesson',
+      lessons: [...pinned, ...rest].slice(0, 3),
+      reasons: [`named tag ${namedTags.join(', ')}`, ...reasons],
+    };
+  }
 
   // Whether the course covers it is a retrieval fact, not an intent: "what is MVC"
   // reads like a general tech question, but the MVC lesson answers it.

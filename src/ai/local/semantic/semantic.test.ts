@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { encodeVectors } from '../../../../scripts/ben/build-index.mjs';
 import { OFF_COURSE } from '../agent.ts';
 import { decodeVectors, dot, normalize, type BenIndex, type Intent, type LessonChunk } from './codec.ts';
-import { namedLessons, route, THRESHOLDS } from './router.ts';
+import { namedLessons, namedTagLessons, route, THRESHOLDS } from './router.ts';
 import { buildTurn, NO_SOURCE, sectionLead } from './turn.ts';
 
 /** Unit vector pointing mostly along `axis` in a small space, nudged by `tilt`. */
@@ -126,6 +126,37 @@ describe('router', () => {
     expect(namedLessons('what is MVC')).toContain('mvc-to-react');
     expect(namedLessons('how does raft work')).toContain('consensus-raft');
     expect(namedLessons('DDD')).toContain('domain-driven-design');
+  });
+
+  it('treats a unique single-token tag as a named lesson, including Guides', () => {
+    expect(namedTagLessons('DDD')).toContain('domain-driven-design');
+    expect(namedTagLessons('tell me about local AI')).toContain('tutor-loop');
+    expect(namedTagLessons('hmm that thing with the two sides')).toEqual([]);
+    expect(namedTagLessons('backend for frontend pattern')).toEqual([]);
+    expect(namedTagLessons('why does my replica show old data')).toEqual([]);
+  });
+
+  it('pins DDD over a competing Anti-Corruption Layer chunk that already clears 0.45', () => {
+    const competing: BenIndex = {
+      ...index,
+      chunks: [chunk('anti-corruption-layer', 5), chunk('domain-driven-design', 6)],
+    };
+    const decision = route({ question: 'DDD', vector: vec(5, [0.6]), index: competing });
+    expect(decision.action).toBe('lesson');
+    expect(decision.lessons[0]?.slug).toBe('domain-driven-design');
+  });
+
+  it('pins the tutor-loop Guide over a competing Designing AI Systems chunk', () => {
+    const competing: BenIndex = {
+      ...index,
+      chunks: [chunk('designing-ai-systems', 5)],
+    };
+    const decision = route({ question: 'tell me about local AI', vector: vec(5, [0.6]), index: competing });
+    expect(decision.action).toBe('lesson');
+    expect(decision.lessons[0]?.slug).toBe('tutor-loop');
+    const turn = buildTurn('tell me about local AI', [], decision);
+    expect(turn.sources[0]?.id).toBe('tutor-loop');
+    expect(turn.answer).toMatch(/GitHub Pages/i);
   });
 });
 
