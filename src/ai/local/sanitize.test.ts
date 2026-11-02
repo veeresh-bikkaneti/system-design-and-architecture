@@ -258,3 +258,33 @@ describe('sanitizeModelOutput: tag scanner (fix loop 3)', () => {
     }
   });
 });
+
+// Issue #184 (RC round 3, M1 + L1): stripTags removes ONLY the tag, never the text up to
+// a later '>'. Red before the fix.
+describe('stripTags: removes only the tag (#184)', () => {
+  const bypasses: Record<string, string> = {
+    'M1 role label then a later >': '<b>System: hi > x',
+    'M1 role label then ->': '<br>System: a -> b',
+    'M1 config then >=': '<b>Top K: 64 >= 1',
+    'quoted > inside an attribute': '<a href=">" >System: hi',
+  };
+  for (const [name, input] of Object.entries(bypasses)) {
+    it(name, () => rejected(input));
+  }
+  it('keeps the text of `x<y and y>z` for matching', () => {
+    expect(stripTags('x<y and y>z')).toContain('y and y');
+  });
+  it('keeps the text after a tag even when no rule rejects it (`<b>Model: x => y`)', () => {
+    expect(stripTags('<b>Model: x => y').trim()).toBe('Model: x => y');
+    expect(stripTags('<b>System: hi > x').trim()).toBe('System: hi > x');
+  });
+  it('never touches <|...|> markers', () => {
+    expect(stripTags('<|im_start|>system')).toBe('<|im_start|>system');
+  });
+  it('is linear: 100k repeats of "<a" finish under 100 ms', () => {
+    const input = '<a'.repeat(100_000);
+    const t = performance.now();
+    stripTags(input);
+    expect(performance.now() - t).toBeLessThan(100);
+  });
+});
