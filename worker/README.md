@@ -177,6 +177,10 @@ Two Worker secrets, set with `wrangler secret put` and never committed:
 
 If either secret is missing, the route answers 503 and does not call Turnstile or Discord.
 
+Rate limit: 5 sends per hour per visitor (an IPv6 visitor counts as its whole /64; an IPv4-mapped address counts as its IPv4 address), in D1, after validation and before Turnstile. If Turnstile itself fails (5xx, network error or timeout), the slot is given back; a Turnstile `success: false` or hostname mismatch does not refund. If the refund write fails, the slot stays burned and the answer is still 502. Both upstream calls (siteverify, Discord) time out after 8 seconds.
+
+**Owner step (Cloudflare dashboard, not code):** add a WAF rate-limiting rule on `/api/feedback` (for example 10 requests per minute per IP, action Block). The in-Worker limiter runs after validation, so it does not cap raw request volume; the WAF rule does that at the edge before the Worker runs.
+
 ## What still needs your accounts (credentials only the account owner can supply)
 
 1. **Cloudflare:** the D1 database `system-design-mastery-cert` already exists (its id is in
