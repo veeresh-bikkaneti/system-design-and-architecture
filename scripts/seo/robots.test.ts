@@ -14,4 +14,9 @@ describe('robots.txt content signals', () => {
     expect(robots).toMatch(/^Allow:\s*\/\s*$/m);
     expect(robots).toMatch(/^Sitemap:\s*https:\/\/\S+\/sitemap\.xml\s*$/m);
   });
+
+  it('opts out of AI training via the __usage_ai-training token in its own group', () => {
+    const group = robots.split(/\n\s*\n/).find((block) => /^User-agent:\s*__usage_ai-training\s*$/m.test(block));
+    expect(group).toMatch(/^Disallow:\s*\/\s*$/m);
+  });
 });

@@ -1,4 +1,5 @@
 import { acceptDraft } from './agent';
+import { sanitizeModelOutput } from './sanitize';
 import { tokenize } from './retrieve';
 
 /**
@@ -32,6 +33,7 @@ interface Engine {
 }
 
 export const MODEL_LABEL = 'On-device AI';
+export const MODEL_UNAVAILABLE = 'On-device model unavailable · answering from the lessons';
 
 let status: ModelStatus = { phase: 'idle', progress: 0, detail: 'Not loaded' };
 const listeners = new Set<(next: ModelStatus) => void>();
@@ -94,6 +96,17 @@ async function tryPromptApi(): Promise<Engine | null> {
 }
 
 async function loadWebLlm(): Promise<Engine> {
+  // No GPU, no point: skip the big import and the weights download and fail now
+  // instead of after a long wait. We only ask for an adapter (fallback ones are
+  // fine) and never a device, so this costs next to nothing.
+  let adapter: unknown = null;
+  try {
+    adapter = await navigator.gpu?.requestAdapter();
+  } catch {
+    // A GPU that throws is a GPU we cannot use.
+  }
+  if (!adapter) throw new Error('No WebGPU adapter on this device.');
+
   publish({ phase: 'loading', progress: 0, detail: 'Fetching WebLLM' });
   const webllm = await import('@mlc-ai/web-llm');
   const candidate = webllm.prebuiltAppConfig.model_list.find((entry) =>
@@ -140,17 +153,30 @@ function loadEngine(): Promise<Engine> {
       if (promptApi) return promptApi;
       return loadWebLlm();
     })().catch((error: unknown) => {
-      enginePromise = null;
-      const message = error instanceof Error ? error.message : 'Could not load the model';
-      publish({ phase: 'failed', progress: 0, detail: message });
+      // Keep the rejected promise so a later wording call does not refetch Hub weights.
+      console.error(error);
+      publish({ phase: 'failed', progress: 0, detail: MODEL_UNAVAILABLE });
       throw error;
     });
   }
   return enginePromise;
 }
 
-const SYSTEM_PROMPT =
+export const SYSTEM_PROMPT =
   'You are Ben, a patient tutor talking with a beginner. Stay in that role. Sound like a person: warm, short sentences, everyday words. Two to five sentences. You do not call tools yourself. The page already looked up the lesson or the published page in the material. Explain that material. Never say "I only answer from", "scope", "search_lessons", "OKF", or "notes". If the material names a source, keep that source. Do not invent a lesson that is not in the material.';
+
+/**
+ * QA R-01 output gate. A rejected draft becomes null: the parametric caller then
+ * shows the deterministic NO_SOURCE line, and the rewrite caller keeps the card
+ * answer. Runs before acceptDraft, which stays as the second check.
+ */
+function gated(draft: string): string | null {
+  const result = sanitizeModelOutput(draft, {
+    systemPrompts: [SYSTEM_PROMPT, PARAMETRIC_SYSTEM_PROMPT],
+    fallback: '',
+  });
+  return result.rejected ? null : draft;
+}
 
 /** Returns null when no engine is available or the draft fails the sanity check. */
 export async function rewriteWithModel(
@@ -169,7 +195,7 @@ export async function rewriteWithModel(
       `${history}Lesson material:\n${material}\n\nStudent: ${question}`,
     );
     const draft = output.replace(/^answer:\s*/i, '').trim();
-    if (!acceptDraft(draft, question)) return null;
+    if (gated(draft) === null || !acceptDraft(draft, question)) return null;
     if (/\bi don't have a lesson\b/i.test(draft) && context.trim().length > 0) return null;
     const sourceTokens = tokenize(context);
     if (sourceTokens.length > 12) {
@@ -183,7 +209,7 @@ export async function rewriteWithModel(
   }
 }
 
-const PARAMETRIC_SYSTEM_PROMPT =
+export const PARAMETRIC_SYSTEM_PROMPT =
   'You are an expert system design tutor. The user has asked a general software architecture question that falls outside the specific coursework. Explain the concept concisely using your internal knowledge. Do not hallucinate external sources.';
 
 /**
@@ -200,7 +226,7 @@ export async function answerParametrically(question: string, prior: string): Pro
     const history = prior ? `What you already said:\n${prior}\n\n` : '';
     const output = await engine.generate(PARAMETRIC_SYSTEM_PROMPT, `${history}Student: ${question}`);
     const draft = output.trim();
-    if (!acceptDraft(draft, question)) return null;
+    if (gated(draft) === null || !acceptDraft(draft, question)) return null;
     return draft;
   } catch {
     return null;

@@ -397,13 +397,26 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
     const draft = await answerParametrically(text, priorTurns(history));
     if (draft) {
       patchMessage(assistantId, { content: draft, sources: [], confidence: GENERAL_KNOWLEDGE_CONFIDENCE });
-    } else {
-      patchMessage(assistantId, {
-        content: NO_SOURCE,
-        sources: [],
-        confidence: { level: 'low', label: 'Low confidence · I could not find a source, so I will not guess' },
-      });
+      return;
     }
+    const turn = prepareTurn(text, history, focusId);
+    if (turn.inScope) {
+      const sources: BubbleSource[] = turn.sources
+        .filter((source) => LESSON_IDS.has(source.id))
+        .map((source) => ({ title: source.title, href: lessonHref(source.id) }));
+      const confidence = grounding({ aboutMe: false, inScope: true });
+      patchMessage(assistantId, {
+        content: turn.answer,
+        sources,
+        confidence: { ...confidence, label: `${confidence.label} · keyword match` },
+      });
+      return;
+    }
+    patchMessage(assistantId, {
+      content: NO_SOURCE,
+      sources: [],
+      confidence: { level: 'low', label: 'Low confidence · I could not find a source, so I will not guess' },
+    });
   }
 
   /** The understanding layer decides; tools run only when the decision needs them. */
@@ -500,9 +513,9 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
                     ? 'Getting ready · reading the lessons'
                     : modelStatus.phase === 'loading'
                       ? `Loading ${MODEL_LABEL} · ${modelStatus.progress}%`
-                      : modelStatus.phase === 'failed'
-                        ? 'Model failed · lesson answers work'
-                        : modelStatus.phase === 'ready'
+                      : modelStatus.phase === 'ready'
+                        ? modelStatus.detail
+                        : modelStatus.phase === 'failed'
                           ? modelStatus.detail
                           : 'Runs in your browser · no API key'}
               </p>

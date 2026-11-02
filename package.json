@@ -14,12 +14,13 @@
     "content:validate": "python3 scripts/validate_lessons.py",
     "narration:index": "python3 scripts/tts/generate_narration_index.py",
     "test": "vitest run",
+    "test:tts": "python3 -m unittest discover -s scripts/tts -p test_extract.py",
     "pretest": "node scripts/seo/generate-manifest.mjs",
     "test:e2e": "playwright test",
     "lint": "oxlint",
     "preview": "vite preview",
     "ben:index": "node scripts/ben/build-index.mjs",
-    "eval:ben": "vitest run --config vitest.eval.config.ts; status=$?; cat evals/ben/REPORT.md; exit $status"
+    "eval:ben": "node scripts/ben/run-eval.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "4.3.0",
@@ -37,7 +38,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "^1.64.1",
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.2",
@@ -48,15 +49,15 @@
     "@types/node": "^26.6.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
-    "@vitejs/plugin-react": "^6.1.1",
-    "jsdom": "^30.1.1",
-    "oxlint": "^1.86.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "jsdom": "^30.1.3",
+    "oxlint": "^1.89.0",
     "satori": "^0.63.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~7.0.2",
     "vite": "^8.3.5",
     "vite-plugin-pwa": "1.3.0",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "fflate": "0.7.5",

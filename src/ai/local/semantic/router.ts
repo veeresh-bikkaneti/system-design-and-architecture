@@ -32,6 +32,7 @@ export interface Decision {
   intentScores: Record<Intent, number>;
   lessons: LessonHit[];
   reasons: string[];
+  pinned?: string[];
 }
 
 export const THRESHOLDS = {
@@ -87,6 +88,113 @@ export function namedLessons(question: string): string[] {
   const slugs = new Set<string>();
   for (const token of tokens) {
     const slug = DISTINCT_NAMES.get(token);
+    if (slug) slugs.add(slug);
+  }
+  return [...slugs];
+}
+
+/**
+ * Unique single-token tags the student typed ("DDD", "local").
+ * Uniqueness is over Lesson+Guide *names* (id, title, tags), not tags
+ * alone: "frontend" is only a tag on MVC, but BFF's title also says
+ * frontend, so pinning MVC would steal "backend for frontend pattern".
+ * Lesson pins stay acronym-short; longer unique tags ("replica") are
+ * ordinary words. Guides still pin on a longer unique tag ("local")
+ * because `tutor-loop` is not in the lesson index.
+ * `namedLessons` stays Lesson-only so a Guide sharing "react" does not
+ * drop the MVC name boost.
+ */
+const DISTINCT_TAG_PINS: Map<string, string> = (() => {
+  const owners = new Map<string, Set<string>>();
+  for (const card of OKF_CARDS) {
+    if (card.type !== 'Lesson' && card.type !== 'Guide') continue;
+    for (const token of nameTokens(card)) {
+      if (token.length < 3) continue;
+      const set = owners.get(token) ?? new Set<string>();
+      set.add(card.id);
+      owners.set(token, set);
+    }
+  }
+  const unique = new Map<string, string>();
+  for (const [token, set] of owners) {
+    if (set.size === 1) unique.set(token, [...set][0] as string);
+  }
+  const out = new Map<string, string>();
+  for (const card of OKF_CARDS) {
+    if (card.type !== 'Lesson' && card.type !== 'Guide') continue;
+    for (const tag of card.tags) {
+      const tagTokens = tokenize(tag);
+      if (tagTokens.length !== 1) continue;
+      const tagToken = tagTokens[0];
+      if (!tagToken || unique.get(tagToken) !== card.id) continue;
+      if (card.type !== 'Guide' && tagToken.length > 4) continue;
+      out.set(tagToken, card.id);
+    }
+  }
+  return out;
+})();
+
+/**
+ * Setup of this tutor, including the spaced verb "set up" that tokenize splits.
+ *
+ * "Set up my AI env" is a coin toss: Ben's own on-device AI, or the student's
+ * own dev box? UNVERIFIED, low-confidence call: with no other clue we read it
+ * as Ben (that's the live report). Any own-machine signal (Python, Docker,
+ * "my laptop", env variables...) or a vendor prefix ("open ai env", "azure
+ * ai environment") skips the pin and leaves it unpinned: normal routing
+ * decides. No bare "ai" pin: "set up an AI pipeline" belongs to Designing
+ * AI Systems.
+ */
+function isTutorSetupQuestion(question: string): boolean {
+  const text = question.toLowerCase();
+  const setup = /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text);
+  const tutor = /\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\btutor\b|\bben\b/.test(text);
+  if (setup && tutor) return true;
+  // "the ai set up / setup" is a thing ("what is the ai setup netflix uses"),
+  // so it doesn't count as the verb... unless it follows "get": "get the ai
+  // set up" is someone asking for help. ponytail: "get" is the only request
+  // verb read here; add "have"/"need" if a real report needs it.
+  const request = /\bget\s+the\s+ai\s+set\s*up\b/.test(text);
+  const verb = request || /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text.replace(/\bthe\s+ai\s+set\s*up\b/g, ''));
+  const aiEnv = /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
+  return verb && aiEnv && !OWN_BOX.test(text);
+}
+
+const OWN_BOX =
+  /\b(python|venv|cuda|conda|pip|pipenv|docker|laptop|mac|macbook|wsl|jupyter|gpu|variables|api key)\b|\bdev(elopment)?\s+env|\bmy\s+(machine|project)\b|\b(open|azure)\s+ai\b/;
+
+/**
+ * The stricter test used to beat an off_topic/debate vote. An off-topic vote
+ * is a decent hint that the question really is about something else, so only
+ * a definite Ben ("the tutor", "local AI", WebLLM, "Ben" ending the question,
+ * or "Ben" right after the verb and then ending or a polite word) or the "ai
+ * env" reading may override it, and never with an own-machine or
+ * human-tutoring signal. "a tutor business", "the tutor for my kid homework",
+ * "ben 10", "ben's birthday" and "ben franklin biography" stay redirected.
+ * ponytail: "Ben" elsewhere in the sentence ("ben setup meme") is not
+ * protected; the normal pin still catches it when the vote is not off-topic.
+ * "school" and "homework" are NOT human-tutoring signals: they appear in real
+ * Ben setup questions ("set up the tutor at school"), and a stray pin costs
+ * less than turning a student away. Trade-off: "set up the tutor program for
+ * school" now pins.
+ */
+const HUMAN_TUTOR = /\b(kid|kids|child|children|son|daughter|business|hire|hiring|schedule)\b|\bnear me\b/;
+
+function isDefiniteTutorSetup(question: string): boolean {
+  const text = question.toLowerCase();
+  if (!isTutorSetupQuestion(question) || OWN_BOX.test(text) || HUMAN_TUTOR.test(text)) return false;
+  const definite =
+    /\b(the|this|your|that)\s+tutor\b|\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\bben\s*[?.!]*$|\b(set\s*up|setup|install)\s+ben(?:[?.!,]+(?:\s|$)|\s*$|\s+(?:please|pls|plz|thanks|now|again|for me)\b)/.test(text);
+  return definite || /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
+}
+
+export function namedTagLessons(question: string): string[] {
+  const tokens = tokenize(question);
+  const slugs = new Set<string>();
+  if (isTutorSetupQuestion(question)) slugs.add('tutor-loop');
+  if (tokens.length === 0 || tokens.length > THRESHOLDS.nameBoostMaxTokens) return [...slugs];
+  for (const token of tokens) {
+    const slug = DISTINCT_TAG_PINS.get(token);
     if (slug) slugs.add(slug);
   }
   return [...slugs];
@@ -176,6 +284,22 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   ];
   if (named.length > 0) reasons.push(`named: ${named.join(', ')}`);
 
+  // Pinned decision for unique tags (same result wherever it fires).
+  const pinTags = (namedTags: string[]): Decision => {
+    const pinned = namedTags.map((slug) => {
+      const hit = lessons.find((lesson) => lesson.slug === slug);
+      return hit ?? { slug, score: THRESHOLDS.lesson, best: THRESHOLDS.lesson, chunks: [] };
+    });
+    const rest = lessons.filter((lesson) => !namedTags.includes(lesson.slug));
+    return {
+      ...base,
+      action: 'lesson',
+      lessons: [...pinned, ...rest].slice(0, 3),
+      pinned: namedTags,
+      reasons: [`named tag ${namedTags.join(', ')}`, ...reasons],
+    };
+  };
+
   // Rule layer: cheap, high-precision, and already covered by tests.
   if (isOffCourseTopic(question)) {
     return { ...base, action: 'redirect', reasons: ['blocked topic', ...reasons] };
@@ -197,6 +321,10 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   }
 
   if (offCourse) {
+    // "Help me setup the tutor" can embed near off_topic. Nobody gets
+    // shrugged at for asking how to switch Ben on, so the setup pin goes
+    // first and only this pin: the other tag pins keep their old order.
+    if (isDefiniteTutorSetup(question)) return pinTags(namedTagLessons(question));
     if (topScore >= THRESHOLDS.override && vote.confidence < THRESHOLDS.overrideVote) {
       return { ...base, action: 'lesson', reasons: ['a lesson matches strongly despite the vote', ...reasons] };
     }
@@ -209,6 +337,12 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   // you"-style examples to get Ben's own about-me answer -- a real drift bug,
   // not a feature. An unconfirmed 'self' vote now falls through to the rest
   // of the policy table instead, same as any other question no lesson covers.
+
+  // Unique tags beat nearest-chunk ranking. Live "DDD" otherwise leads
+  // Anti-Corruption Layer because that MDX quotes the DDD books, and the
+  // 0.45 gate would return before a later pin could fire.
+  const namedTags = namedTagLessons(question);
+  if (namedTags.length > 0) return pinTags(namedTags);
 
   // Whether the course covers it is a retrieval fact, not an intent: "what is MVC"
   // reads like a general tech question, but the MVC lesson answers it.

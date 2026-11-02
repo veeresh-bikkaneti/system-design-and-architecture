@@ -1,9 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { OKF_CARDS } from './cards.ts';
-import { isGeneralTechQuestion, OFF_COURSE, prepareTurn } from './agent.ts';
+import { isGeneralTechQuestion, OFF_COURSE, prepareTurn, spokenAnswer } from './agent.ts';
 import { searchCards } from './retrieve.ts';
 
 describe('local OKF tutor', () => {
+  it('answers how to setup local AI from the on-device wording sentences', () => {
+    const card = OKF_CARDS.find((item) => item.id === 'tutor-loop');
+    expect(card).toBeTruthy();
+    const answer = spokenAnswer('how to setup local AI', [card!]);
+    expect(answer).toMatch(/WebLLM|Prompt API/i);
+    expect(answer).not.toMatch(/The course site is static/);
+  });
+
+  it('keeps first and last sentences when the question shares no wording tokens', () => {
+    const card = OKF_CARDS.find((item) => item.id === 'tutor-loop');
+    expect(card).toBeTruthy();
+    const answer = spokenAnswer('xyzzy', [card!]);
+    expect(answer).toMatch(/The course site is static/);
+  });
+
   it('lands a CAP question on the CAP lesson', () => {
     const hits = searchCards('what is the CAP theorem during a partition', OKF_CARDS, 3);
     expect(hits[0]?.card.id).toBe('cap-theorem');
@@ -28,6 +43,19 @@ describe('local OKF tutor', () => {
     expect(turn.sources[0]?.id).toBe('mvc-to-react');
     expect(turn.answer).toMatch(/Model/);
     expect(turn.traces.map((trace) => trace.name)).toEqual(['search_lessons', 'read_concept']);
+  });
+
+  it('answers a one-word DDD from the domain-driven-design lesson', () => {
+    const turn = prepareTurn('DDD');
+    expect(turn.inScope).toBe(true);
+    expect(turn.sources[0]?.id).toBe('domain-driven-design');
+  });
+
+  it('answers an eval-harness question from an AI lesson', () => {
+    const turn = prepareTurn('tell me about ai harness');
+    expect(turn.inScope).toBe(true);
+    expect(turn.sources[0]?.id).toBe('agentic-ai-patterns');
+    expect(turn.answer).toMatch(/An agent is a loop/i);
   });
 
   it('answers the plain-English name of MVC', () => {

@@ -43,7 +43,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -80,4 +80,19 @@ jobs:
             printf '%s' "$MODEL_KEY" | npx wrangler secret put MODEL_API_KEY
           else
             echo "MODEL_API_KEY not provided; Veer chat stays AI_UNAVAILABLE (Ben fallback) until a model host exists."
+          fi
+      - name: Store feedback secrets on the Worker (optional)
+        env:
+          FEEDBACK_WEBHOOK: ${{ secrets.DISCORD_FEEDBACK_WEBHOOK_URL }}
+          FEEDBACK_TURNSTILE: ${{ secrets.TURNSTILE_SECRET_KEY }}
+        run: |
+          if [ -n "$FEEDBACK_WEBHOOK" ]; then
+            printf '%s' "$FEEDBACK_WEBHOOK" | npx wrangler secret put DISCORD_FEEDBACK_WEBHOOK_URL
+          else
+            echo "DISCORD_FEEDBACK_WEBHOOK_URL not provided; /api/feedback stays on its 503 path."
+          fi
+          if [ -n "$FEEDBACK_TURNSTILE" ]; then
+            printf '%s' "$FEEDBACK_TURNSTILE" | npx wrangler secret put TURNSTILE_SECRET_KEY
+          else
+            echo "TURNSTILE_SECRET_KEY not provided; /api/feedback stays on its 503 path."
           fi

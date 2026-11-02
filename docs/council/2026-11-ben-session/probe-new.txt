@@ -1,0 +1,43 @@
+# Written 2026-11-01 BEFORE any router output for these phrasings was seen.
+# class | phrasing | what a good router should do (my expectation, set blind)
+# follow class runs with history: user "what is caching" / assistant "Caching keeps hot data close to where it is read."
+self | what are you exactly | self or redirect
+self | are you a real person | self or redirect
+self | do you have feelings | self or redirect
+self | who made you | self or redirect
+self | can you see my screen | self or redirect
+self | do you store my questions | self or redirect
+self | are you better than ChatGPT | self or redirect
+self | what languages do you speak | self or redirect
+self | how smart are you | self or redirect
+self | do you ever get tired | self or redirect
+tech | what is a spinlock | parametric_fallback or clarify
+tech | what is a race condition | parametric_fallback or clarify or lesson
+tech | what is a hash table | parametric_fallback or clarify or lesson
+tech | what is recursion | parametric_fallback or clarify
+tech | how does a compiler work | parametric_fallback or clarify
+tech | what is a pointer in C | parametric_fallback or clarify
+tech | what is an operating system kernel | parametric_fallback or clarify
+tech | what is a binary search tree | parametric_fallback or clarify
+tech | what is Kotlin | parametric_fallback or clarify
+tech | how does HTTPS encryption work | parametric_fallback or clarify or lesson
+setup | how do I install Ben | lesson tutor-loop
+setup | help me setup the tutor | lesson tutor-loop
+setup | can I set up local AI on my phone | lesson tutor-loop
+setup | what do I need to set up Ben offline | lesson tutor-loop
+setup | is it hard to install the tutor | lesson tutor-loop
+setup | setting up WebLLM for this course | lesson tutor-loop (pin regex may miss "setting")
+setup | how do I set up Ben in Firefox | lesson tutor-loop
+setup | could you walk me through setting up local AI | lesson tutor-loop (pin regex may miss "setting")
+setup | install local AI please | lesson tutor-loop
+setup | how to set up docker | NOT tutor-loop (control)
+follow | what's the catch | lesson caching-strategies
+follow | can you go deeper | lesson caching-strategies
+follow | how does that scale | lesson caching-strategies
+follow | show me a real-world case | lesson caching-strategies
+follow | when should I not use it | lesson caching-strategies
+follow | what's the alternative | lesson caching-strategies
+follow | how is that different from a database | lesson caching-strategies
+follow | explain like I'm five | lesson caching-strategies
+follow | what are the trade-offs | lesson caching-strategies
+follow | so what happens when it fills up | lesson caching-strategies

@@ -1,0 +1,91 @@
+name: PR gates
+
+# Runs the repo's section 11 gates on every pull request, so a change is checked
+# BEFORE it merges (deploy.yml only runs on push to main). The two jobs named
+# "PR Frontend gates" and "PR Worker gates" are meant to be required status checks in
+# the main ruleset (issue #168). They have no path filter on purpose: a required
+# check that is skipped never reports and would block every merge.
+#
+# Not in the required jobs, on purpose:
+#  - eval:ben has its own advisory workflow (pr-ben-eval.yml).
+#  - `npm run build` runs a prebuild hook that downloads Ben's embedder from
+#    Hugging Face. A Hugging Face outage must not block every merge, so the
+#    required Frontend job only typechecks (`tsc -b`). The full build runs in the
+#    e2e job and in deploy.yml.
+# The e2e job reports on PRs but is not meant to be required until it has proven
+# stable (owner decision in #168).
+# Job names carry a "PR " prefix so they do not collide with the same-named jobs
+# in deploy.yml (which run on push to main and include ben:index and eval:ben).
+#
+# Never pull_request_target: this runs the PR's own code with a read-only token.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-gates-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: PR Frontend gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run content:check
+      - run: npm run content:validate
+      - run: npm run test
+      # Narration extractor unit tests (stdlib unittest, no venv needed).
+      - run: npm run test:tts
+      # Typecheck only. The full build needs Hugging Face (see header).
+      - run: npx tsc -b
+
+  worker:
+    name: PR Worker gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test
+
+  e2e:
+    name: PR E2E smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:e2e

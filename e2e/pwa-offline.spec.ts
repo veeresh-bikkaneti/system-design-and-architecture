@@ -524,7 +524,7 @@ test.describe('PWA offline (SW-controlled)', () => {
     await expect(panel).toBeVisible({ timeout: 20000 });
     await panel.getByLabel('Ask about the course').fill(BEN_QUESTION);
     await panel.getByRole('button', { name: 'Send message' }).click();
-    await expect(panel.getByText('Model failed · lesson answers work')).toBeVisible({ timeout: 90000 });
+    await expect(panel.getByText('On-device model unavailable · answering from the lessons')).toBeVisible({ timeout: 90000 });
   });
 });
 

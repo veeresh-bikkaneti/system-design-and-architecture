@@ -2,10 +2,30 @@
 
 Ben is the chat button on the course site. He runs in the student's browser. GitHub Pages only hosts the static files. Nothing the student types is sent to a model API. The design and its trade-offs are in [ADR 0001](adr/0001-ben-semantic-routing.md). For how this architecture got here — the pivots away from BYOK, a crashing in-browser model, and two competing server-side rewrites — see [ben-history.md](ben-history.md).
 
+## Talk to Ben (no install)
+
+You do not install a model for Ben. Open the [live course](https://veeresh-bikkaneti.github.io/system-design-and-architecture/), tap the chat button, and ask a question. That is setup.
+
+Try asking: `how to setup local AI`, `how to set up local AI`, or `I want to setup my ai env can you help`
+
+Ben should say:
+
+> You don't install a local model for me. I try a page-callable Prompt API if this browser exposes one, then a small WebLLM model on WebGPU. Not every browser exposes that API to the page. Neither engine picks tools or browses, and there is no cloud model.
+
+A Prompt API is a browser feature a web page can call. WebLLM is a small model that runs on your GPU.
+
+The grey line under the reply reads `High confidence · from How this tutor runs`. That High means Ben pinned his own how-I-run guide. The only source under the reply is How this tutor runs.
+
+Chrome and Edge expose a page-callable Prompt API. Edge's is a flagged preview in Canary or Dev (checked 2026-10-19). Firefox and Safari have no page-callable API, so Ben still answers from the course and rewording stays off. That is expected. Opera and Brave are not verified yet. If neither wording engine loads, the grounded reply stays.
+
+If the ranking model has not loaded yet (the chat has been open only a moment), the older keyword path may still say "Chrome's Prompt API". Ask again once the chat has been open a few seconds. The path above uses the sentence in the quote.
+
+## Two layers
+
 Ben has two layers:
 
 - **Understanding** decides what a question is and what to do about it. It uses a small embedding model, [all-MiniLM-L6-v2](https://huggingface.co/Xenova/all-MiniLM-L6-v2) (23 MB, quantized), served by the course site itself. It is ready a few seconds after the chat opens, and every routing decision comes from it.
-- **Wording** is optional and 100% on-device, two tiers (`inference.ts`). First choice is the browser's own built-in AI (Chrome's Prompt API, `window.LanguageModel`) — nothing to download from us. If that's unavailable, it falls back to [WebLLM](https://github.com/mlc-ai/web-llm) running a small Qwen2.5-0.5B model on WebGPU, weights cached to IndexedDB after the first download. Neither engine ever decides anything — they only reword a grounded reply. If neither loads, the grounded reply stays.
+- **Wording** is optional and 100% on-device, two tiers (`inference.ts`). First choice is a page-callable Prompt API if this browser exposes `LanguageModel` — nothing to download from us. If that's unavailable, it falls back to [WebLLM](https://github.com/mlc-ai/web-llm) running a small Qwen2.5-0.5B model on WebGPU, weights cached to IndexedDB after the first download. Neither engine ever decides anything — they only reword a grounded reply. If neither loads, the grounded reply stays.
 
 ## What each piece does
 
@@ -61,6 +81,7 @@ The policy table and its thresholds are in `THRESHOLDS` in `src/ai/local/semanti
 | Line | Meaning |
 |---|---|
 | High · I'm Ben | Greeting, small talk, or a question about Ben |
+| High · from *How this tutor runs* | Ben pinned his own how-I-run guide. High is the pin. The source pill is only that guide. |
 | High · from the lesson *X* | A lesson section is a strong match |
 | Medium · closest lesson is *X* | A lesson section matches, less strongly |
 | Not sure · closest lessons offered | Ben could not tell which lesson you mean, or whether it is about the course |

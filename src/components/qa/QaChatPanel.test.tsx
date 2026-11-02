@@ -38,7 +38,7 @@ vi.mock('../../ai/local/semantic/embedder', () => ({
 }));
 
 const GENERIC_LINE = 'Runs in your browser · no API key';
-const FAILED_LINE = 'Model failed · lesson answers work';
+const FAILED_LINE = 'On-device model unavailable · answering from the lessons';
 
 function renderPanel(): void {
   render(
@@ -65,7 +65,7 @@ afterEach(() => {
 
 describe('QaChatPanel header status line', () => {
   it('BF1: model failed shows the failed line, not the generic line', () => {
-    setPhases({ phase: 'failed', progress: 0, detail: 'boom' }, 'idle');
+    setPhases({ phase: 'failed', progress: 0, detail: FAILED_LINE }, 'idle');
     renderPanel();
     expect(screen.getByText(FAILED_LINE)).toBeTruthy();
     expect(screen.queryByText(GENERIC_LINE)).toBeNull();

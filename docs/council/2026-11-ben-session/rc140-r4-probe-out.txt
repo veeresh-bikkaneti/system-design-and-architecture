@@ -1,0 +1,85 @@
+A | install ben 10 | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | set up ben's account | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | install ben stiller movie | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | setup ben&jerrys | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | install ben-hur | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | install ben, the movie | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+A | set up ben. my friend ben | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+A | install ben 10 now | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | set up ben & jerry's | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | install ben for free movie | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | install ben. | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+A | set up ben, my uncle, a birthday card | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+A | install ben 10, please | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | setup ben_10 game | new@off redirect | old@off redirect | new@course lesson | new@debate redirect
+A | install ben�s app | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | set up ben now playing on netflix | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+A | install ben 10 for me | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | install ben, the rat movie | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+A | set up ben: the game | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | install ben (the movie) | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | set up ben, jerry and the party | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+A | set up ben then | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | install ben the builder game | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | set up the tutor program for school | new@off lesson:tutor-loop | old@off redirect | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+A | setup a tutor for school | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | install ben 10 game | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | set up ben and jerry's account | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | install ben affleck fan page | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | set up ben's birthday party | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | install ben.exe on windows | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+A | how do I set up a tutor business | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | set up a tutor for math lessons near me | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | install ben franklin biography | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | ben setup meme | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | setup local ai on my gpu | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | install ben franklin | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | set up a tutor for my kid | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | hire a tutor and set up a schedule | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | setup the tutor for my kid homework | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | help me setup the tutor program for school | new@off lesson:tutor-loop | old@off redirect | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+A | set up a tutor for my business | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | setup the tutor for my son | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | i need a tutor near me, set up an account | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+A | set up ben for my son�s homework | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+B | set up Ben for me | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | install Ben now | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | install Ben, please | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up Ben! | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | help me set up Ben again | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | can you install Ben? | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up Ben, thanks | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | install Ben pls | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up ben plz | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | install ben again | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | please set up Ben | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up Ben. | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | install Ben for me please | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up Ben so I can study | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+B | set up Ben at school | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+B | set up Ben for homework | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+B | install Ben at work | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+B | set up the tutor at work | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up the tutor for school | new@off lesson:tutor-loop | old@off redirect | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | setup the tutor at school | new@off lesson:tutor-loop | old@off redirect | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up the tutor for my school computer lab | new@off lesson:tutor-loop | old@off redirect | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up the tutor for homework help | new@off lesson:tutor-loop | old@off redirect | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | how do I install local AI at school | new@off lesson:tutor-loop | old@off redirect | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | help me setup the tutor | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | how do I set up the tutor | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | can you help me set up Ben | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | help me set up local AI | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up my AI env | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up Ben please | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | install Ben please | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | install Ben | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up the tutor for my lessons | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | my school blocks webgpu, how do I set up the tutor | new@off lesson:tutor-loop | old@off redirect | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | how do I set up the tutor loop | new@off lesson:tutor-loop | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate lesson:tutor-loop
+B | set up the tutor on my school laptop | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+B | set up Ben on my school chromebook | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+B | install Ben for homework help | new@off redirect | old@off redirect | new@course lesson:tutor-loop | new@debate redirect
+B | setup ben for my class | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+B | how do I get Ben running on my device | new@off redirect | old@off redirect | new@course lesson | new@debate redirect
+B | how do I set up Ben on my phone | new@off redirect | old@off lesson:tutor-loop | new@course lesson:tutor-loop | new@debate redirect
+SWEEP phrases=201 combos=1206 flips=0

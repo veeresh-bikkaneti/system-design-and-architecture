@@ -78,17 +78,6 @@ export function buildTurn(question: string, history: ChatTurn[], decision: Decis
     };
   }
 
-  if (decision.action === 'redirect' || !lead) {
-    return {
-      action: 'redirect',
-      answer: OFF_COURSE,
-      sources: [],
-      traces,
-      context: '',
-      confidence: { level: 'low', label: 'Off topic · outside this course' },
-    };
-  }
-
   if (decision.action === 'parametric_fallback') {
     // No grounded material exists for this question -- the caller (QaWidget)
     // asks the model directly instead of using `answer`. NO_SOURCE is kept
@@ -100,6 +89,17 @@ export function buildTurn(question: string, history: ChatTurn[], decision: Decis
       traces,
       context: '',
       confidence: GENERAL_KNOWLEDGE_CONFIDENCE,
+    };
+  }
+
+  if (decision.action === 'redirect' || !lead) {
+    return {
+      action: 'redirect',
+      answer: OFF_COURSE,
+      sources: [],
+      traces,
+      context: '',
+      confidence: { level: 'low', label: 'Off topic · outside this course' },
     };
   }
 
@@ -117,16 +117,27 @@ export function buildTurn(question: string, history: ChatTurn[], decision: Decis
   }
 
   // Answer from the lesson. A close runner-up is cited too; it is often the other half.
-  const chosen = [lead, second].filter(
-    (hit): hit is LessonHit =>
-      Boolean(hit) && (hit === lead || (hit.best >= THRESHOLDS.lesson && lead.score - hit.score <= 0.03)),
-  );
+  const pinSlugs = decision.pinned ?? [];
+  const chosen =
+    pinSlugs.length > 0
+      ? pinSlugs
+          .map((slug) => decision.lessons.find((hit) => hit.slug === slug))
+          .filter((hit): hit is LessonHit => Boolean(hit))
+      : [lead, second].filter(
+          (hit): hit is LessonHit =>
+            Boolean(hit) && (hit === lead || (hit.best >= THRESHOLDS.lesson && lead.score - hit.score <= 0.03)),
+        );
   const cards = chosen.map((hit) => card(hit.slug)).filter((item): item is OkfCard => Boolean(item));
   const section = lead.chunks[0];
   const previous = [...history].reverse().find((turn) => turn.role === 'assistant')?.content.trim();
+  const setup = lead.slug === 'tutor-loop';
 
-  let answer = askShape(question) === 'plain' && section ? sectionLead(section.text) : spokenAnswer(question, cards, history);
-  if (!answer || answer === previous) answer = spokenAnswer(question, cards, history);
+  let answer = setup
+    ? setupAnswer()
+    : askShape(question) === 'plain' && section
+      ? sectionLead(section.text)
+      : spokenAnswer(question, cards, history);
+  if (!setup && (!answer || answer === previous)) answer = spokenAnswer(question, cards, history);
 
   const sections = chosen
     .flatMap((hit) => hit.chunks.map((chunk) => ({ hit, chunk })))
@@ -139,15 +150,22 @@ export function buildTurn(question: string, history: ChatTurn[], decision: Decis
   });
 
   const title = card(lead.slug)?.title ?? lead.slug;
+  const fromPin = pinSlugs.length > 0;
+  const pinKind = card(lead.slug)?.type === 'Guide' ? 'from' : 'from the lesson';
   return {
     action: 'lesson',
     answer,
     sources: cited(chosen),
     traces,
-    context: [formatContext(cards), sections].filter(Boolean).join('\n\n'),
-    confidence:
-      lead.best >= HIGH_MATCH
+    context: setup ? '' : [formatContext(cards), sections].filter(Boolean).join('\n\n'),
+    confidence: fromPin
+      ? { level: 'high', label: `High confidence · ${pinKind} ${title}` }
+      : lead.best >= HIGH_MATCH
         ? { level: 'high', label: `High confidence · from the lesson ${title}` }
         : { level: 'medium', label: `Medium confidence · closest lesson is ${title}` },
   };
+}
+
+function setupAnswer(): string {
+  return "You don't install a local model for me. I try a page-callable Prompt API if this browser exposes one, then a small WebLLM model on WebGPU. Not every browser exposes that API to the page. Neither engine picks tools or browses, and there is no cloud model.";
 }
