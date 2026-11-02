@@ -300,3 +300,14 @@ Append-only record of completed work: what was attempted, what happened, and wha
 - **NOT run:** the workflow itself on GitHub until the PR opens; YAML parser validation (no yaml library installed, reviewed by eye); `npm run build`, e2e, `content:check`; Linux run of the wrapper locally.
 - **Advisory-only:** `continue-on-error: true`. Becoming a required check needs the A5 prerequisite (drop `paths:`, add an always-reporting diff job), a ruleset decision for Liz.
 - **Process notes:** (1) the manifest's expected failure (`$?` parse) was really the `;` landing in the config filename, so quote the actual error rather than the predicted one. (2) vitest's `exports` map blocks `require.resolve('vitest/vitest.mjs')`; resolve the file by path instead.
+
+## 2026-11-02 — Ben skips WebLLM when there is no WebGPU (branch `feat/ben-webgpu-gate`)
+
+- **Tier:** T2 (Ben engine behavior; no T1 paths). Capsule with Skeptic conditions C1-C7; G2 (ask before downloading) deferred by Chair ruling, follow-up #138.
+- **Files:** `src/ai/local/inference.ts`, `src/ai/local/inference.test.ts` (existing file extended), `EVIDENCE_LOG.md`.
+- **Baseline (before any edit):** `inference.test.ts` 1 file, 1/1 passed.
+- **Failing-first:** 10 new ladder scenarios (S1-S9 plus S3b) with stubbed `LanguageModel` / `navigator.gpu`, `vi.resetModules()` per test. On unchanged code 4 failed (S3, S3b, S6, S8) for the intended reason: `expected "vi.fn()" to not be called at all, but actually been called 1 times` (CreateMLCEngine was reached with no GPU). S1, S2, S4, S5, S7, S9 and the original test passed already (they pin current behavior).
+- **Fix:** in `loadWebLlm`, before the "Fetching WebLLM" status: `navigator.gpu?.requestAdapter()` in try/catch; null or throw means no GPU, so it throws into the existing failure path (phase `failed`, `MODEL_UNAVAILABLE`, cached for the page lifetime). No import, no device request, fallback adapters accepted. Prompt API path untouched.
+- **Existing assertion changed:** only the one original test (`does not call CreateMLCEngine again...`) now stubs an adapter, because jsdom has no `navigator.gpu` and the gate would stop it before `CreateMLCEngine`. Its assertions are unchanged.
+- **After:** inference tests 11/11. `npm test` 48 files, 508/508. `npm run lint` 0 errors (pre-existing warnings). Build OK with `VITE_BASE_PATH=/system-design-and-architecture/` (snapshot budget OK; generated public/ and worker/ files reverted). content:check OK, content:validate 41 OK. `eval:ben` identical to main: all 87.9%, holdout 87.5%, drift 1.4%, top-1 93.1%.
+- **NOT run:** e2e, any real-browser check (Chrome/Edge/Firefox/Safari), independent Reality Checker. Firefox/Safari/Edge WebGPU status is UNVERIFIED.
