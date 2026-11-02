@@ -100,9 +100,21 @@ async function waitForPort(port: number, timeoutMs = 30000): Promise<void> {
 }
 
 function startPreview(cwd: string, port: number): ChildProcess {
+  // Run vite's own entry with node (no npx shim): the shim does not forward
+  // SIGTERM, so an orphaned N preview kept port 4174 and the "N+1" server
+  // never started, which made UPD1b see an identical sw.js (no waiting
+  // worker). Also avoids `spawn npx ENOENT` on Windows.
   const child = spawn(
-    'npx',
-    ['vite', 'preview', '--port', String(port), '--strictPort', '--host', '127.0.0.1'],
+    process.execPath,
+    [
+      join(repoRoot, 'node_modules', 'vite', 'bin', 'vite.js'),
+      'preview',
+      '--port',
+      String(port),
+      '--strictPort',
+      '--host',
+      '127.0.0.1',
+    ],
     { cwd, stdio: 'ignore' },
   );
   return child;
