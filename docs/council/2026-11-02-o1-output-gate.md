@@ -49,3 +49,43 @@ Everything else in the verdict stands. Do not reconvene.
 ### Outcome
 
 Round count: 1 of 2. Advisor: AGREE (one material note, applied: re-read QA R-01 first). Implementer: the O1 implementer agent (a Sonnet-class model), under the council lead Sonnet 5.5. Status: phase 2 (implementation) released. Gap recorded: the Skeptic did not have triage/ISSUES-CONSOLIDATED.md; the implementer closes it by re-reading QA R-01 and confirming the blocking changes cover it.
+
+## Round 2 (of max 2): Reality Checker blocking finding B1
+
+Independent Reality Checker (sonnet) on head bf54b72: VERIFIED WITH CONCERNS, one BLOCKING finding (B1): the leak shapes QA observed (TopK/Temp/CPU backend/Model:) bypass the gate when wrapped in a list, a table or a fence, an unclosed fence, or when Model: trails a sentence. The round-1 skip rules that avoid false positives create the bypass. Full report: docs/council/2026-11-02-o1-rc-174-round1.md. This contradicts the round-1 decision (rules 2 and 3 skip fences/tables/lists), so the loop reconvenes (procedure step 5).
+
+### Seat C (Skeptic), round 2, report, verbatim
+
+VOTE: SUPPORT WITH CHANGES. The design below replaces the round-1 blanket skip. The RC's B1 is verified in the sanitize.ts I read: its skip is a real bypass. Nothing here changes tier or scope. The acceptance wording does change, so the manifest needs a line update, which is not blocking.
+
+Pre-pass (all rules). Run NFKC and strip \u200b-\u200f\u2060\ufeff. This is two lines, needs no imports, and is cheap and safe. Add it. It covers the fullwidth TopK bypass and zero-width characters. Skip homoglyph tables (YAGNI).
+
+Line prep. Per line, strip leading ">", bullets -*+•, \d+[.)], |, #, and *_ and backtick wrappers. For table rows, split on | and check each cell.
+
+Tier 1: everywhere (fenced, listed, tabled, unclosed).
+- Prompt 8-gram (unchanged).
+- Template markers: <|...|>, [INST], <<SYS>>, "lesson material:", "what you already said:".
+- Engine config in colon form at segment start: \b(top[ -]?k|top[ -]?p|temp|max[ _]?tokens)\s*:\s*\d. The class has no _, so top_k and top_k = 64 pass, and = is not matched.
+- Backend line: ^(cpu|gpu|wasm|webgpu)\s+backend\W*$.
+- I drop {{...}}. The RC showed it false-positives on prose, and I have no leak evidence for it.
+
+Tier 2: outside fences and table rows, line-initial after stripping.
+- Role labels system|user|assistant|human|student|learner|tutor followed by ":" and any text.
+- model:, temperature: and seed[:=] only when bare or followed by just a number. This keeps "Temperature: 0.2 is a common choice" and "Model: the thing that..." passing, which resolves N1.
+- Trailing label: the last non-empty line, after stripping, ends in \b(model|system|user|assistant|tutor|human)\s*:\s*$. It applies even mid-line and inside lists. This catches "Caching is good. Model:".
+
+Fences. Toggle on a line starting with three backticks. At EOF, treat an open fence as closed. Tier 1 and the trailing-label rule ignore fence state, so an unclosed fence hides nothing from them. Tier 2 still skips fenced lines, including lines after an unclosed fence. That is accepted, since tier 1 and the trailing label still run there.
+
+False-positive trade-off. A false reject falls back to NO_SOURCE or the card answer, which is correct but less helpful. A leak is the Blocker bug. I accept a false reject over a leak. Known tier-1 false positives are fenced JS such as "topK: 64," and prose that opens a line with "Top-K: 64". Both fail safe. I am not adding a two-key requirement; it would let the RC's single-line "TopK: 64" leak through. Tier-2 "System: a set of parts" is rejected. Accepted.
+
+Tests (red before green; each of these inputs must fail against the current file). Every RC bypass input, verbatim (list, table, closed-fence and unclosed-fence cases, Model: trailing, "CPU backend.", "Settings - TopK: 64", "Top K: 64", "Top-K: 64", "**System:**", "> System:", "1. System:", "- <|im_start|>", fullwidth and zero-width). The accept set stays green: temperature and top-k prose, fenced model: "x" with seed = 42, {"top_k": 64}, a table with a Model column, "Temperature: 0.2 is a common choice", "Model: the thing that predicts". Add a behaviour-only red check (RC N2) that does not rely on a missing import. Keep the existing no-imports test.
+
+Prior turns (R-01 part 2). A tracked follow-up, not a blocker. The RC and I agree. The gate keeps the leak out of history. Delimiting and role-stripping priorTurns needs QaChatPanel.tsx, which another owner holds. PR title: "fix(ben): output gate (QA R-01, output side)". Body: say "Refs R-01, does not close it"; say prior-turn delimiting and role-label stripping remain open and link a tracking issue. Never write "Closes R-01". Also state the gate catches known shapes only: a partial leak shorter than 8 words and novel confabulation can pass.
+
+Risks. The top[ -]?k boundary is inference, UNVERIFIED against real model output. No code was run, so false-positive and bypass rates are inferred from the RC's tables. The W1 Veer mirror must copy the new file verbatim.
+
+### Verdict (council lead, Sonnet 5.5), round 2
+
+Adopt the Skeptic's design in full: the NFKC and zero-width pre-pass; line prep with per-cell table checks; tier 1 everywhere (8-gram, template markers, engine config colon form, backend line; drop the {{...}} rule); tier 2 outside fences and table rows (role labels, bare model:/temperature:/seed, the trailing label rule everywhere); unclosed fences treated as closed at EOF with tier 1 and the trailing label still running; every RC bypass input becomes a red test first, the accept set stays green, a behaviour-only red check is added, the no-imports test stays. PR title "fix(ben): output gate (QA R-01, output side)"; body "Refs R-01, does not close it"; follow-up issue: https://github.com/veeresh-bikkaneti/system-design-and-architecture/issues/179. Manifest acceptance wording updated: the gate catches known leak shapes; fenced/listed/tabled leak shapes are rejected by tier 1; a false reject falls back safely.
+
+Round count: 2 of 2. Sent to the advisor next; if the advisor does not agree, the loop stops with BUDGET EXCEEDED and the owner decides (procedure step 6).
