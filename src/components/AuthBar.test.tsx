@@ -179,6 +179,48 @@ describe('T-PWA-4b sync UI', () => {
     expect(screen.queryByText(/OAuth failed|Could not reach/)).toBeNull();
   });
 
+  it('oauth-callback-401-opens-login-and-stays-home', async () => {
+    vi.stubEnv('VITE_WORKER_URL', 'https://worker.example.test');
+    window.history.pushState({}, '', '/oauth/callback?code=abc');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ accessToken: 'tok', login: 'octo' }),
+      }),
+    );
+    mockSyncNow.mockImplementation(async () => {
+      // gist-sync's 401 contract: pause, null the token, throw.
+      useSessionStore.getState().pause();
+      useSessionStore.setState({ accessToken: null });
+      throw new Error('github 401');
+    });
+    const router = renderCallback();
+    await waitFor(() => expect(useSessionStore.getState().loginPrompt).toBe(true));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+    expect(useSessionStore.getState().isSignedIn()).toBe(false);
+  });
+
+  it('pat-stage-2-401-shows-rejection-copy', async () => {
+    vi.stubEnv('VITE_GITHUB_CLIENT_ID', '');
+    useSessionStore.setState({ loginPrompt: true });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ login: 'octo' }) }),
+    );
+    mockFindOrCreateGist.mockImplementation(async () => {
+      useSessionStore.getState().pause();
+      useSessionStore.setState({ accessToken: null });
+      throw new Error('github 401');
+    });
+    renderAuthBar();
+    fireEvent.change(screen.getByLabelText(/GitHub token/i), { target: { value: 'tok' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save and sync' }));
+    expect(await screen.findByText('GitHub rejected that token.')).toBeTruthy();
+    expect(screen.queryByText(PAT_NETWORK)).toBeNull();
+    expect(useSessionStore.getState().isSignedIn()).toBe(false);
+  });
+
   it('dirty-after-success-label', () => {
     signInSession({ lastSyncedAt: Date.now() - 1000, dirty: true });
     renderAuthBar();

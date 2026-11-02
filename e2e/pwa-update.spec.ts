@@ -85,13 +85,36 @@ function isLnaError(e: unknown): boolean {
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-async function waitForPort(port: number, timeoutMs = 30000): Promise<void> {
+/**
+ * Wait until the preview on `port` serves the sw.js whose bytes are in
+ * `<servedDir>/dist/sw.js`. Checking the bytes (not just a 200) means a
+ * leftover server from an earlier step cannot be mistaken for the one we
+ * just started. A child that exits early (e.g. EADDRINUSE with
+ * --strictPort) fails fast instead of timing out.
+ */
+async function waitForPort(
+  port: number,
+  servedDir: string,
+  child: ChildProcess,
+  timeoutMs = 30000,
+): Promise<void> {
+  const expected = readFileSync(join(servedDir, 'dist', 'sw.js'), 'utf-8');
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    if (child.exitCode !== null) {
+      throw new Error(
+        `preview on port ${port} exited early (code ${child.exitCode}); EADDRINUSE if a previous preview is still running`,
+      );
+    }
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/`);
-      if (res.status === 200) return;
-    } catch {
+      const res = await fetch(`http://127.0.0.1:${port}/sw.js`);
+      if (res.status === 200) {
+        const served = await res.text();
+        if (served === expected) return;
+        throw new Error(`port ${port} serves a different sw.js than ${servedDir}/dist/sw.js (stale server still running?)`);
+      }
+    } catch (e) {
+      if (String(e).includes('different sw.js')) throw e;
       /* not up yet */
     }
     await new Promise((r) => setTimeout(r, 500));
@@ -244,7 +267,7 @@ test.describe.serial('PWA update flow (two-build, shared worker state)', () => {
     // Prove the temp build is servable (de-risks the N+1 preview below).
     const probe = startPreview(tmpDir, UPD_PORT);
     try {
-      await waitForPort(UPD_PORT);
+      await waitForPort(UPD_PORT, tmpDir, probe);
       const res = await fetch(`${UPD_TARGET}/`);
       expect(res.status).toBe(200);
       expect(await res.text()).toContain('id="root"');
@@ -258,7 +281,7 @@ test.describe.serial('PWA update flow (two-build, shared worker state)', () => {
     expect(tmpDir, 'UPD1a must have built the N+1 temp dir first').not.toBe('');
     nPreview = startPreview(repoRoot, UPD_PORT);
     try {
-      await waitForPort(UPD_PORT);
+      await waitForPort(UPD_PORT, repoRoot, nPreview);
       // Fallback-only ordering, exactly: direct goto FIRST; on the exact
       // LNA string only, 4174-scoped bootstrap of the first document
       // load only, then unrouteAll, then a load/network settle, then
@@ -300,7 +323,7 @@ test.describe.serial('PWA update flow (two-build, shared worker state)', () => {
       nPreview = null;
     }
     n1Preview = startPreview(tmpDir, UPD_PORT);
-    await waitForPort(UPD_PORT);
+    await waitForPort(UPD_PORT, tmpDir, n1Preview);
     // The controlled page reloads: the N worker serves its shell while the
     // browser's update check fetches the N+1 sw.js. The test then forces
     // the check explicitly (the app never calls registration.update()).
@@ -323,6 +346,23 @@ test.describe.serial('PWA update flow (two-build, shared worker state)', () => {
     expect(await waitForWaitingWorker(page), 'N+1 worker must reach waiting').toBe(true);
     await expect(page.getByText('New version available')).toBeVisible({ timeout: 20000 });
     await expect(page.getByRole('button', { name: 'Update' })).toBeVisible();
+  });
+
+  test('UPD1c Dismiss hides the banner and the old shell still boots', async () => {
+    test.setTimeout(120000);
+    await page.getByRole('button', { name: 'Dismiss' }).click();
+    await expect(page.getByText('New version available')).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator('#root')).not.toBeEmpty({ timeout: 20000 });
+    await expect(page.getByRole('navigation').first()).toBeVisible({ timeout: 20000 });
+    expect(
+      await page.evaluate(() => navigator.serviceWorker.controller !== null),
+      'the old worker must still control the page after Dismiss',
+    ).toBe(true);
+    expect(
+      await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.waiting != null),
+      'declining must leave the new worker waiting, not activate it',
+    ).toBe(true);
   });
 
   test('UPD2 Update reloads exactly once and the prompt disappears', async () => {
@@ -409,9 +449,6 @@ test.describe.serial('PWA update flow (two-build, shared worker state)', () => {
         return reg !== null;
       })
       .catch(() => false);
-    if (!hasRegistration) {
-      test.skip(true, 'UPD1b browser flow skipped in sandbox; no registration to assert');
-    }
     expect(hasRegistration, 'a service worker registration must be present').toBe(true);
   });
 });

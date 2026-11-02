@@ -17,6 +17,7 @@
     "test:tts": "python3 -m unittest discover -s scripts/tts -p test_extract.py",
     "pretest": "node scripts/seo/generate-manifest.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:subpath": "playwright test -c playwright.subpath.config.ts",
     "lint": "oxlint",
     "preview": "vite preview",
     "ben:index": "node scripts/ben/build-index.mjs",

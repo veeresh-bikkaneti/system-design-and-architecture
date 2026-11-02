@@ -9,6 +9,9 @@ const SANDBOX_CHROMIUM = '/opt/meta-chromium/chrome';
 
 export default defineConfig({
   testDir: './e2e',
+  // The subpath smoke needs a base-path build; it has its own config
+  // (playwright.subpath.config.ts, `npm run test:e2e:subpath`).
+  testIgnore: /.*\.subpath\.spec\.ts/,
   timeout: 60_000,
   use: {
     baseURL: 'http://127.0.0.1:4173',
