@@ -287,15 +287,27 @@ describe('router', () => {
     'set up my netflix account',
     'set up my smart tv',
     'setup the tutor for my kid homework',
-    'help me setup the tutor program for school',
+    'install ben 10 game',
+    "set up ben and jerry's account",
+    'install ben affleck fan page',
+    "set up ben's birthday party",
+    'install ben.exe on windows',
   ])('does not pin tutor-loop for look-alike "%s" under an off_topic vote', (question) => {
     const decision = route({ question, vector: vec(3), index });
     expect(decision.pinned).toBeUndefined();
     expect(decision.action).toBe('redirect');
   });
 
-  it.each(['set up Ben please', 'install Ben please'])(
-    'pins tutor-loop for "%s" (Ben right after the verb) under an off_topic vote',
+  it.each([
+    'set up Ben please',
+    'install Ben please',
+    'install Ben',
+    'setup the tutor at school',
+    'set up the tutor for my school computer lab',
+    'set up the tutor for homework help',
+    'how do I install local AI at school',
+  ])(
+    'pins tutor-loop for "%s" under an off_topic vote',
     (question) => {
       const decision = route({ question, vector: vec(3), index });
       expect(decision.pinned).toEqual(['tutor-loop']);

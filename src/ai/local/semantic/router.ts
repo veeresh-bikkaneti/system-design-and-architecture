@@ -167,19 +167,24 @@ const OWN_BOX =
  * The stricter test used to beat an off_topic/debate vote. An off-topic vote
  * is a decent hint that the question really is about something else, so only
  * a definite Ben ("the tutor", "local AI", WebLLM, "Ben" ending the question,
- * or "Ben" right after the verb) or the "ai env" reading may override it, and
- * never with an own-machine or human-tutoring signal. "a tutor business",
- * "the tutor for my kid homework" and "ben franklin biography" stay
- * redirected. ponytail: "Ben" elsewhere in the sentence ("ben setup meme") is
- * not protected; the normal pin still catches it when the vote is not off-topic.
+ * or "Ben" right after the verb and then ending or a polite word) or the "ai
+ * env" reading may override it, and never with an own-machine or
+ * human-tutoring signal. "a tutor business", "the tutor for my kid homework",
+ * "ben 10", "ben's birthday" and "ben franklin biography" stay redirected.
+ * ponytail: "Ben" elsewhere in the sentence ("ben setup meme") is not
+ * protected; the normal pin still catches it when the vote is not off-topic.
+ * "school" and "homework" are NOT human-tutoring signals: they appear in real
+ * Ben setup questions ("set up the tutor at school"), and a stray pin costs
+ * less than turning a student away. Trade-off: "set up the tutor program for
+ * school" now pins.
  */
-const HUMAN_TUTOR = /\b(kid|kids|child|children|son|daughter|homework|school|business|hire|hiring|schedule)\b|\bnear me\b/;
+const HUMAN_TUTOR = /\b(kid|kids|child|children|son|daughter|business|hire|hiring|schedule)\b|\bnear me\b/;
 
 function isDefiniteTutorSetup(question: string): boolean {
   const text = question.toLowerCase();
   if (!isTutorSetupQuestion(question) || OWN_BOX.test(text) || HUMAN_TUTOR.test(text)) return false;
   const definite =
-    /\b(the|this|your|that)\s+tutor\b|\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\bben\s*[?.!]*$|\b(set\s*up|setup|install)\s+ben\b(?!\s+franklin)/.test(text);
+    /\b(the|this|your|that)\s+tutor\b|\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\bben\s*[?.!]*$|\b(set\s*up|setup|install)\s+ben(?:[?.!,]+(?:\s|$)|\s*$|\s+(?:please|pls|plz|thanks|now|again|for me)\b)/.test(text);
   return definite || /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
 }
 
