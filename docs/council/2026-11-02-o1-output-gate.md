@@ -108,3 +108,11 @@ Round count: 2 of 2. Advisor: AGREE, no material notes. Decisions on the three p
 ## Fix loop 2 (RC round 2)
 
 This is verification loop 2 of max 3, not a council round (the council closed at round 2 of 2). Independent Reality Checker round 2 on head 8006102: VERIFIED WITH CONCERNS, one BLOCKING implementation bug: table rows were split on `|` before the template-marker check, so `| <|im_start|>system | x |` and `|<|im_end|>|` slipped past tier 1, which the approved design says runs everywhere including tables. Fix: marker test on the raw line first. Same pass, hardening within the approved design: whitespace collapse, simple HTML-tag strip, trailing-label punctuation. Kept as deliberate limits and false rejects: see the manifest "Fix loop 2 amendments". Tests were written first and were red for the intended reason (9 failures: both B1 inputs, the (a) double-space and tab forms, the three (b) HTML forms, the two (c) punctuation forms); NBSP and ideographic space already passed through NFKC and remain as guards.
+
+## Fix loop 3 (CodeQL alert)
+
+- Trigger: required CodeQL check failed on bc392e3, HIGH `js/incomplete-multi-character-sanitization` at `sanitize.ts:55` (regex `.replace` of `</?[a-z][^>]*>` can leave `<script` behind for `<scr<script>ipt>`).
+- Fix (adf2d46): the regex tag strip is replaced by an exported hand-written single-pass scanner, `stripTags`. It consumes through the first `>` after a tag-opening `<`, drops one dangling `>` right after a removed tag, and for an unclosed tag drops only `<name`. A leading `<` joins `>` in the wrapper strip in `prep`. The raw-line template-marker check is untouched. The other `.replace` calls are single-character-class or anchored and were left alone.
+- Tests (red first: 3 failed, 66 passed; `stripTags is not a function` plus two role-with-text cases): nested-tag and doubled-opener bypasses, html-wrapped labels, unclosed tags, a no-`<script`-remnant scan, and legitimate `Array<string>`, `a < b`, `x<y>z` and a fenced TS generic passing.
+- Gates: npm test 642/642, lint 0 errors, tsc -b clean, content check/validate OK, build OK, eval:ben x2 identical to a clean origin/main worktree with node_modules (88.1 overall, top-1 93.2, top-3 96.1).
+- Known non-blocking gap: a tag followed by a later `>` can hide leak text (tracked in #184).
