@@ -208,6 +208,40 @@ describe('router', () => {
     expect(turn.context).toBe('');
   });
 
+  it.each(['can you help me set up Ben', 'how do I set up Ben on my laptop', 'can you help me set up local AI'])(
+    'keeps the tutor-loop pin for %j when the vote lands on the self examples',
+    (question) => {
+      const competing: BenIndex = { ...index, chunks: [chunk('designing-ai-systems', 5)] };
+      const decision = route({ question, vector: vec(4, [0, 0, 0, 0, 0, 0.6]), index: competing });
+      expect(decision.intent).toBe('self');
+      expect(decision.action).toBe('lesson');
+      expect(decision.pinned).toEqual(['tutor-loop']);
+    },
+  );
+
+  it('redirects an unconfirmed self vote even when a lesson clears the answer bar', () => {
+    const decision = route({ question: 'Who is Michael Keaton', vector: vec(4, [0, 0, 0, 0, 0, 1]), index });
+    expect(decision.intent).toBe('self');
+    expect(decision.lessons[0]?.best).toBeGreaterThanOrEqual(THRESHOLDS.lesson);
+    expect(decision.lessons[0]?.best).toBeLessThan(THRESHOLDS.override);
+    expect(decision.action).toBe('redirect');
+  });
+
+  it('still answers an unsure self vote when a lesson matches strongly', () => {
+    const decision = route({ question: 'Who is Michael Keaton', vector: vec(4, [0.7, 0, 0, 0, 0, 1.5]), index });
+    expect(decision.intent).toBe('self');
+    expect(decision.intentConfidence).toBeLessThan(THRESHOLDS.overrideVote);
+    expect(decision.lessons[0]?.best).toBeGreaterThanOrEqual(THRESHOLDS.override);
+    expect(decision.action).toBe('lesson');
+  });
+
+  it('does not fall back to general knowledge on a split tech vote', () => {
+    const decision = route({ question: 'what is a mutex', vector: vec(1, [0.8, 0, 0, 0.8]), index });
+    expect(decision.intent).toBe('tech');
+    expect(decision.intentConfidence).toBeLessThanOrEqual(0.5);
+    expect(decision.action).not.toBe('parametric_fallback');
+  });
+
   it('does not pin tutor-loop for unrelated set-up questions', () => {
     expect(namedTagLessons('how to set up postgres')).toEqual([]);
     expect(namedTagLessons('how to set up local redis')).toEqual([]);

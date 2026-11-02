@@ -57,6 +57,8 @@ export const THRESHOLDS = {
    * embed well, and in a sentence a title word ("client") is not a name.
    */
   nameBoostMaxTokens: 3,
+  /** General-knowledge fallback reads no lesson score, so it needs a tech majority, not a plurality. */
+  techMajority: 0.5,
   /** Qwen's draft must stay this close to the material it was given. */
   draftFit: 0.45,
 } as const;
@@ -291,12 +293,21 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
     };
   }
 
+  // A self vote isAboutTutor did not confirm is not a course question: treat it
+  // like debate/off_topic. After the pins, so "set up Ben" still reaches tutor-loop.
+  if (vote.intent === 'self') {
+    if (topScore >= THRESHOLDS.override && vote.confidence < THRESHOLDS.overrideVote) {
+      return { ...base, action: 'lesson', reasons: ['a lesson matches strongly despite the vote', ...reasons] };
+    }
+    return { ...base, action: 'redirect', reasons: ['unconfirmed self vote is outside the course', ...reasons] };
+  }
+
   // Whether the course covers it is a retrieval fact, not an intent: "what is MVC"
   // reads like a general tech question, but the MVC lesson answers it.
   if (topScore >= THRESHOLDS.lesson) {
     return { ...base, action: 'lesson', reasons: ['a lesson covers this', ...reasons] };
   }
-  if (vote.intent === 'tech') {
+  if (vote.intent === 'tech' && vote.confidence > THRESHOLDS.techMajority) {
     return { ...base, action: 'parametric_fallback', reasons: ['general tech, no lesson covers it', ...reasons] };
   }
   if (topScore >= THRESHOLDS.clarify) {

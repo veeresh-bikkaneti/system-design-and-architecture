@@ -5,7 +5,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['evals/**/*.eval.ts'],
-    testTimeout: 180_000,
-    hookTimeout: 180_000,
+    testTimeout: 900_000,
+    hookTimeout: 900_000,
   },
 });

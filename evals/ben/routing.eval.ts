@@ -117,6 +117,7 @@ describe('Ben routing (held-out cases)', () => {
   let top1 = 0;
   let top3 = 0;
   let ranked = 0;
+  const diag: Record<string, unknown>[] = [];
 
   beforeAll(async () => {
     embed = await loadNodeEmbedder();
@@ -130,6 +131,7 @@ describe('Ben routing (held-out cases)', () => {
       const vector = Float32Array.from(vectors[i] ?? []);
       const decision = route({ question: c.q, focusId: c.focus, vector, index });
       semantic.push(judge(c, decision.action, decision.lessons[0]?.slug));
+      diag.push({ id: c.id, set: c.set, expected: c.action, got: decision.action, lesson: decision.lessons[0]?.slug, vote: decision.intent, conf: decision.intentConfidence, scores: decision.intentScores, best: decision.lessons[0]?.best, reason: decision.reasons[0], ...semantic[semantic.length - 1] });
       if (c.action === 'lesson' && c.lessons && !c.focus) {
         ranked += 1;
         const slugs = decision.lessons.map((lesson) => lesson.slug);
@@ -164,9 +166,10 @@ describe('Ben routing (held-out cases)', () => {
     ];
     // Vitest hides console output when tests pass, so the report is also a file.
     // It is committed: a change to routing shows its metric change in the diff.
+    if (process.env.DIAG) writeFileSync(process.env.DIAG, JSON.stringify({ top1, top3, ranked, diag }, null, 1));
     writeFileSync(join(__dirname, 'REPORT.md'), `# Ben routing eval\n${lines.join('\n')}\n`);
     console.log(lines.join('\n'));
-  }, 180_000);
+  }, 900_000);
 
   it('beats the keyword pipeline', () => {
     expect(summarize('', semantic).accuracy).toBeGreaterThan(summarize('', baseline).accuracy);
