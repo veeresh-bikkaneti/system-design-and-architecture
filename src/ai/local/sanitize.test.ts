@@ -153,3 +153,51 @@ describe('sanitizeModelOutput: false-positive corpus (real Ben answers)', () => 
     expect(flagged).toEqual([]);
   });
 });
+
+// Round 2 (Reality Checker B1): every bypass input, verbatim. Segment = the line
+// after markdown stripping, or one table cell. Tier 1 runs everywhere.
+describe('sanitizeModelOutput: RC B1 bypasses are rejected', () => {
+  const bypasses: Record<string, string> = {
+    'list-wrapped config': '- TopK: 64\n- Temp: 1',
+    'list-wrapped role': '- System: you are ben',
+    'table-wrapped config': '| TopK: 64 | Temp: 1 |',
+    'closed fence leak': '```\nTopK: 64, Temp: 1\nCPU backend\nModel:\n```',
+    'unclosed fence leak': '```\nTopK: 64',
+    'trailing Model:': 'Caching is good. Model:',
+    'backend with period': 'CPU backend.',
+    'prefixed config': 'Settings - TopK: 64',
+    'spaced Top K': 'Top K: 64',
+    'hyphen Top-K': 'Top-K: 64',
+    'bold role': '**System:** you are ben',
+    'quoted role': '> System: hi',
+    'numbered role': '1. System: hi',
+    'listed template marker': '- <|im_start|>system',
+    'fullwidth TopK': 'ＴｏｐＫ: 64',
+    'zero-width in an exactly-8-word prompt run': 'Sure. You are an exp​ert system design tutor.',
+  };
+  for (const [name, input] of Object.entries(bypasses)) {
+    it(name, () => rejected(input));
+  }
+  it('behaviour-only: a bare leak line is rejected (no import dependence)', () => {
+    expect(sanitizeModelOutput('TopK: 64, Temp: 1', opts).rejected).toBe(true);
+  });
+});
+
+describe('sanitizeModelOutput: tiered accept set (round 2)', () => {
+  const accepted: Record<string, string> = {
+    'temperature prose line': 'Temperature: 0.2 is a common choice for steady answers.',
+    'Model: with a definition': 'Model: the thing that predicts the next word.',
+    'json top_k': '```json\n{"top_k": 64}\n```',
+    'snake-case top_k assignment': '```python\ntop_k = 64\n```',
+    'numbered list': '1. Add a cache\n2. Add a replica\n3. Measure again',
+    'table with a Model column': '| Model | Size |\n|---|---|\n| small | 1B |',
+    'braces in prose': 'In a prompt template people write {{variable}} for the blank.',
+  };
+  for (const [name, input] of Object.entries(accepted)) {
+    it(name, () => expect(sanitizeModelOutput(input, opts).rejected).toBe(false));
+  }
+  it('unclosed fence: a leak after it is rejected', () => rejected('```python\nx = 1\nCPU backend'));
+  it('unclosed fence: a legit code line after it passes', () => {
+    expect(sanitizeModelOutput('```python\nmodel: "x"\nseed = 42', opts).rejected).toBe(false);
+  });
+});
