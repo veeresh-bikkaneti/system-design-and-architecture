@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { chunkAllLessons, chunkLesson } from '../../scripts/ben/chunk-lessons.mjs';
+import { OKF_CARDS } from '../../src/ai/local/cards.ts';
 
 // Runs in the default `npm test` suite: no model needed.
 
@@ -61,7 +62,10 @@ describe('eval data hygiene', () => {
   });
 
   it('labels every scored lesson with a real lesson slug', () => {
-    const slugs = new Set(chunkAllLessons().map((c: { slug: string }) => c.slug));
+    // Guides count too: the router pins `tutor-loop` (a Guide, not in the lesson
+    // index), so a setup case's correct answer is a Guide slug.
+    const guides = OKF_CARDS.filter((card) => card.type === 'Guide').map((card) => card.id);
+    const slugs = new Set([...chunkAllLessons().map((c: { slug: string }) => c.slug), ...guides]);
     const scored = [...read('cases.json').cases, ...read('holdout.json').cases];
     for (const c of scored) for (const slug of c.lessons ?? []) expect(slugs.has(slug), `${c.id}: ${slug}`).toBe(true);
   });
