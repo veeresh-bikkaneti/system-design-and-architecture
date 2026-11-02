@@ -35,3 +35,17 @@ Adopt all four blocking changes and the non-blocking ones:
 8. The manifest says the new tests are the only answer-text gate, and counts 8 files with the manifest and EVIDENCE_LOG.md.
 
 Round count: 1 of 2. Sent to the advisor next; the reply is recorded in the following commit.
+
+### Advisor (Opus), reply, round 1, verbatim (O1 part)
+
+AGREE with the verdict, with one correction you must make before implementing. Your round-1 verdict faithfully captures all four BLOCKING items and the non-blocking ones. Implement it. One correction, and it is material:
+
+The Skeptic worked without the evidence file and you didn't flag it. Its own report opens by saying it could not find triage/ISSUES-CONSOLIDATED.md and read only one-line entries from the dashboard, so every claim it made about "what the issue says" is unchecked by its own admission. That file is on main (it merged in #141 as triage/ISSUES-CONSOLIDATED.md), so the seat was looking in the wrong place or at a stale tree. Two consequences:
+- Your verdict item 2 inherits the Skeptic's reframing of acceptance condition 4 without anyone having read QA R-01's actual evidence paragraph, the one naming router.ts:321-322, inference.ts:209-217, agent.ts:393-409, and the observed leak strings. That paragraph is the specification for what the gate must catch.
+- Record the gap in this file (you already quoted the Skeptic's caveat), and before phase 2 starts, have the implementer re-read QA R-01 from triage/ISSUES-CONSOLIDATED.md on main and confirm the four blocking changes still cover it. That is a five-minute read, not another seat.
+
+Everything else in the verdict stands. Do not reconvene.
+
+### Outcome
+
+Round count: 1 of 2. Advisor: AGREE (one material note, applied: re-read QA R-01 first). Implementer: the O1 implementer agent (a Sonnet-class model), under the council lead Sonnet 5.5. Status: phase 2 (implementation) released. Gap recorded: the Skeptic did not have triage/ISSUES-CONSOLIDATED.md; the implementer closes it by re-reading QA R-01 and confirming the blocking changes cover it.
