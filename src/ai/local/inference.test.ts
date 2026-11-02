@@ -141,3 +141,16 @@ describe('inference ladder', () => {
     expect(createEngine).not.toHaveBeenCalled();
   });
 });
+
+describe('output gate at the call site (QA R-01)', () => {
+  it('answerParametrically returns null when the model echoes its system prompt', async () => {
+    const echo =
+      'CPU backend\nTopK: 64, Temp: 1\nYou are an expert system design tutor. The user has asked a general software architecture question that falls outside the specific coursework.\nModel:';
+    const create = fakeLanguageModel('available');
+    const session = { destroy: vi.fn(), prompt: vi.fn().mockResolvedValue(echo) };
+    create.mockResolvedValue(session);
+    vi.stubGlobal('navigator', {});
+    const { answerParametrically } = await load();
+    expect(await answerParametrically('how do I set up a python venv for AI work', '')).toBeNull();
+  });
+});
