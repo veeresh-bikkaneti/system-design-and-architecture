@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -43,7 +45,7 @@ describe('PrivacyPage', () => {
     const { container } = renderPrivacy();
     const text = container.textContent ?? '';
     expect(text).toContain(
-      "Questions you ask Veer are sent to this course's own server and are deleted after 30 days.",
+      "Questions you ask Veer are sent to this course's own server.",
     );
     expect(text).not.toContain('the only ways anything leaves your browser');
   });
@@ -111,5 +113,51 @@ describe('PrivacyPage', () => {
     for (const link of links) {
       expect(link.getAttribute('href')).toBe('/contact');
     }
+  });
+});
+
+// One sentence, two renderings: the live page and the prerendered snapshot
+// (scripts/seo/prerender.mjs) must say the same thing about Veer retention.
+const VEER_RETENTION =
+  'Otherwise a daily cleanup deletes your Veer questions 30 days after your last sign-in session expires; sessions last 30 days, so that is up to about 60 days after your last question.';
+
+describe('PrivacyPage truth pass', () => {
+  it('states Veer retention in the terms the code implements, and the New topic shortcut', () => {
+    const { container } = renderPrivacy();
+    const text = container.textContent ?? '';
+    expect(text).toContain(VEER_RETENTION);
+    expect(text).toContain('New topic');
+    expect(text).not.toContain('deleted after 30 days');
+  });
+
+  it('says plainly that cleanup after sign-out is not verified', () => {
+    const { container } = renderPrivacy();
+    expect(container.textContent ?? '').toContain('have not verified');
+  });
+
+  it('prerendered snapshot carries the same retention sentence and the same intro wording as the page', () => {
+    const src = readFileSync(resolve(__dirname, '../../scripts/seo/prerender.mjs'), 'utf8');
+    expect(src).toContain(VEER_RETENTION);
+    expect(src).not.toContain('are the only ways anything leaves your browser');
+    expect(src).toContain('can send something out');
+    expect(src).not.toContain('deleted after 30 days');
+    const { container } = renderPrivacy();
+    expect(container.textContent ?? '').toContain('can send something out');
+  });
+
+  it('discloses that the GitHub sign-in code exchange passes through the Worker', () => {
+    const { container } = renderPrivacy();
+    const text = container.textContent ?? '';
+    expect(text).toContain('passes through the course');
+    expect(text).toContain('client secret');
+    expect(text).not.toContain('there is no course server');
+  });
+
+  it('states a deletion route for feedback messages that exists (the repo issue tracker)', () => {
+    renderPrivacy();
+    const link = screen.getByRole('link', { name: 'GitHub issue tracker' });
+    expect(link.getAttribute('href')).toBe(
+      'https://github.com/veeresh-bikkaneti/system-design-and-architecture/issues',
+    );
   });
 });

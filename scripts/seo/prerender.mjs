@@ -459,15 +459,15 @@ async function buildContact() {
 async function buildPrivacy() {
   const canonical = `${siteUrl}privacy/`;
   const body = `<h1>Privacy</h1>
-<p>By default this course collects nothing about you. The three optional features below are the only ways anything leaves your browser.</p>
+<p>By default this course collects nothing about you. Three optional features can send something out: GitHub sign-in, the feedback form, and Veer, the signed-in tutor.</p>
 <h2>What we do not collect</h2>
 <p>Progress and quiz scores stay in your own browser, Ben the tutor runs on your device, and no account is needed. No analytics product is used.</p>
 <h2>GitHub sign-in (optional)</h2>
-<p>Progress syncs to a private gist in your own GitHub account. The sync runs in your browser and the access token lives in session storage only.</p>
+<p>Progress syncs to a private gist in your own GitHub account. The sync runs in your browser and the access token lives in session storage only. The one-time sign-in code passes through the course's Worker, which swaps it for a token.</p>
 <h2>Veer (optional)</h2>
-<p>Ben stays on your device. Veer is a separate choice, and only after you sign in. Questions you ask Veer are sent to this course's own server and are deleted after 30 days.</p>
+<p>Ben stays on your device. Veer is a separate choice, and only after you sign in. Questions you ask Veer are sent to this course's own server. Pressing "New topic" in the chat deletes them right away. Otherwise a daily cleanup deletes your Veer questions 30 days after your last sign-in session expires; sessions last 30 days, so that is up to about 60 days after your last question. We have not verified that questions are still cleaned up after a sign-out.</p>
 <h2>Feedback form (optional)</h2>
-<p>The contact form sends exactly what you type — category, message, and, only if you give them, name, email, and lesson — to a private Discord channel. A name or email is used only for a reply, never published. For rate limiting the course's server stores your IP address hashed with a fixed, non-secret salt (pseudonymous, not anonymous) plus an hourly count, only for rate limiting; these rows are not deleted automatically yet.</p>
+<p>The contact form sends exactly what you type — category, message, and, only if you give them, name, email, and lesson — to a private Discord channel. A name or email is used only for a reply, never published. To have a message removed, open an issue on the GitHub issue tracker. For rate limiting the course's server stores your IP address hashed with a fixed, non-secret salt (pseudonymous, not anonymous) plus an hourly count, only for rate limiting; these rows are not deleted automatically yet.</p>
 <h2>Spam checks</h2>
 <p>The feedback form runs Cloudflare Turnstile, which sends Cloudflare your IP address and browser signals for bot verification only — not for tracking or advertising. See <a href="https://developers.cloudflare.com/turnstile/reference/turnstile-privacy-addendum/">Cloudflare's Turnstile Privacy Addendum</a>.</p>
 <h2>Hosting logs</h2>

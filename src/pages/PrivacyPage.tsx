@@ -6,7 +6,7 @@ import { Seo } from '../components/Seo';
 // storage, Ben on-device, gist sync from the browser (see
 // src/lib/gist-sync.ts — the token never leaves the visitor's browser for
 // a course server), feedback delivered to a private Discord channel,
-// and Veer questions sent to the course server (deleted after 30 days).
+// and Veer questions sent to the course server (retention per worker/src/qa/retention.ts).
 export function PrivacyPage() {
   return (
     <>
@@ -44,10 +44,20 @@ export function PrivacyPage() {
           </h2>
           <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">
             If you sign in with GitHub, your progress syncs to a private gist
-            in your own GitHub account. The sync runs in your browser — there
-            is no course server that sees your gist contents — and the access
-            token lives in session storage only, so it goes away when you
-            close the tab.
+            in your own GitHub account. The sync runs in your browser, so
+            no course server sees your gist contents, and the access token
+            lives in session storage only, so it goes away when you close
+            the tab.
+          </p>
+          <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">
+            The sign-in step itself is different: the one-time code GitHub
+            gives your browser passes through the course&apos;s Worker, which
+            swaps it for an access token using the app&apos;s client secret
+            and hands the token straight back. In the code we read, the Worker
+            stores and logs nothing from that step except an hourly
+            per-visitor request counter (a hashed IP, see the feedback
+            section). We have not checked what Cloudflare itself logs for
+            Worker requests.
           </p>
         </section>
 
@@ -58,8 +68,13 @@ export function PrivacyPage() {
           <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">
             Ben stays on your device. Veer is a separate choice, and only
             after you sign in. Questions you ask Veer are sent to this
-            course&apos;s own server and are deleted after 30 days. Until you
-            choose Veer, that question is not sent.
+            course&apos;s own server. Until you choose Veer, that question is
+            not sent. Pressing &quot;New topic&quot; in the chat deletes your
+            stored questions right away. Otherwise a daily cleanup deletes your Veer questions 30 days after your last sign-in session expires; sessions last 30 days, so that is up to about 60 days after your last question.
+            That cleanup runs off session records, and signing out removes
+            the session record, so we have not verified that questions are
+            still cleaned up after a sign-out. If that matters to you, press
+            &quot;New topic&quot; before you sign out.
           </p>
         </section>
 
@@ -73,7 +88,11 @@ export function PrivacyPage() {
             choose to give them — a name, an email address, and a lesson.
             Messages are delivered to a private Discord channel and stored
             under Discord&apos;s policies. A name or email you give is used
-            only for a reply, never published. To limit spam, the course's server
+            only for a reply, never published. To have a message removed, open an
+            issue on the <a href="https://github.com/veeresh-bikkaneti/system-design-and-architecture/issues" className="underline">GitHub issue tracker</a>{' '}
+            saying the date you wrote it and its category (please do not paste
+            the message, issues are public), and the owner can delete it from
+            the channel. To limit spam, the course&apos;s server
             also keeps a counter per visitor: your IP address is hashed with a
             fixed, non-secret salt, so the result is pseudonymous, not
             anonymous (anyone with the database could guess their way back to
