@@ -1,0 +1,101 @@
+From 66a3ef04295983f62b04de1cf54999e77b58a4de Mon Sep 17 00:00:00 2001
+From: Veer <resume.qasdet@gmail.com>
+Date: Sun, 1 Nov 2026 19:02:04 -0600
+Subject: [PATCH] fix(ben): embed index chunks one at a time
+
+The q8 embedder quantizes activations per tensor (DynamicQuantizeLinear),
+so a chunk embedded in a batch of 32 scored 0.992 cosine against itself
+alone. BATCH=1 makes index vectors match the browser's one-query path.
+New test: 0.9898 at BATCH=32 (red), passes at BATCH=1.
+
+NOT READY: eval drift gate fails at BATCH=1 (4.3% > 3.0%). See report.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ta838Wu5qS4MbpeTKP34C5
+---
+ scripts/ben/build-index.mjs     | 15 +++++++++++--
+ scripts/ben/build-index.test.ts | 39 +++++++++++++++++++++++++++++++++
+ 2 files changed, 52 insertions(+), 2 deletions(-)
+ create mode 100644 scripts/ben/build-index.test.ts
+
+diff --git a/scripts/ben/build-index.mjs b/scripts/ben/build-index.mjs
+index 3d9c948..ce2786b 100644
+--- a/scripts/ben/build-index.mjs
++++ b/scripts/ben/build-index.mjs
+@@ -17,7 +17,18 @@ import { isMainModule } from './is-main.mjs';
+ export const INDEX_VERSION = 1;
+ /** Section text kept for the reply and for Qwen's material. The vector sees all of it. */
+ const TEXT_LIMIT = 700;
+-const BATCH = 32;
++/**
++ * One text per call, on purpose. The q8 model quantizes activations with a
++ * single scale per tensor (24 DynamicQuantizeLinear nodes), so in a batch every
++ * chunk borrows its neighbours' value ranges. Measured: a chunk embedded inside
++ * a batch of 32 scored 0.992 cosine against itself embedded alone, and shrinking
++ * the chunk count (779 -> 763) moved an unchanged chunk's score by up to 0.0255,
++ * because the batches were reshuffled. The browser embeds questions one at a
++ * time, so the index does too. Padding is not the culprit: [text, text] is an
++ * exact match and an unpadded row still moved, so attention masks cannot fix it.
++ * Cost: next to nothing (whole index 12.1 s -> 12.5 s on a laptop).
++ */
++const BATCH = 1;
+ 
+ /** Quantize unit vectors to int8 with one float scale per row. */
+ export function encodeVectors(rows) {
+@@ -35,7 +46,7 @@ export function encodeVectors(rows) {
+   return { data: Buffer.from(bytes.buffer).toString('base64'), scales };
+ }
+ 
+-async function embedAll(embed, texts) {
++export async function embedAll(embed, texts) {
+   const out = [];
+   for (let i = 0; i < texts.length; i += BATCH) {
+     out.push(...(await embed(texts.slice(i, i + BATCH))));
+diff --git a/scripts/ben/build-index.test.ts b/scripts/ben/build-index.test.ts
+new file mode 100644
+index 0000000..6221aed
+--- /dev/null
++++ b/scripts/ben/build-index.test.ts
+@@ -0,0 +1,39 @@
++import { existsSync } from 'node:fs';
++import { join } from 'node:path';
++import { describe, expect, it } from 'vitest';
++import { embedAll } from './build-index.mjs';
++import { embedderDir, loadNodeEmbedder } from './embedder.mjs';
++
++/**
++ * The browser embeds a question on its own, so every lesson vector has to be
++ * what that chunk would get on its own too. The q8 model quantizes activations
++ * with one scale per tensor (DynamicQuantizeLinear), so a chunk embedded in a
++ * batch picks up its neighbours' ranges: measured 0.992 cosine against itself.
++ * That is enough to swing the eval on an unrelated lesson edit.
++ *
++ * Needs the real 23 MB model. When it is not on disk (`npm test` on a fresh
++ * clone, or CI before `npm run ben:index`) this skips rather than download it.
++ */
++const modelDir = process.env.BEN_EMBEDDER_DIR ?? embedderDir;
++const hasModel = existsSync(join(modelDir, 'onnx', 'model_quantized.onnx'));
++
++const cosine = (a: number[], b: number[]) => a.reduce((sum, v, i) => sum + v * b[i], 0);
++
++describe.skipIf(!hasModel)('embedAll', () => {
++  it('gives a chunk the same vector alone or in a crowd', { timeout: 120_000 }, async () => {
++    const embed = await loadNodeEmbedder();
++    const target =
++      'Domain-Driven Design. Bounded contexts. A bounded context draws a line around one model, ' +
++      'so "order" can mean a cart in checkout and a parcel in shipping without either team arguing.';
++    const crowd = [
++      'Caching. Short.',
++      'Rate limiting. A token bucket refills at a steady rate and spends one token per request; ' +
++        'when the bucket is empty the request waits or is dropped, which smooths bursts without ' +
++        'punishing steady traffic. Leaky buckets do the same job from the other end.',
++      'CAP. Pick two, they said. It is more nuanced than that.',
++    ];
++    const [alone] = await embedAll(embed, [target]);
++    const [crowded] = await embedAll(embed, [target, ...crowd]);
++    expect(cosine(alone, crowded)).toBeGreaterThanOrEqual(0.9999);
++  });
++});
+-- 
+2.51.0.windows.2
+

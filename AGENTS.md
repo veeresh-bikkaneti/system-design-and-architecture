@@ -21,6 +21,13 @@ Higher precedence wins. If a request conflicts with the frozen core, do not sile
 - **Test behavior changes first.** Add or update a test that demonstrates the failure before applying the minimal fix. Confirm it fails for the intended reason, then make it pass.
 - **Surface blockers immediately.** Do not conceal, defer, or work around a blocker that changes scope, risk, or correctness.
 - **Report QA findings as soon as they are found.** Distinguish verified results from suspected issues; do not wait until the final report.
+- **Never merge anything that is not fixed.** A change with an unresolved review finding, a failing required gate, or a required gate that applies and was not run does not merge. Do not present it to the owner as ready to merge and do not ask whether to merge it: fix it, re-run the affected gates, and get a review of the latest push by someone other than the author.
+  - A finding is closed only when the reviewer who raised it confirms the fix or withdraws it, or when the Chair records an accepted-risk decision with a reason in the PR and `EVIDENCE_LOG.md`. A finding the reviewer marks non-blocking does not block. The author never closes their own finding.
+  - A *required gate* is a §11 command that the diff's paths trigger (for example `eval:ben` only when `src/ai/local/` changes). A gate that does not apply is recorded as N/A with the reason. An applicable gate that cannot run is reported NOT RUN to the owner and the change waits.
+  - A pre-existing gap outside the change may be merged around only if the reviewer confirms it is not in the diff against `origin/main` and it is recorded in the PR body (and in `EVIDENCE_LOG.md` for T1/T2).
+  - If a §9 limit is reached with a finding still open, report `BUDGET EXCEEDED`; the change stays unmerged. The Chair may narrow scope, defer the finding (recorded), or close the PR.
+  - The owner/Chair may waive this rule in writing, per PR, for an outage revert or hotfix; the waiver and its reason go in the PR and `EVIDENCE_LOG.md`. A clean change still needs the owner's explicit per-PR word to merge.
+- **The remote is the source of truth: no work or decision lives only on one machine.** Push each branch after each commit and open a PR (draft is fine) at the first push; before a T1/T2 manifest is approved the PR is a draft carrying only the manifest or plan. Opening or keeping a PR does not un-park work: hold status is stated in the PR. Decisions, handoffs, and review reports live in the repository or in PR comments, never only in a local file, memory, or worktree. Never push a secret: check before pushing, and if one reaches the remote, stop, tell the owner, and rotate it. Session-end checks are in `docs/agent-notes.md`.
 
 ## 3. Risk tiers and review path
 
@@ -45,6 +52,18 @@ A full council has five seats:
 - **D — Historian:** checks repository history, prior decisions, existing patterns, and relevant project records.
 
 **Full-council pass:** at least **3 of the 4 non-Chair seats** support the proposal, and the Chair does not veto. Record votes and any dissent. A veto blocks implementation until resolved. Limit debate to **two rounds**; if there is no decision after round two, invoke the budget-exceeded procedure.
+
+### Council procedure (constitution)
+
+Run this loop for every T1 task, every change to the frozen core, and any decision a seat or the Chair calls contested (a seat dissents, or the Chair or a seat says so in writing). A T2 task runs steps 2 to 7 with only the Chair and Skeptic as seats. A T3 task needs neither; the advisor may still be consulted. The loop adds a verdict and an advisor check to the seats above; it does not replace them.
+
+1. **Convene.** Write each seat's goal for the task at hand (not a generic role) and spread the seats over more than one model. Seats may run on cheaper models. If every seat ran on one model, record "no model diversity".
+2. **Verdict.** The council lead (currently Sonnet 5.5) collects the seat reports and writes one verdict with the votes, the dissent, and the evidence. The lead is not the Chair: it holds no vote and no veto, and the Chair decides (§3).
+3. **Advise.** Before any implementation, paste the seat reports verbatim (dissent included) and the verdict into the record (step 7) on the remote, then consult the advisor (currently Opus) in the same session as the seats, so it sees the unedited reports and not a summary. The advisor replies exactly `AGREE`, `AGREE WITH NOTES`, or `DISAGREE`, with its reasons. Record the reply verbatim. Push the seat-report commit before the advisor's reply is recorded, so the history shows the order. If the session ends or is summarised before the advisor replies, re-paste the recorded reports from the remote into the new session and note that in the record. If the advisor is unavailable, stop; do not approve your own verdict.
+4. **Agree: implement.** On `AGREE`, or `AGREE WITH NOTES` where no note is material, proceed under §4 and the tier rules. A note is *material* if it changes safety, scope, tier, or the acceptance conditions. The advisor labels each note MATERIAL or NON-MATERIAL; the lead may not downgrade a label, only the Chair may.
+5. **Contradict: loop.** On `DISAGREE`, or a material note, reconvene the seats with the advisor's feedback and the contradiction stated, write a revised verdict, and send it back to the advisor. Repeat within the bounds of step 6.
+6. **Bounds.** Each reconvene counts as a council round (§3, §9). If round two ends without `AGREE`, or the implementation fix loops (§9) reach three, stop and report `BUDGET EXCEEDED`; the owner/Chair decides. The loop never overrides the frozen core, an owner veto, or the merge rules in §2. Council, lead, and advisor tokens are tracked apart from the §7 task budget, under a cap the Chair sets. Until the Chair sets one, 60,000 per decision applies as a provisional default (proposed in `docs/council/2026-11-ben-session/capsule-inference-ladder.md`, unmeasured). Only the Chair may authorise more, in writing.
+7. **Record, on the remote, before approval.** In the PR body, a pushed `EVIDENCE_LOG.md` entry, or a file under `docs/council/`: a verdict line; a seat table (seat, model, vote) with the seat reports verbatim; the advisor's reply verbatim; the round count (n of 2); which model implemented. For T1 and T2 the advisor's `AGREE` (or a non-material `AGREE WITH NOTES`) is required before implementation, whoever implements. A record that exists only on one machine does not count.
 
 ## 4. Consensus Manifest — required before code
 
