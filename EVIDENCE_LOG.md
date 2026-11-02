@@ -380,3 +380,11 @@ Append-only record of completed work: what was attempted, what happened, and wha
 - **Overlap with other slices:** retention truth is also QA R-24 (#158) and the docs pass (#151). This PR owns only the Privacy page, the snapshot, and the Contact page; README.md, docs/ai-tutor.md, docs/architecture.md and QaChatPanel.tsx are untouched and stay with those slices; the sign-out retention bug stays with #181/#158.
 - **Gates:** root 51 files / 569 passed; lint exit 0; `tsc -b` clean; content:check and content:validate OK; build with `VITE_BASE_PATH=/system-design-and-architecture/` OK, snapshot budget OK, built privacy page carries the new sentence; worker typecheck clean, 18 files / 216 passed. Generated files reverted.
 - **NOT run:** local Playwright e2e, live Turnstile, real Discord, WAF rule (owner), browser recording.
+
+## 2026-11-02 — TTS extractor: prose after multi-line widgets, apostrophe titles (slice L3, PR #175, issue #150)
+
+- **Tier:** T2 (no T1 paths). Council: Skeptic SUPPORT WITH CHANGES, advisor AGREE (docs/council/2026-11-02-l3-tts-extractor.md).
+- **Bug (verified):** `_drop_jsx_block` never ended a multi-line `<Quiz ... />` (no `</Quiz>`, opening line not `/>`-terminated), so it ran to EOF and dropped "Go deeper" and "Sources & further reading" in all 41 lessons: 2114 blocks before, 2630 after the fix (+516). `_read_meta` cut `"...Someone Else's Computer"` at the apostrophe (cloud-native-architecture). The issue's "22 blocks" is UNVERIFIED.
+- **Files:** `scripts/tts/extract_narration.py`, `scripts/tts/test_extract.py`, `package.json` (`test:tts`), `.github/workflows/pr-gates.yml`, manifest, this log.
+- **Failing-first:** 8 of 10 new tests failed on e5d7220 (4 widget-shape, quiz-tail, trailing sections 41 lessons, title meta, apostrophe); 10/10 pass after. Tests assert extractor behaviour only, never shipped audio.
+- **Not done on purpose:** audio/manifests NOT regenerated (needs the Kokoro venv, 164 files / 313 MB); tracked in #178. Shipped audio is stale until then.

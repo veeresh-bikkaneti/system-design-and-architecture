@@ -95,13 +95,13 @@ def _read_meta(lines: list[str]) -> tuple[str, str]:
                 break
     body = joined[start:end]
     slug = re.search(r"slug:\s*['\"]([^'\"]+)['\"]", body)
-    title = re.search(r"title:\s*['\"]([^'\"]+)['\"]", body)
+    title = re.search(r"title:\s*(['\"])(.*?)\1\s*,", body, re.S)
     summary_m = re.search(r"summary:\s*(['\"])(.*?)\1\s*,", body, re.S)
     summary = summary_m.group(2) if summary_m else ""
     summary = re.sub(r"\s+", " ", summary).strip()
     return (
         slug.group(1) if slug else "",
-        title.group(1) if title else "",
+        title.group(2) if title else "",
         summary,
     )
 
@@ -129,13 +129,23 @@ def _drop_jsx_block(lines: list[str], i: int) -> int:
     if JSX_SELF_CLOSE_RE.search(first.rstrip()):
         return i + 1
     close_tag = f"</{name}>"
+    indent = len(first) - len(first.lstrip())
     j = i + 1
     while j < len(lines):
         if close_tag in lines[j]:
             return j + 1
-        # a new capitalized JSX tag at line start ends an unclosed one
-        if re.match(r"\s*<[A-Z]", lines[j]) and JSX_SELF_CLOSE_RE.search(
-            lines[j].rstrip()
+        # A multi-line self-closing component (<Quiz ... />, <StepThrough ... />)
+        # ends on a bare `/>` line at the opening tag's indent. Deeper `/>`
+        # lines belong to nested tags; `/>` inside strings is never bare.
+        cur = lines[j]
+        if cur.strip() == "/>" and len(cur) - len(cur.lstrip()) <= indent:
+            return j + 1
+        # a new capitalized self-closing JSX tag at the same or lower indent
+        # ends an unclosed one
+        if (
+            re.match(r"\s*<[A-Z]", cur)
+            and len(cur) - len(cur.lstrip()) <= indent
+            and JSX_SELF_CLOSE_RE.search(cur.rstrip())
         ):
             return j
         j += 1
