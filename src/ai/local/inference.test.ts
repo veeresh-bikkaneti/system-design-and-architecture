@@ -154,3 +154,15 @@ describe('output gate at the call site (QA R-01)', () => {
     expect(await answerParametrically('how do I set up a python venv for AI work', '')).toBeNull();
   });
 });
+
+describe('output gate: rewrite path keeps the card answer (QA R-01)', () => {
+  it('rewriteWithModel returns null when the model echoes the rewrite prompt (panel keeps the deterministic card answer)', async () => {
+    const echo =
+      'You are Ben, a patient tutor talking with a beginner. Stay in that role. Sound like a person: warm, short sentences, everyday words. Two to five sentences.';
+    const create = fakeLanguageModel('available');
+    create.mockResolvedValue({ destroy: vi.fn(), prompt: vi.fn().mockResolvedValue(echo) });
+    vi.stubGlobal('navigator', {});
+    const { rewriteWithModel } = await load();
+    expect(await rewriteWithModel('what is a cache', 'A cache keeps hot data close to the reader.', '')).toBeNull();
+  });
+});

@@ -65,10 +65,80 @@ describe('sanitizeModelOutput: accepts', () => {
   it('the deterministic fallback line itself passes through (no loop)', () => {
     expect(sanitizeModelOutput(FALLBACK, opts).rejected).toBe(false);
   });
-  it('has no Ben-specific imports (Veer worker mirrors the spec in W1)', async () => {
+  it('is pure: no imports at all (Veer worker copies it verbatim in W1)', async () => {
     const { readFileSync } = await import('node:fs');
     const source = readFileSync(new URL('./sanitize.ts', import.meta.url), 'utf8');
-    expect(source).not.toMatch(/from\s+['"]\.\//);
+    expect(source).not.toMatch(/^\s*import/m);
+    expect(source).not.toMatch(/require\(|import\(/);
+  });
+});
+
+// Skeptic item 2: legitimate technical answers must pass. Scope: the gate
+// catches known leak shapes; it cannot catch novel confabulation.
+describe('sanitizeModelOutput: legitimate technical answers pass', () => {
+  it('temperature / top-k explained in prose and a list', () => {
+    const answer = [
+      'Temperature controls how adventurous the next-word pick is. A low value like 0.2 keeps answers steady; a high one wanders.',
+      '- Temperature: 0.2 gives steady answers',
+      '- Top-k: 64 keeps only the 64 likeliest words',
+      'Top-k and temperature work together.',
+    ].join('\n');
+    expect(sanitizeModelOutput(answer, opts).rejected).toBe(false);
+  });
+  it('fenced code containing model: "x" and seed = 42', () => {
+    const answer = [
+      'Pin the seed so runs repeat:',
+      '```python',
+      'model: "x"',
+      'seed = 42',
+      'TopK: 64',
+      '```',
+      'That makes experiments reproducible.',
+    ].join('\n');
+    expect(sanitizeModelOutput(answer, opts).rejected).toBe(false);
+  });
+  it('a table with a Model: cell', () => {
+    const answer = ['Compare them like this:', '| Model: | Size |', '|---|---|', '| Model: small | 1B |', 'Smaller ones run on a phone.'].join('\n');
+    expect(sanitizeModelOutput(answer, opts).rejected).toBe(false);
+  });
+  it('a leak OUTSIDE the fence is still caught when a fence is present', () => {
+    rejected(['```js', 'const a = 1;', '```', 'TopK: 64, Temp: 1', 'Model:'].join('\n'));
+  });
+});
+
+// Skeptic item 3: threshold evidence.
+describe('sanitizeModelOutput: 8-word threshold evidence', () => {
+  const words = (text: string) => text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const windows = (text: string, n: number) => {
+    const w = words(text);
+    return Array.from({ length: Math.max(0, w.length - n + 1) }, (_, i) => w.slice(i, i + n).join(' '));
+  };
+  it('every 8-word window of each system prompt is rejected', () => {
+    for (const prompt of [PARAMETRIC, REWRITE]) {
+      for (const window of windows(prompt, 8)) {
+        expect(sanitizeModelOutput(`Sure. ${window}. Anyway.`, opts).rejected, window).toBe(true);
+      }
+    }
+  });
+  it('a 7-word partial leak passes (documented limit of the threshold)', () => {
+    const window = windows(PARAMETRIC, 7)[0];
+    expect(sanitizeModelOutput(`Sure. ${window}. Anyway.`, opts).rejected).toBe(false);
+  });
+  it('longest run shared by the prompts and the real card answers is below 8 (value printed)', () => {
+    const promptWindows = new Set<string>();
+    for (const n of [4, 5, 6, 7, 8]) for (const p of [PARAMETRIC, REWRITE]) windows(p, n).forEach((x) => promptWindows.add(x));
+    const questions = (cases as { cases: { q: string }[] }).cases.map((item) => item.q);
+    let longest = 0;
+    for (const q of questions) {
+      const answer = words(prepareTurn(q).answer);
+      for (let n = 3; n <= 8; n++) {
+        for (let i = 0; i + n <= answer.length; i++) {
+          if (promptWindows.has(answer.slice(i, i + n).join(' '))) longest = Math.max(longest, n);
+        }
+      }
+    }
+    console.log(`LONGEST_SHARED_RUN=${longest}`);
+    expect(longest).toBeLessThan(8);
   });
 });
 
