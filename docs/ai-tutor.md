@@ -6,7 +6,7 @@ Ben is the chat button on the course site. He runs in the student's browser. Git
 
 You do not install a model for Ben. Open the [live course](https://veeresh-bikkaneti.github.io/system-design-and-architecture/), tap the chat button, and ask a question. That is setup.
 
-Try asking: `how to setup local AI` or `how to set up local AI`
+Try asking: `how to setup local AI`, `how to set up local AI`, or `I want to setup my ai env can you help`
 
 Ben should say:
 
@@ -16,7 +16,7 @@ A Prompt API is a browser feature a web page can call. WebLLM is a small model t
 
 The grey line under the reply reads `High confidence · from How this tutor runs`. That High means Ben pinned his own how-I-run guide. The only source under the reply is How this tutor runs.
 
-Firefox has no page-callable Prompt API. Its sidebar or Smart Window is the browser's own chrome. Ben still answers from the course. Rewording may stay off. That is expected. Some Chromium browsers expose a page Prompt API; many do not. If neither wording engine loads, the grounded reply stays.
+Chrome and Edge expose a page-callable Prompt API. Edge's is a flagged preview in Canary or Dev (checked 2026-10-19). Firefox and Safari have no page-callable API, so Ben still answers from the course and rewording stays off. That is expected. Opera and Brave are not verified yet. If neither wording engine loads, the grounded reply stays.
 
 If the ranking model has not loaded yet (the chat has been open only a moment), the older keyword path may still say "Chrome's Prompt API". Ask again once the chat has been open a few seconds. The path above uses the sentence in the quote.
 

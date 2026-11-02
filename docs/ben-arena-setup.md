@@ -19,7 +19,7 @@ Grafts from candidate B:
 - Four-token miss: `tokenize("how to set up local AI")` is `set, up, local, ai` (4 > `nameBoostMaxTokens` 3). Landed as #131, not in the increment-2 PR.
 - Do not graft B's `action: self` or Guide-pin removal. That undoes #128 for “tell me about local AI”.
 
-Cross-judge was skipped. This harness could not spawn a Claude judge against a Grok parent.
+Cross-judge was skipped.
 
 ## Live reply after #130 / #131
 
@@ -43,6 +43,12 @@ Files: `src/ai/local/semantic/router.ts`, `src/ai/local/semantic/turn.ts`, `src/
 ## Four-token follow-up (#131)
 
 `isTutorSetupQuestion` in `namedTagLessons`: setup-ish (`set up` / `setup` / `install`) AND tutor-ish (`local ai` / `webllm` / `prompt api` / `tutor` / `ben`) adds `tutor-loop` even when token count is 4. Do not raise `nameBoostMaxTokens`. Postgres and local redis stay unpinned.
+
+## Ai-env pin (#134)
+
+`isTutorSetupQuestion` also pins `tutor-loop` when the question has a setup verb (`set up` / `setup` / `install`) and an ai-env phrase (`ai env`, `ai environment`, or `get the ai set up`). Examples: `I want to setup my ai env can you help`, `help me set up my AI environment`.
+
+Deliberately unpinned: questions with own-environment words (python, venv, CUDA, conda, pip, docker, laptop, dev environment, my machine, my project, variables, api key, open ai, azure ai). They are left to the normal router, not sent to a clarify answer. "The ai setup" used as a noun (`what is the ai setup Netflix uses`) does not pin.
 
 ## Rejected
 
