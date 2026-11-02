@@ -50,14 +50,24 @@ const FENCE = /^\s*```/;
 const words = (text: string): string[] => text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 
 /**
- * Remove HTML-ish tags in ONE pass, with no regex replace: the scanner consumes through the
- * FIRST '>' after a '<' that opens a tag, so it can never glue a tag back together from
- * remnants (the `<scr<script>ipt>` shape CodeQL flags). A '>' left dangling right after a
- * removed tag is dropped too, so `<<b>b>System:` still reads as `System:`. An unclosed tag
- * loses just its `<name`. Never touches `<|...|>` markers (they start with '<|').
+ * Remove HTML-ish tags in ONE pass, with no regex replace: the scanner consumes a tag through
+ * its OWN closing '>' (a '>' inside a quoted attribute does not count) and nothing after it,
+ * so it can never glue a tag back together from remnants (the `<scr<script>ipt>` shape CodeQL
+ * flags) and never eats text up to a later '>' (`<b>System: a -> b` keeps its text). Only a
+ * dangling name-tail directly after a removed tag is dropped too (`<<b>b>System:` reads as
+ * `System:`). An unclosed tag loses just its `<name`. Prose such as `x<y and y>z` also loses
+ * `<y and y>` here, which is why the gate checks the raw view of every segment too. Never touches `<|...|>` markers (they start with '<|').
+ * Linear: the '>' search is cached and attribute scanning is capped.
  */
 export function stripTags(input: string): string {
   const isLetter = (c: string) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+  const isNameChar = (c: string) => isLetter(c) || (c >= '0' && c <= '9');
+  const SCAN = 256; // ponytail: a quoted '>' further than this into a tag is not honoured
+  let gt = -2; // cached indexOf('>'): -1 none left, else a position >= the last search start
+  const nextGt = (from: number): number => {
+    if (gt === -2 || (gt !== -1 && gt < from)) gt = input.indexOf('>', from);
+    return gt;
+  };
   let out = '';
   let i = 0;
   while (i < input.length) {
@@ -68,27 +78,43 @@ export function stripTags(input: string): string {
       i++;
       continue;
     }
-    const close = input.indexOf('>', i + 1);
-    if (close === -1) {
+    const first = nextGt(i + 1);
+    if (first === -1) {
       i++;
       if (input[i] === '/') i++;
-      while (i < input.length && (isLetter(input[i]) || (input[i] >= '0' && input[i] <= '9'))) i++;
+      while (i < input.length && isNameChar(input[i])) i++;
       out += ' ';
       continue;
     }
+    // End of the name, then the tag's own '>' (quote-aware and capped; else the first '>').
+    let j = i + 1;
+    if (input[j] === '/') j++;
+    while (j < input.length && isNameChar(input[j])) j++;
+    let close = first;
+    let quote = '';
+    for (let k = j; k < input.length && k < j + SCAN; k++) {
+      const ch = input[k];
+      if (quote) {
+        if (ch === quote) quote = '';
+      } else if (ch === '"' || ch === "'") quote = ch;
+      else if (ch === '>') {
+        close = k;
+        break;
+      }
+    }
     out += ' ';
     i = close + 1;
-    const nextOpen = input.indexOf('<', i);
-    const nextClose = input.indexOf('>', i);
-    if (nextClose !== -1 && (nextOpen === -1 || nextClose < nextOpen)) i = nextClose + 1;
+    let t = i;
+    while (t < input.length && (isNameChar(input[t]) || input[t] === '/')) t++;
+    if (input[t] === '>') i = t + 1; // dangling tail of a nested opener: `b>` in `<<b>b>`
   }
   return out;
 }
 
 /** Strip quote, bullet, number, heading and emphasis wrappers from one segment. */
-function prep(segment: string): string {
+function prep(segment: string, strip: boolean): string {
   // Tags first (never `<|...|>` markers: they start with '<|'), then emphasis, then whitespace runs.
-  let s = stripTags(segment).replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
+  let s = (strip ? stripTags(segment) : segment).replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
   for (let i = 0; i < 6; i++) {
     const next = s
       .replace(/^([<>]|#+|[-+•]|\d+[.)])\s*/, '')
@@ -120,7 +146,7 @@ export function sanitizeModelOutput(raw: string, opts: SanitizeOptions): Sanitiz
   }
 
   let inFence = false;
-  let lastLine = '';
+  const lastLines = ['', ''];
   for (const line of text.split('\n')) {
     // Markers are checked on the raw line, before any fence handling, table splitting or stripping.
     if (TEMPLATE_MARKER.test(line)) reasons.add('template-marker');
@@ -129,9 +155,11 @@ export function sanitizeModelOutput(raw: string, opts: SanitizeOptions): Sanitiz
       continue;
     }
     const isTable = line.trim().startsWith('|');
-    const segments = (isTable ? line.split('|') : [line]).map(prep).filter(Boolean);
-    if (segments.length === 0) continue;
-    if (!isTable) lastLine = segments[0];
+    // Two views of every segment: tag-stripped and raw. Rejected if EITHER view is.
+    [true, false].forEach((strip, v) => {
+    const segments = (isTable ? line.split('|') : [line]).map((x) => prep(x, strip)).filter(Boolean);
+    if (segments.length === 0) return;
+    if (!isTable) lastLines[v] = segments[0];
     for (const segment of segments) {
       if (TEMPLATE_MARKER.test(segment)) reasons.add('template-marker');
       if (ENGINE_CONFIG.test(segment)) reasons.add('config-line');
@@ -141,8 +169,9 @@ export function sanitizeModelOutput(raw: string, opts: SanitizeOptions): Sanitiz
         if (BARE_LABEL.test(segment)) reasons.add('bare-label');
       }
     }
+    });
   }
-  if (TRAILING_LABEL.test(lastLine)) reasons.add('trailing-label');
+  if (lastLines.some((l) => TRAILING_LABEL.test(l))) reasons.add('trailing-label');
 
   return reasons.size > 0
     ? { text: opts.fallback, rejected: true, reasons: [...reasons] }
