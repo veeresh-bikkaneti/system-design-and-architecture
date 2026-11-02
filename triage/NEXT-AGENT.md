@@ -1,8 +1,8 @@
-Handoff 2026-11-02T19:43Z | origin/main 653587d | open PRs #109 #135 #177 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
+Handoff 2026-11-02T20:40Z | origin/main aa602b5 | open PRs #109 #135 #177 #185 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
 
 # Next-agent handoff (snapshot 2026-11-02, late evening)
 
-Read this first, then `AGENTS.md`. The remote is the record: GitHub issues #143-#184, PRs, and `triage/README.md`. Anything below can be re-verified with `gh pr list`, `gh issue list --label round-2-triage`, `git log origin/main`.
+Read this first, then `AGENTS.md`. The remote is the record: GitHub issues #143-#187, PRs, and `triage/README.md`. Anything below can be re-verified with `gh pr list`, `gh issue list --label round-2-triage`, `git log origin/main`.
 
 ## 1. The prompt (paste this to the next agent)
 
@@ -10,7 +10,7 @@ Read this first, then `AGENTS.md`. The remote is the record: GitHub issues #143-
 
 ## 2. What is on main (verified 2026-11-02)
 
-Main is at `653587d` or later. Merged this session: #132 docs, #140 Ben setup pin (4 Reality Checker rounds), #141 triage board, #142 never-merge-unfixed + remote-is-truth rules, #169, #170 PR gates CI, #171 council records, #172 council procedure, #173 probe fix (my mistake broke main for ~25 minutes, fixed), #175 TTS extractor fix (L3), #182 handoff, #183 handoff-checkpoint rule, #125 contact form + privacy page + worker /api/feedback (T1, full council, independent RC, 8/8 mutation checks), #174 Ben output gate (3 independent RC rounds, CodeQL clean).
+Main is at `aa602b5` or later. Merged this session: #132 docs, #140 Ben setup pin (4 Reality Checker rounds), #141 triage board, #142 never-merge-unfixed + remote-is-truth rules, #169, #170 PR gates CI, #171 council records, #172 council procedure, #173 probe fix (my mistake broke main for ~25 minutes, fixed), #175 TTS extractor fix (L3), #182 handoff, #183 handoff-checkpoint rule, #125 contact form + privacy page + worker /api/feedback (T1, full council, independent RC, 8/8 mutation checks), #174 Ben output gate (3 independent RC rounds, CodeQL clean), #186 stripTags fix (2 independent RC rounds; leak-corpus bypasses 18 to 15; hostile 1M-char input 17.9 s to 0.28 s). All main deploys green through aa602b5.
 Ruleset `Protect main branch` (24196526) requires checks `PR Frontend gates` + `PR Worker gates`, thread resolution, last-push approval, 1 approval; admin bypass stays.
 
 ## 3. In flight (all pushed to the remote)
@@ -19,7 +19,7 @@ Ruleset `Protect main branch` (24196526) requires checks `PR Frontend gates` + `
 |---|---|---|---|
 | #177 | C2 lesson content: cache warming, reranking, agentic trio | Content RC clean (sources verified). Ben eval 87.6% vs main 88.1% is a batching artefact (#180). | Merge only after the owner's call on the eval trade-off (#180), same decision as #135. |
 | #135 | Chunker (fragments 189 to 0) | Passes gates but accuracy 88.1 to 86.1, drift 2.9% vs 3% gate, one off-course case regressed. PARKED. | Owner decision together with #177 (#180). |
-| #184 | O1 follow-up: `stripTags` skips to the next '>' and can hide a leak (MEDIUM, fails unsafe, narrow) plus L1-L3 | Found by RC round 3 on #174; recorded, not fixed. | New small T2 task: red-first tests, one-line fix, own review (not a 4th loop of #174). |
+| #187 | O1 follow-up 2: quote handling inside tags can hide a leak in a contrived shape (MEDIUM), 256-char cap (LOW), raw view untested, legitimate corpus (51) and leak corpus (71) not in the suite | Found by RC round 2 on #186; recorded, not fixed (net effect of #186 is positive). | Small T3/T2 task: add the corpora as tests (red first), honour quotes only after "=" or add a third view; own review. |
 | #179 | O1 follow-up: delimit and role-strip prior turns | Needs `QaChatPanel.tsx` (panel slices own it). | After the panel slices or #109. |
 | #176, #178, #180, #181 | rate-limit rows never deleted + public salt; audio regeneration; batch-composition eval sensitivity; Veer sign-out cleanup unverified | Open issues. | See section 4. |
 
