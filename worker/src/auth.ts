@@ -315,6 +315,17 @@ export async function checkRateLimit(
   return (row?.count ?? maxPerHour + 1) <= maxPerHour;
 }
 
+/**
+ * Give back one slot taken by checkRateLimit (floor at 0). Callers treat a
+ * failure here as non-fatal: the slot simply stays burned.
+ */
+export async function refundRateLimit(db: D1Database, bucketKey: string, windowHour: string): Promise<void> {
+  await db
+    .prepare(`UPDATE rate_limit_counters SET count = count - 1 WHERE bucket_key = ? AND window_start = ? AND count > 0`)
+    .bind(bucketKey, windowHour)
+    .run();
+}
+
 /** Current UTC hour as 'YYYY-MM-DDTHH' -- the fixed window for checkRateLimit. */
 export function currentWindowHour(now: Date = new Date()): string {
   return now.toISOString().slice(0, 13);

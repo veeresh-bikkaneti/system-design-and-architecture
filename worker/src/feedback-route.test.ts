@@ -150,7 +150,7 @@ describe('POST /api/feedback — happy path', () => {
     const fields = Object.fromEntries(body.embed.fields.map((f) => [f.name, f.value]));
     expect(fields['Lesson']).toBe('caching-strategies');
     expect(fields['Name']).toBe('Ada');
-    expect(fields['Email']).toBe('ada@example.com');
+    expect(fields['Email']).toBe('ada\\@example.com');
   });
 
   it('neutralizes @everyone/@here/user mentions via allowed_mentions', async () => {

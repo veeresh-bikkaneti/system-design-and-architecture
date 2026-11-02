@@ -1,7 +1,9 @@
+import { feedbackIpBucket } from './feedback-ip';
 import { EXAM_PASS_THRESHOLD, publicQuestions, scoreSubmission } from './exam';
 import {
   checkMagicLink,
   checkRateLimit,
+  refundRateLimit,
   confirmMagicLink,
   currentWindowHour,
   exchangeCode,
@@ -635,6 +637,8 @@ async function handleLogout(request: Request, env: Env): Promise<Response> {
 const FEEDBACK_MAX_LINKS = 5;
 const FEEDBACK_RATE_LIMIT_PER_HOUR = 5;
 const FEEDBACK_MIN_FILL_MS = 3000;
+// Hard ceiling on upstream calls so a hung Turnstile or Discord cannot pin the Worker.
+const FEEDBACK_UPSTREAM_TIMEOUT_MS = 8000;
 const FEEDBACK_MAX_BODY_BYTES = 16 * 1024;
 const FEEDBACK_CATEGORIES = new Set(['bug', 'lesson-idea', 'general']);
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
@@ -647,6 +651,12 @@ const FEEDBACK_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Practical mailbox limit (RFC 5321). A longer address still matches the
 // regex, so length has to fail closed before siteverify or Discord.
 const FEEDBACK_EMAIL_MAX = 254;
+
+// Single-line fields (name, lesson): a newline would let a visitor start a new
+// markdown line (heading, quote) inside an embed field.
+function escapeDiscordLine(value: string): string {
+  return escapeDiscordMarkdown(value.replace(/\s*[\r\n]+\s*/g, ' '));
+}
 
 // Count each link once: markdown targets first (removed as counted), then
 // bare https?:// URLs, then bare www. hosts (after https URLs are removed,
@@ -664,7 +674,7 @@ function countLinks(text: string): number {
 // cannot render spoofed links or fake headings. Mention abuse is handled
 // separately by allowed_mentions (see below), not by this escaping.
 function escapeDiscordMarkdown(value: string): string {
-  return value.replace(/([\\`*_~|[\]()#>])/g, '\\$1');
+  return value.replace(/([\\`*_~|[\]()#><@])/g, '\\$1');
 }
 
 async function handleFeedback(request: Request, env: Env): Promise<Response> {
@@ -718,8 +728,9 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
   // No CF-Connecting-IP (local dev / non-edge) falls back to a shared dev
   // key at the same cap. Only a hash ever reaches the table, never a raw IP.
   const ip = request.headers.get('CF-Connecting-IP');
-  const bucketKey = ip ? `feedback:ip:${await hashIp(ip)}` : 'feedback:ip:dev';
-  const withinLimit = await checkRateLimit(env.DB, bucketKey, currentWindowHour(), FEEDBACK_RATE_LIMIT_PER_HOUR);
+  const bucketKey = ip ? `feedback:ip:${await hashIp(feedbackIpBucket(ip))}` : 'feedback:ip:dev';
+  const windowHour = currentWindowHour();
+  const withinLimit = await checkRateLimit(env.DB, bucketKey, windowHour, FEEDBACK_RATE_LIMIT_PER_HOUR);
   if (!withinLimit) {
     return jsonResponse({ error: 'too many messages, try later' }, { status: 429, headers: cors });
   }
@@ -744,6 +755,7 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
     const verifyRes = await fetch(TURNSTILE_VERIFY_URL, {
       method: 'POST',
       redirect: 'manual',
+      signal: AbortSignal.timeout(FEEDBACK_UPSTREAM_TIMEOUT_MS),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         secret: turnstileSecret,
@@ -751,8 +763,17 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
         ...(ip ? { remoteip: ip } : {}),
       }),
     });
+    if (verifyRes.status >= 500) throw new Error('siteverify 5xx');
     verify = (await verifyRes.json()) as { success?: unknown; hostname?: unknown };
   } catch {
+    // Turnstile itself failed (5xx, network, timeout): not the visitor's fault,
+    // so give the slot back. If the refund fails too the slot stays burned and
+    // we still answer 502; nothing is logged (no IP, no secret).
+    try {
+      await refundRateLimit(env.DB, bucketKey, windowHour);
+    } catch {
+      // slot stays burned
+    }
     return jsonResponse({ error: 'Could not verify submission' }, { status: 502, headers: cors });
   }
   if (verify.success !== true || typeof verify.hostname !== 'string' || !TURNSTILE_HOSTS.has(verify.hostname)) {
@@ -767,8 +788,8 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
   const fields: Array<{ name: string; value: string }> = [
     { name: 'Category', value: category },
   ];
-  if (lesson !== '') fields.push({ name: 'Lesson', value: escapeDiscordMarkdown(lesson) });
-  if (name !== '') fields.push({ name: 'Name', value: escapeDiscordMarkdown(name) });
+  if (lesson !== '') fields.push({ name: 'Lesson', value: escapeDiscordLine(lesson) });
+  if (name !== '') fields.push({ name: 'Name', value: escapeDiscordLine(name) });
   if (email !== '') fields.push({ name: 'Email', value: escapeDiscordMarkdown(email) });
   fields.push({ name: 'Received', value: new Date().toISOString() });
   let discordRes: Response;
@@ -776,6 +797,7 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
     discordRes = await fetch(webhookUrl, {
       method: 'POST',
       redirect: 'manual',
+      signal: AbortSignal.timeout(FEEDBACK_UPSTREAM_TIMEOUT_MS),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         content: '',

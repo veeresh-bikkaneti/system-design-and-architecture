@@ -85,6 +85,6 @@ describe('POST /api/feedback email length', () => {
     expect(res.status).toBe(200);
     const webhook = calls.find((c) => c.url === WEBHOOK);
     expect(webhook).toBeDefined();
-    expect(String(webhook?.init?.body)).toContain(email);
+    expect(String(webhook?.init?.body)).toContain(email.replace('@', '\\\\@'));
   });
 });
