@@ -134,12 +134,34 @@ const DISTINCT_TAG_PINS: Map<string, string> = (() => {
   return out;
 })();
 
-/** Setup of this tutor, including the spaced verb "set up" that tokenize splits. */
+/**
+ * Setup of this tutor, including the spaced verb "set up" that tokenize splits.
+ *
+ * "Set up my AI env" is a coin toss: Ben's own on-device AI, or the student's
+ * own dev box? UNVERIFIED, low-confidence call: with no other clue we read it
+ * as Ben (that's the live report). Any own-machine signal (Python, Docker,
+ * "my laptop", env variables...) or a vendor prefix ("open ai env", "azure
+ * ai environment") skips the pin and leaves it unpinned: normal routing
+ * decides. No bare "ai" pin: "set up an AI pipeline" belongs to Designing
+ * AI Systems.
+ */
 function isTutorSetupQuestion(question: string): boolean {
   const text = question.toLowerCase();
   const setup = /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text);
   const tutor = /\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\btutor\b|\bben\b/.test(text);
-  return setup && tutor;
+  if (setup && tutor) return true;
+  // "the ai set up / setup" is a thing ("what is the ai setup netflix uses"),
+  // so it doesn't count as the verb... unless it follows "get": "get the ai
+  // set up" is someone asking for help. ponytail: "get" is the only request
+  // verb read here; add "have"/"need" if a real report needs it.
+  const request = /\bget\s+the\s+ai\s+set\s*up\b/.test(text);
+  const verb = request || /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text.replace(/\bthe\s+ai\s+set\s*up\b/g, ''));
+  const aiEnv = /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
+  const ownBox =
+    /\b(python|venv|cuda|conda|pip|pipenv|docker|laptop|mac|macbook|wsl|jupyter|gpu|variables|api key)\b|\bdev(elopment)?\s+env|\bmy\s+(machine|project)\b|\b(open|azure)\s+ai\b/.test(
+      text,
+    );
+  return verb && aiEnv && !ownBox;
 }
 
 export function namedTagLessons(question: string): string[] {

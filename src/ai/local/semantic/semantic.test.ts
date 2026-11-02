@@ -212,6 +212,56 @@ describe('router', () => {
     expect(namedTagLessons('how to set up postgres')).toEqual([]);
     expect(namedTagLessons('how to set up local redis')).toEqual([]);
   });
+
+  // "My AI env" with no other clue is read as Ben's own setup: that is the
+  // live report. Python, venv, CUDA, conda, pip, "dev environment", "my
+  // machine" or "my project" mean the student's own box, which Ben can't see.
+  it.each([
+    'I want to setup my ai env can you help',
+    'help me set up my AI environment',
+    'how do I set up the ai env',
+    'setup ai env',
+    'can you help me get the ai set up',
+    'I want to set up my ai env',
+    'can you help me get the ai setup',
+  ])('pins "%s" to tutor-loop with the setup answer', (question) => {
+    expect(namedTagLessons(question)).toEqual(['tutor-loop']);
+    const competing: BenIndex = {
+      ...index,
+      chunks: [chunk('designing-ai-systems', 5)],
+    };
+    const decision = route({ question, vector: vec(5, [0.6]), index: competing });
+    expect(decision.action).toBe('lesson');
+    expect(decision.lessons[0]?.slug).toBe('tutor-loop');
+    expect(decision.pinned).toEqual(['tutor-loop']);
+    const turn = buildTurn(question, [], decision);
+    expect(turn.sources.map((source) => source.id)).toEqual(['tutor-loop']);
+    expect(turn.answer).toMatch(/WebLLM|Prompt API/i);
+    expect(turn.answer).not.toMatch(/narrow and careful/);
+    expect(turn.confidence.level).toBe('high');
+    expect(turn.confidence.label).toBe('High confidence · from How this tutor runs');
+  });
+
+  it.each([
+    // Each of these says "set up ... ai env", so only the own-machine /
+    // vendor / noun checks keep them off tutor-loop.
+    'set up my python ai env with venv and CUDA',
+    'set up my ai env with pip',
+    'set up my ai env on my machine',
+    'set up my ai env in docker',
+    'set up my ai env on my laptop',
+    'setup ai environment variables for the API',
+    'set up my open ai env',
+    'set up azure ai environment',
+    'install pipenv for my ai env',
+    'what is the ai setup netflix uses',
+    'what is the ai set up netflix uses',
+  ])('does not pin tutor-loop for own-environment "%s"', (question) => {
+    expect(namedTagLessons(question)).not.toContain('tutor-loop');
+    const decision = route({ question, vector: vec(1), index });
+    expect(decision.pinned).toBeUndefined();
+    expect(decision.action).toBe('parametric_fallback');
+  });
 });
 
 describe('turn', () => {
