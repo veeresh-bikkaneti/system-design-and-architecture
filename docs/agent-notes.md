@@ -29,6 +29,16 @@ fluff. Claude Code applies it through the `i-have-adhd` skill; other agents foll
 - Exceptions: an "explain" request may run long (still no preamble or closer), a destructive
   action is still confirmed first, and a rule never deletes the answer itself.
 
+## Owner question format (domain questions only)
+
+Technical questions are settled by the council and the advisor and never sent to the owner (AGENTS.md section 2). When a domain question is unavoidable, send ONE batched message built like this, written in plain words (no em dashes, no mid-sentence colons, whole sentences, no jargon the owner has not used):
+
+1. First line: the single next action the owner can take in under two minutes, with the answer options spelled out ("reply: 1 yes, 2 no, 3 name").
+2. For each question, three short parts. What it is (how it works, in two sentences, the `/pstack:how` view). Why it exists and why it matters now (the `/pstack:why` view: the history or rule that created the question). Our recommendation with one reason, and what happens if there is no answer.
+3. A line stating what the council and advisor already decided so the owner does not have to.
+4. Numbered items, at most five per message, most important first. Never ask the same question twice; say if an earlier question is still open.
+5. Technical detail stays in the linked record, not in the message.
+
 ## Handoff checkpoints (never leave work hanging on a limit)
 
 Checkpoint = after each merge, council verdict, PR opened or closed, owner decision, background agent started or finished, and again before any limit or session end. No warning is guaranteed; the checkpoints are the guarantee. If the harness supplies a limit notice, or a PreCompact or SessionEnd hook is configured, treat it as a final checkpoint (UNVERIFIED that a limit notice is delivered in every case).
