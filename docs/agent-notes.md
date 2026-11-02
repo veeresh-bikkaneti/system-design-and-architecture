@@ -29,6 +29,17 @@ fluff. Claude Code applies it through the `i-have-adhd` skill; other agents foll
 - Exceptions: an "explain" request may run long (still no preamble or closer), a destructive
   action is still confirmed first, and a rule never deletes the answer itself.
 
+## Handoff checkpoints (never leave work hanging on a limit)
+
+Checkpoint = after each merge, council verdict, PR opened or closed, owner decision, background agent started or finished, and again before any limit or session end.
+
+1. Repo handoff: update `triage/NEXT-AGENT.md` (merged / in flight with PR, branch, worktree, agent id, next action / owner inputs / lessons / paste-in prompt) and push it on a docs branch with a PR open (it counts as saved once it is on the remote; merging follows the normal merge rule).
+2. Project memory: update the agent memory file for the repo.
+3. `.ai-context`: copy the handoff to `.ai-context/HANDOFF.md` (the session-end hook overwrites `SESSION_STATE.md` each session, so do not rely on that file).
+4. Code graph: `graphify update src` (code-only, no LLM, derived output in `src/graphify-out/`, gitignored). The full semantic graph needs `/graphify` in an assistant session.
+5. Branches and agents: `git rev-list --left-right --count origin/<b>...<b>` is `0 0` for every branch you made; each background agent has a one-line state (id, worktree, branch, next action) in the handoff.
+6. On a limit warning: do 1 to 5, start no new agents, then stop.
+
 ## Session end (remote is the source of truth)
 
 Before stopping, for every branch you created or pushed:
