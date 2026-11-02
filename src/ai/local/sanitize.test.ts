@@ -200,3 +200,28 @@ describe('sanitizeModelOutput: tiered accept set (round 2)', () => {
     expect(sanitizeModelOutput('```python\nmodel: "x"\nseed = 42', opts).rejected).toBe(false);
   });
 });
+
+// Fix loop 2 (RC round 2): table-row marker bypass plus cheap hardening.
+describe('sanitizeModelOutput: RC round 2 (fix loop 2)', () => {
+  const bypasses: Record<string, string> = {
+    'B1 marker inside a table row': '| <|im_start|>system | x |',
+    'B1 marker as the whole table row': '|<|im_end|>|',
+    '(a) double space and space before colon': 'Top  K : 64',
+    '(a) tab between Top and K': 'Top\tK: 64',
+    '(a) no-break space': 'Top K: 64',
+    '(a) ideographic space': 'Top　K: 64',
+    '(b) html-wrapped role': '<b>System:</b> you are ben',
+    '(b) html-wrapped trailing Model:': 'Done. <b>Model:</b>',
+    '(b) html-wrapped backend line': '<b>CPU backend</b>',
+    '(c) trailing label with period': 'Model:.',
+    '(c) trailing label with bang': 'Caching is good. Model:!',
+  };
+  for (const [name, input] of Object.entries(bypasses)) {
+    it(name, () => rejected(input));
+  }
+  it('keeps passing: underscore config keys (JSON/YAML) are legitimate', () => {
+    for (const input of ['top_k: 64\ntop_p: 0.9', '{"top_k": 64, "top_p": 0.9}', 'top_k = 64']) {
+      expect(sanitizeModelOutput(input, opts).rejected, input).toBe(false);
+    }
+  });
+});
