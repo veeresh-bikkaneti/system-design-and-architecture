@@ -55,8 +55,8 @@ const words = (text: string): string[] => text.toLowerCase().split(/[^a-z0-9]+/)
  * so it can never glue a tag back together from remnants (the `<scr<script>ipt>` shape CodeQL
  * flags) and never eats text up to a later '>' (`<b>System: a -> b` keeps its text). Only a
  * dangling name-tail directly after a removed tag is dropped too (`<<b>b>System:` reads as
- * `System:`). An unclosed tag loses just its `<name`. `<y and y>` (name, then words with no
- * '=') is prose, not a tag. Never touches `<|...|>` markers (they start with '<|').
+ * `System:`). An unclosed tag loses just its `<name`. Prose such as `x<y and y>z` also loses
+ * `<y and y>` here, which is why the gate checks the raw view of every segment too. Never touches `<|...|>` markers (they start with '<|').
  * Linear: the '>' search is cached and attribute scanning is capped.
  */
 export function stripTags(input: string): string {
@@ -102,12 +102,6 @@ export function stripTags(input: string): string {
         break;
       }
     }
-    const body = input.slice(j, Math.min(close, j + SCAN));
-    if (n !== '/' && /^\s/.test(body) && !body.includes('=')) {
-      out += c; // prose like `x<y and y>z`
-      i++;
-      continue;
-    }
     out += ' ';
     i = close + 1;
     let t = i;
@@ -118,9 +112,9 @@ export function stripTags(input: string): string {
 }
 
 /** Strip quote, bullet, number, heading and emphasis wrappers from one segment. */
-function prep(segment: string): string {
+function prep(segment: string, strip: boolean): string {
   // Tags first (never `<|...|>` markers: they start with '<|'), then emphasis, then whitespace runs.
-  let s = stripTags(segment).replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
+  let s = (strip ? stripTags(segment) : segment).replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
   for (let i = 0; i < 6; i++) {
     const next = s
       .replace(/^([<>]|#+|[-+•]|\d+[.)])\s*/, '')
@@ -152,7 +146,7 @@ export function sanitizeModelOutput(raw: string, opts: SanitizeOptions): Sanitiz
   }
 
   let inFence = false;
-  let lastLine = '';
+  const lastLines = ['', ''];
   for (const line of text.split('\n')) {
     // Markers are checked on the raw line, before any fence handling, table splitting or stripping.
     if (TEMPLATE_MARKER.test(line)) reasons.add('template-marker');
@@ -161,9 +155,11 @@ export function sanitizeModelOutput(raw: string, opts: SanitizeOptions): Sanitiz
       continue;
     }
     const isTable = line.trim().startsWith('|');
-    const segments = (isTable ? line.split('|') : [line]).map(prep).filter(Boolean);
-    if (segments.length === 0) continue;
-    if (!isTable) lastLine = segments[0];
+    // Two views of every segment: tag-stripped and raw. Rejected if EITHER view is.
+    [true, false].forEach((strip, v) => {
+    const segments = (isTable ? line.split('|') : [line]).map((x) => prep(x, strip)).filter(Boolean);
+    if (segments.length === 0) return;
+    if (!isTable) lastLines[v] = segments[0];
     for (const segment of segments) {
       if (TEMPLATE_MARKER.test(segment)) reasons.add('template-marker');
       if (ENGINE_CONFIG.test(segment)) reasons.add('config-line');
@@ -173,8 +169,9 @@ export function sanitizeModelOutput(raw: string, opts: SanitizeOptions): Sanitiz
         if (BARE_LABEL.test(segment)) reasons.add('bare-label');
       }
     }
+    });
   }
-  if (TRAILING_LABEL.test(lastLine)) reasons.add('trailing-label');
+  if (lastLines.some((l) => TRAILING_LABEL.test(l))) reasons.add('trailing-label');
 
   return reasons.size > 0
     ? { text: opts.fallback, rejected: true, reasons: [...reasons] }
