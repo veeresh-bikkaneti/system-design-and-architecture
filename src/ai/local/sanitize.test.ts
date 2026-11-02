@@ -131,13 +131,13 @@ describe('sanitizeModelOutput: 8-word threshold evidence', () => {
     let longest = 0;
     for (const q of questions) {
       const answer = words(prepareTurn(q).answer);
-      for (let n = 3; n <= 8; n++) {
+      for (let n = 4; n <= 8; n++) {
         for (let i = 0; i + n <= answer.length; i++) {
           if (promptWindows.has(answer.slice(i, i + n).join(' '))) longest = Math.max(longest, n);
         }
       }
     }
-    console.log(`LONGEST_SHARED_RUN=${longest}`);
+    console.log(`LONGEST_SHARED_RUN=${longest} (0 = no shared run of 4 or more words)`);
     expect(longest).toBeLessThan(8);
   });
 });

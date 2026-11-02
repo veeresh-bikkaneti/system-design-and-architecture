@@ -1,16 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { OKF_CARDS } from './cards.ts';
-import { acceptDraft, isGeneralTechQuestion, OFF_COURSE, prepareTurn, spokenAnswer } from './agent.ts';
+import { isGeneralTechQuestion, OFF_COURSE, prepareTurn, spokenAnswer } from './agent.ts';
 import { searchCards } from './retrieve.ts';
-
-// QA R-01 reproduction: the observed echo is accepted today.
-describe('acceptDraft echo (QA R-01)', () => {
-  it('rejects a draft that echoes the parametric system prompt and config lines', () => {
-    const echo =
-      'CPU backend\nTopK: 64, Temp: 1\nYou are an expert system design tutor. The user has asked a general software architecture question that falls outside the specific coursework.\nModel:';
-    expect(acceptDraft(echo, 'how do I set up a Python virtual environment for AI work')).toBe(false);
-  });
-});
 
 describe('local OKF tutor', () => {
   it('answers how to setup local AI from the on-device wording sentences', () => {

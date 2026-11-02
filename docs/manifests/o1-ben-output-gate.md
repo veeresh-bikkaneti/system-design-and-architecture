@@ -57,3 +57,16 @@ sanitizeModelOutput(raw: string, opts: { systemPrompts: string[]; fallback: stri
 **Approvals / votes / dissent:** pending (T2: Chair + Skeptic C).
 
 **Chair decision:** pending.
+
+## Phase 2 amendments (council round 1: Skeptic support with changes, advisor AGREE; see docs/council/2026-11-02-o1-output-gate.md)
+
+- **Two fallbacks, stated explicitly.** Parametric path (`answerParametrically`): a rejected draft returns `null`, so the panel shows the deterministic `NO_SOURCE` line (QaChatPanel:397-420, unchanged). Rewrite path (`rewriteWithModel`): a rejected draft returns `null`, so the panel keeps the deterministic card answer (it only patches a non-null draft). One test each in `inference.test.ts`.
+- **Rules 2-4 skip fenced code blocks and table/list lines** (rule 1, n-gram overlap, runs everywhere). Residual false-reject: a bare unlisted prose line like `Temperature: 0.2 ...` is rejected; the result is a safe fallback, not a leak.
+- **Acceptance wording:** the gate catches KNOWN leak shapes. It cannot catch novel confabulation, and a partial leak shorter than 8 words passes.
+- **Threshold evidence:** every 8-word window of both prompts is rejected (test); a 7-word window passes (test, documented limit); the longest run shared by the prompts and the 153 card answers is below 8 (printed value in the PR).
+- **Pure = no imports at all**, enforced by a test.
+- **`acceptDraft` stays.** The gate runs before it in `inference.ts`. `loadEngine`'s sticky-failure cache is untouched. The `agent.test.ts` change from phase 1 was dropped (it pinned `acceptDraft` itself, which is deliberately unchanged; the call-site tests cover R-01).
+- **The new tests are the only answer-text gate.** `eval:ben` measures routing only.
+- **W1 (T1, later):** copies `sanitize.ts` verbatim with a CI diff check, or imports from a shared path; thresholds and rule lists must match. This PR does not touch `worker/` or `QaChatPanel.tsx`.
+- **R-26 scope:** javascript:, JavaScript:, vbscript: and data: markdown links on react-markdown 10.1.0 (no urlTransform override in src). The test is a regression guard, not a claim about other vectors.
+- **File count:** 8 = `sanitize.ts`, `inference.ts`, `sanitize.test.ts`, `inference.test.ts`, `ChatMarkdown.test.tsx`, this manifest, `EVIDENCE_LOG.md`, `docs/council/2026-11-02-o1-output-gate.md`.
