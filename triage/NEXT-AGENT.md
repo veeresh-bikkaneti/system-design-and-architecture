@@ -1,3 +1,5 @@
+Handoff 2026-11-02T16:52Z | origin/main 385e411 | open PRs #109 #125 #135 #174 #177 #182 #183 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
+
 # Next-agent handoff (snapshot 2026-11-02, evening)
 
 Read this first, then `AGENTS.md`. The remote is the record: GitHub issues #143-#180, PRs, and `triage/README.md`. Anything below can be re-verified with `gh pr list`, `gh issue list --label round-2-triage`, `git log origin/main`.
@@ -42,8 +44,8 @@ Held: `fix/ben-index-batch-1` (66a3ef0, BATCH=1, owner hold, no PR). Experiments
 - Council seats that read the owner's main checkout cannot see `triage/` (untracked there): always `git show origin/main:triage/...`.
 - The advisor tool forwards the whole transcript: paste seat reports into the repo record first, consult in the same session.
 - Git Bash: avoid multi-line `node -e`/heredocs for edits (quoting breaks); use the file tools. CRLF working copies can make edits silently miss.
-- Permissions: the owner runs `claude --dangerously-skip-permissions`; `~/.claude/settings.json` defaults to bypass; Orca hooks were removed (backups beside the file).
-- Agents die on network errors: resume them with SendMessage; never relaunch blindly (check `git status` in their worktree first).
+- Local machine and permission setup details are kept out of this public file (see AGENTS.md `docs/agent-notes.md`, "What stays out of a pushed handoff"); the owner can supply them.
+- Agents die on network errors: resume them rather than relaunching blindly, and check the state of their branch first.
 
 ## 7. Tools state
 
