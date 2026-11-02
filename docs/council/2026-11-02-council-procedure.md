@@ -70,4 +70,23 @@ AGREE WITH NOTES. Your verdict's seven points are faithful to both seat reports 
 
 ## Round 2 (of max 2)
 
-Applied: step 3 now pastes the seat reports into the record before the advisor call, in the same session. The 60,000 figure is stated as proposed and unmeasured, with the Chair setting the cap. The implementer conditional became an unconditional advisor requirement for T1 and T2. A frozen-core change always runs the loop (first sentence of the procedure). Reconvened seat and second advisor reply are appended below.
+Applied: step 3 now pastes the seat reports into the record before the advisor call, in the same session. The 60,000 figure is stated as proposed and unmeasured, with the Chair setting the cap. The implementer conditional became an unconditional advisor requirement for T1 and T2. A frozen-core change always runs the loop (first sentence of the procedure).
+
+### Seat C (Skeptic), round 2 report
+
+Vote: SUPPORT WITH CHANGES. Round-1 blocking findings: #1 two Chairs, resolved; #2 unbounded loop, mostly resolved (step 5 still said "repeat until the advisor agrees"); #3 token budget, partly (no default applies until the Chair sets a cap); #4 "agrees" gameable, partly (nothing says who judges materiality); #5 independence, resolved with a limit; #6 "contested", resolved.
+
+New BLOCKING:
+- B1 T2 deadlock. "A T2 task needs ... step 3" applied only step 3, while step 7 requires AGREE for T2; a T2 DISAGREE had no loop and no bound. Fix: "A T2 task runs steps 2 to 7 with only the Chair and Skeptic as seats."
+- B2 unbounded spend until the Chair sets a cap. Fix: 60,000 per decision as a provisional default until the Chair sets one.
+- B3 materiality gaming. Fix: the advisor labels each note MATERIAL or NON-MATERIAL; the lead may not downgrade a label, only the Chair may.
+
+NON-BLOCKING:
+- N1 a PR reader cannot check "verbatim"; push the seat-report commit before the advisor reply is recorded.
+- N2 add a fallback if the session ends or is summarised before the advisor replies (re-paste the recorded reports from the remote).
+- N3 say "implementation fix loops (§9)" in step 6.
+- N4 step 5 should read "Repeat within the bounds of step 6."
+
+### Verdict (council lead, Sonnet 5.5), round 2
+
+Adopt all three blocking fixes and all four non-blocking ones; applied in the revised AGENTS.md at this commit. Round count: 2 of 2. Sent to the advisor next; the reply is recorded in the following commit.
