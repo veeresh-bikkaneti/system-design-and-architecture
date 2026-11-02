@@ -287,3 +287,16 @@ Append-only record of completed work: what was attempted, what happened, and wha
 - **UNVERIFIED:** live browser after deploy. Own-machine guards depend on the embedder for clarify vs parametric_fallback.
 - **Blocker:** none. Liz owns merge.
 - **Review fix round 1:** guards rewritten so each says "set up ... ai env" and only the check blocks it. 7 false positives (docker, laptop, env variables, open ai, azure ai, pipenv, noun "the ai setup") pinned tutor-loop (red), now unpinned (green). Own-environment questions are only left unpinned, not routed to clarify. vitest **495/495**, oxlint 0 errors. Eval all **87.9%** (cases 88.1%), holdout **87.5%** unchanged, top-1 93.1%, miss list unchanged; 2 new eval cases (`env-own-openai`, `env-noun-netflix`) went from tutor-loop misses to correct.
+
+## 2026-11-01 — Ben routing gate on PRs, advisory (branch `ci/pr-ben-eval`, ticket #136 part 1)
+
+- **Tier:** T2 (new CI workflow + one package.json script; no T1 paths, no secrets). Signed manifest with amendments A1-A6.
+- **Files:** `.github/workflows/pr-ben-eval.yml` (new), `scripts/ben/run-eval.mjs` (new), `package.json` (`eval:ben` only), `EVIDENCE_LOG.md`.
+- **Failing-first (Windows, unchanged tree):** `npm run eval:ben` died at startup: `failed to load config from ...\vitest.eval.config.ts;` ... `[UNRESOLVED_ENTRY] Cannot resolve entry module vitest.eval.config.ts;.` (cmd.exe passes `;` as part of the filename; `status=$?` never runs).
+- **After:** `node scripts/ben/run-eval.mjs` runs vitest via `process.execPath` (no shell), prints `evals/ben/REPORT.md`, exits with vitest's status. Local run: exit 0, all gates pass, REPORT.md printed.
+- **Deliberate failure (local edit of the accuracy gate 0.85 to 0.999, reverted with `git checkout`):** exit 1, `AssertionError: expected 0.8793969849246231 to be greater than or equal to 0.999`, `Tests 1 failed | 6 passed (7)`, and REPORT.md still printed after it.
+- **Paths filter:** imports of `retrieve/web/cards/types.ts` and `semantic/*.ts` checked: they stay inside `src/ai/local` (one test imports `scripts/ben/build-index.mjs`, already covered). Nothing extra added.
+- **Also run:** `npm run lint` exit 0 (pre-existing warnings only); `npm test` 498/498 (48 files).
+- **NOT run:** the workflow itself on GitHub until the PR opens; YAML parser validation (no yaml library installed, reviewed by eye); `npm run build`, e2e, `content:check`; Linux run of the wrapper locally.
+- **Advisory-only:** `continue-on-error: true`. Becoming a required check needs the A5 prerequisite (drop `paths:`, add an always-reporting diff job), a ruleset decision for Liz.
+- **Process notes:** (1) the manifest's expected failure (`$?` parse) was really the `;` landing in the config filename, so quote the actual error rather than the predicted one. (2) vitest's `exports` map blocks `require.resolve('vitest/vitest.mjs')`; resolve the file by path instead.
