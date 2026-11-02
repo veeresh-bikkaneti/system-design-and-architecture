@@ -111,6 +111,9 @@ export async function pushSnapshot(
   gistId: string,
   snap: ProgressSnapshot,
 ): Promise<void> {
+  // Taken after the pull and snapshot, before the PATCH await: any markDirty
+  // after this point is a change the push does not contain.
+  const seq = useSessionStore.getState().changeSeq;
   const body = {
     v: 1,
     completedLessons: snap.completedLessons,
@@ -127,7 +130,7 @@ export async function pushSnapshot(
       files: { [GIST_FILENAME]: { content: JSON.stringify(body, null, 2) } },
     }),
   });
-  useSessionStore.getState().markClean(snap.rev);
+  useSessionStore.getState().markClean(snap.rev, seq);
 }
 
 export async function syncNow(opts?: { evenIfPaused?: boolean }): Promise<void> {

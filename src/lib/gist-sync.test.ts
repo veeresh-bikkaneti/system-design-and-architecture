@@ -195,3 +195,40 @@ describe('idle background sync failure', () => {
     }
   });
 });
+
+describe('sync race (council 2026-11-02 item 1)', () => {
+  it('RACE1: a change made during the PATCH leaves the session dirty', async () => {
+    const base = makeFetch('ok');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (init?.method === 'PATCH') {
+          // The learner finishes a lesson while the PATCH is in flight.
+          // AuthBar's progress subscription calls markDirty() for this.
+          useProgressStore.setState({ completedLessons: ['local-lesson', 'remote-lesson', 'late-lesson'] });
+          useSessionStore.getState().markDirty();
+        }
+        return base.mock(url, init);
+      }),
+    );
+    await syncNow();
+    const s = useSessionStore.getState();
+    expect(s.dirty).toBe(true);
+    // The label rule in AuthBar: "Synced" only when lastSyncedAt && !dirty.
+    expect(Boolean(s.lastSyncedAt && !s.dirty)).toBe(false);
+
+    // The next sync pushes the late change and only then goes clean.
+    const second = makeFetch('ok');
+    vi.stubGlobal('fetch', second.mock);
+    await syncNow();
+    expect(second.calls.filter((c) => c.method === 'PATCH')).toHaveLength(1);
+    expect(useSessionStore.getState().dirty).toBe(false);
+  });
+
+  it('RACE2: no change during the PATCH still goes clean', async () => {
+    const { mock } = makeFetch('ok');
+    vi.stubGlobal('fetch', mock);
+    await syncNow();
+    expect(useSessionStore.getState().dirty).toBe(false);
+  });
+});

@@ -83,6 +83,13 @@ export default defineConfig({
       workbox: {
         globPatterns: ['assets/**/*.{js,css}'],
         navigateFallback: '404.html',
+        // File-like paths (sitemap.xml, feed.xml, llms.txt, robots.txt, audio
+        // files, anything ending in an extension) must reach the network and
+        // never get the app shell. Base-agnostic: it matches the path tail, so
+        // it holds at the Pages subpath and at the Cloudflare root. A query
+        // string disqualifies the match, so /oauth/callback?code=a.b stays an
+        // SPA route.
+        navigateFallbackDenylist: [/^[^?]*\/[^/?]+\.[a-z0-9]+$/i],
         // 404.html cannot be glob-precached: prerender writes it AFTER the
         // vite build (npm run build runs vite, then prerender), and vite
         // empties dist first, so no 404.html exists when this plugin runs.
