@@ -90,3 +90,17 @@ NON-BLOCKING:
 ### Verdict (council lead, Sonnet 5.5), round 2
 
 Adopt all three blocking fixes and all four non-blocking ones; applied in the revised AGENTS.md at this commit. Round count: 2 of 2. Sent to the advisor next; the reply is recorded in the following commit.
+
+### Advisor (Opus), reply, round 2, verbatim
+
+AGREE, no material notes. All three BLOCKING fixes (B1 T2 steps 2 to 7, B2 provisional 60,000 default, B3 advisor labels materiality) and all four NON-BLOCKING ones (N1 to N4) are in the text at 2e56afa. The seat report landed in the same commit as the revised text, before this reply, so the ordering step 3 now requires is satisfied. Round count is 2 of 2. The loop closes here. Implement.
+
+Two NON-MATERIAL observations, for the record only; neither triggers another round:
+- Step 3 says push the seat-report commit before the advisor's reply is recorded. The round-2 seat report and the revised text went into one commit, which satisfies "before the reply" but not a strict reading of "seat report commit, then text". One sentence in the record noting that rounds 1 and 2 each bundled report plus revision is enough. Do not re-split the commits.
+- B3 now says the advisor labels each note. This reply labels its notes NON-MATERIAL, so the rule is satisfied going forward; round 1's reply predated the rule and labelled only the one material note. The record already shows the deviation. Nothing to fix.
+
+Process remarks that are not about the text (cost): the procedure mandates the full loop for every T1 task and every frozen-core change. Slices W1, W2, W3, W4, S1, S2 are all T1. Two seats plus a verdict plus an advisor call plus a possible reconvene on each of six slices is a large fixed cost; at the provisional 60,000 per decision cap that is up to 360,000 tokens. That is the owner's call to set or relax.
+
+### Outcome
+
+Round count: 2 of 2. Advisor: AGREE. Rounds 1 and 2 each bundled the seat report and the revised text in one commit (not re-split, per the advisor). Implementer: Sonnet 5.5 (the council lead). Status: ready for the owner's merge word.
