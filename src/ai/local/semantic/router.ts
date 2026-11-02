@@ -157,11 +157,35 @@ function isTutorSetupQuestion(question: string): boolean {
   const request = /\bget\s+the\s+ai\s+set\s*up\b/.test(text);
   const verb = request || /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text.replace(/\bthe\s+ai\s+set\s*up\b/g, ''));
   const aiEnv = /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
-  const ownBox =
-    /\b(python|venv|cuda|conda|pip|pipenv|docker|laptop|mac|macbook|wsl|jupyter|gpu|variables|api key)\b|\bdev(elopment)?\s+env|\bmy\s+(machine|project)\b|\b(open|azure)\s+ai\b/.test(
-      text,
-    );
-  return verb && aiEnv && !ownBox;
+  return verb && aiEnv && !OWN_BOX.test(text);
+}
+
+const OWN_BOX =
+  /\b(python|venv|cuda|conda|pip|pipenv|docker|laptop|mac|macbook|wsl|jupyter|gpu|variables|api key)\b|\bdev(elopment)?\s+env|\bmy\s+(machine|project)\b|\b(open|azure)\s+ai\b/;
+
+/**
+ * The stricter test used to beat an off_topic/debate vote. An off-topic vote
+ * is a decent hint that the question really is about something else, so only
+ * a definite Ben ("the tutor", "local AI", WebLLM, "Ben" ending the question,
+ * or "Ben" right after the verb and then ending or a polite word) or the "ai
+ * env" reading may override it, and never with an own-machine or
+ * human-tutoring signal. "a tutor business", "the tutor for my kid homework",
+ * "ben 10", "ben's birthday" and "ben franklin biography" stay redirected.
+ * ponytail: "Ben" elsewhere in the sentence ("ben setup meme") is not
+ * protected; the normal pin still catches it when the vote is not off-topic.
+ * "school" and "homework" are NOT human-tutoring signals: they appear in real
+ * Ben setup questions ("set up the tutor at school"), and a stray pin costs
+ * less than turning a student away. Trade-off: "set up the tutor program for
+ * school" now pins.
+ */
+const HUMAN_TUTOR = /\b(kid|kids|child|children|son|daughter|business|hire|hiring|schedule)\b|\bnear me\b/;
+
+function isDefiniteTutorSetup(question: string): boolean {
+  const text = question.toLowerCase();
+  if (!isTutorSetupQuestion(question) || OWN_BOX.test(text) || HUMAN_TUTOR.test(text)) return false;
+  const definite =
+    /\b(the|this|your|that)\s+tutor\b|\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\bben\s*[?.!]*$|\b(set\s*up|setup|install)\s+ben(?:[?.!,]+(?:\s|$)|\s*$|\s+(?:please|pls|plz|thanks|now|again|for me)\b)/.test(text);
+  return definite || /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
 }
 
 export function namedTagLessons(question: string): string[] {
@@ -260,6 +284,22 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   ];
   if (named.length > 0) reasons.push(`named: ${named.join(', ')}`);
 
+  // Pinned decision for unique tags (same result wherever it fires).
+  const pinTags = (namedTags: string[]): Decision => {
+    const pinned = namedTags.map((slug) => {
+      const hit = lessons.find((lesson) => lesson.slug === slug);
+      return hit ?? { slug, score: THRESHOLDS.lesson, best: THRESHOLDS.lesson, chunks: [] };
+    });
+    const rest = lessons.filter((lesson) => !namedTags.includes(lesson.slug));
+    return {
+      ...base,
+      action: 'lesson',
+      lessons: [...pinned, ...rest].slice(0, 3),
+      pinned: namedTags,
+      reasons: [`named tag ${namedTags.join(', ')}`, ...reasons],
+    };
+  };
+
   // Rule layer: cheap, high-precision, and already covered by tests.
   if (isOffCourseTopic(question)) {
     return { ...base, action: 'redirect', reasons: ['blocked topic', ...reasons] };
@@ -281,6 +321,10 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   }
 
   if (offCourse) {
+    // "Help me setup the tutor" can embed near off_topic. Nobody gets
+    // shrugged at for asking how to switch Ben on, so the setup pin goes
+    // first and only this pin: the other tag pins keep their old order.
+    if (isDefiniteTutorSetup(question)) return pinTags(namedTagLessons(question));
     if (topScore >= THRESHOLDS.override && vote.confidence < THRESHOLDS.overrideVote) {
       return { ...base, action: 'lesson', reasons: ['a lesson matches strongly despite the vote', ...reasons] };
     }
@@ -298,20 +342,7 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   // Anti-Corruption Layer because that MDX quotes the DDD books, and the
   // 0.45 gate would return before a later pin could fire.
   const namedTags = namedTagLessons(question);
-  if (namedTags.length > 0) {
-    const pinned = namedTags.map((slug) => {
-      const hit = lessons.find((lesson) => lesson.slug === slug);
-      return hit ?? { slug, score: THRESHOLDS.lesson, best: THRESHOLDS.lesson, chunks: [] };
-    });
-    const rest = lessons.filter((lesson) => !namedTags.includes(lesson.slug));
-    return {
-      ...base,
-      action: 'lesson',
-      lessons: [...pinned, ...rest].slice(0, 3),
-      pinned: namedTags,
-      reasons: [`named tag ${namedTags.join(', ')}`, ...reasons],
-    };
-  }
+  if (namedTags.length > 0) return pinTags(namedTags);
 
   // Whether the course covers it is a retrieval fact, not an intent: "what is MVC"
   // reads like a general tech question, but the MVC lesson answers it.

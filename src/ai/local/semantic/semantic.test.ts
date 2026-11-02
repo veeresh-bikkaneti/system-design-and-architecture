@@ -262,6 +262,80 @@ describe('router', () => {
     expect(decision.pinned).toBeUndefined();
     expect(decision.action).toBe('parametric_fallback');
   });
+
+  // The embedding vote can land on off_topic for a setup phrasing. The pin
+  // must still win, or Ben shrugs at someone asking how to switch him on.
+  it.each([
+    'help me setup the tutor',
+    'how do I set up the tutor',
+    'can you help me set up Ben',
+    'help me set up local AI',
+  ])('pins "%s" to tutor-loop even when the vote is off_topic', (question) => {
+    const decision = route({ question, vector: vec(3), index });
+    expect(decision.intent).toBe('off_topic');
+    expect(decision.action).toBe('lesson');
+    expect(decision.pinned).toEqual(['tutor-loop']);
+    expect(decision.lessons[0]?.slug).toBe('tutor-loop');
+  });
+
+  it.each([
+    'how do I set up a tutor business',
+    'set up a tutor for math lessons near me',
+    'install ben franklin biography',
+    'ben setup meme',
+    'setup local ai on my gpu',
+    'set up my netflix account',
+    'set up my smart tv',
+    'setup the tutor for my kid homework',
+    'install ben 10 game',
+    "set up ben and jerry's account",
+    'install ben affleck fan page',
+    "set up ben's birthday party",
+    'install ben.exe on windows',
+  ])('does not pin tutor-loop for look-alike "%s" under an off_topic vote', (question) => {
+    const decision = route({ question, vector: vec(3), index });
+    expect(decision.pinned).toBeUndefined();
+    expect(decision.action).toBe('redirect');
+  });
+
+  it.each([
+    'set up Ben please',
+    'install Ben please',
+    'install Ben',
+    'setup the tutor at school',
+    'set up the tutor for my school computer lab',
+    'set up the tutor for homework help',
+    'how do I install local AI at school',
+  ])(
+    'pins tutor-loop for "%s" under an off_topic vote',
+    (question) => {
+      const decision = route({ question, vector: vec(3), index });
+      expect(decision.pinned).toEqual(['tutor-loop']);
+    },
+  );
+
+  it.each(['who is Tom Hanks', 'what is the capital of France'])(
+    'still redirects off-topic "%s"',
+    (question) => {
+      const decision = route({ question, vector: vec(3), index });
+      expect(decision.action).toBe('redirect');
+      expect(decision.pinned).toBeUndefined();
+    },
+  );
+
+  it.each(['set up my python venv with CUDA', 'set up my ai env with pip'])(
+    'leaves own-environment "%s" unpinned under an off_topic vote',
+    (question) => {
+      const decision = route({ question, vector: vec(3), index });
+      expect(decision.pinned).toBeUndefined();
+      expect(decision.action).toBe('redirect');
+    },
+  );
+
+  it('still pins a DDD question to domain-driven-design', () => {
+    const decision = route({ question: 'DDD', vector: vec(0), index });
+    expect(decision.pinned).toEqual(['domain-driven-design']);
+  });
 });
 
 describe('turn', () => {
