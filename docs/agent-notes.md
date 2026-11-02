@@ -31,13 +31,15 @@ fluff. Claude Code applies it through the `i-have-adhd` skill; other agents foll
 
 ## Owner question format (domain questions only)
 
-Technical questions are settled by the council and the advisor and never sent to the owner (AGENTS.md section 2). When a domain question is unavoidable, send ONE batched message built like this, written in plain words (no em dashes, no mid-sentence colons, whole sentences, no jargon the owner has not used):
+Technical questions are settled by the council and the advisor and are never sent to the owner (AGENTS.md section 2). This format narrows the owner-communication rule in section 11 (ADHD shape: next action first); it does not replace it. When a domain question is unavoidable, send ONE batched message. A reviewer can check each element:
 
-1. First line: the single next action the owner can take in under two minutes, with the answer options spelled out ("reply: 1 yes, 2 no, 3 name").
-2. For each question, three short parts. What it is (how it works, in two sentences, the `/pstack:how` view). Why it exists and why it matters now (the `/pstack:why` view: the history or rule that created the question). Our recommendation with one reason, and what happens if there is no answer.
-3. A line stating what the council and advisor already decided so the owner does not have to.
-4. Numbered items, at most five per message, most important first. Never ask the same question twice; say if an earlier question is still open.
+1. No preamble. The first line is the single next action the owner can take in under two minutes, with the answer options spelled out (for example "reply: 1 yes, 2 no, 3 a name").
+2. Each question has four labelled parts: `What it is` (how the thing works, in plain words), `Why now` (the history or rule that created the question and why it matters today), `Recommendation` (one recommendation and one reason), `If no answer` (what happens if the owner does not answer).
+3. One line headed `Already decided` lists what the council and advisor settled, so the owner does not have to.
+4. At most five items per message, most important first. Never ask the same question twice; say when an earlier question is still open.
 5. Technical detail stays in the linked record, not in the message.
+
+Helpers: agents that have the `/i-have-adhd`, `/pstack:how`, `/pstack:why` and `/unslop` skills use them to build and clean the message; the format above must hold without them.
 
 ## Handoff checkpoints (never leave work hanging on a limit)
 
