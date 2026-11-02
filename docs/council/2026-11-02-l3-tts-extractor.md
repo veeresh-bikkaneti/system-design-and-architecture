@@ -30,3 +30,21 @@ Findings
 Adopt all. Resolution of the blocking point: **shipped audio stays stale on purpose until the owner runs the synthesis; the browser reader is the truth (it already speaks Go deeper and Sources).** PR 2a (extractor fix + tests) may merge on its own because no CI check compares shipped manifests to a fresh extract (validate_manifest checks structure only; alignBlocks fails soft); the acceptance conditions say this explicitly. The regeneration (PR 2b: 164 tracked files, 313 MB, repo history growth) is a separate owner decision, tracked in an issue, and is not part of 2a. Also: extra tests for multi-line StepThrough/VsToggle, an interior `/>` string, and a nested tag; the title regex becomes `title:\s*(['"])(.*?)\1\s*,`; the python tests join the CI gate chain (package.json script run by the PR gates) or the manifest records them as manual-only; the manifest states the "22" in the issue is unverified and the measured figure is 516 blocks across 41 lessons.
 
 Round count: 1 of 2. Sent to the advisor next; the reply is recorded in the following commit.
+
+### Advisor (Opus), reply, round 1, verbatim (L3 part)
+
+AGREE with the verdict, one material correction. The Skeptic reproduced (a), (b) and (d) itself and verified the fix is safe across all 101 multi-line component opens; that is real evidence, not assertion. Your verdict adopts all seven findings. Implement it. One material correction:
+
+Your resolution of the blocking finding contradicts your own acceptance condition. You wrote that shipped audio stays stale on purpose and that PR 2a may merge alone because no CI check compares shipped manifests to a fresh extract. But the implementer's own failing test `test_trailing_sections_are_narrated_in_every_lesson` asserts exactly that comparison for all 41 lessons. If that test enters the CI chain (finding 3, which you also adopted), 2a merging without 2b leaves a test asserting narration the shipped audio does not have, which is the state the Skeptic flagged as blocking.
+
+Pick one and say which in the manifest:
+- The new tests assert extractor behaviour only (what the extractor now produces from current MDX), not shipped-manifest parity; then 2a is safe alone and `test_trailing_sections_...` must be scoped to the extractor's output, not the shipped files.
+- Or they assert parity, and 2a cannot merge before 2b.
+
+The first is almost certainly right and is the cheaper fix, but the test as described reads like the second. Have the implementer state which the test actually compares, with the assertion quoted.
+
+Also note in the record: this Skeptic also could not find triage/ISSUES-CONSOLIDATED.md, the same gap as O1's. Two seats in a row read a tree without it. Check whether triage/ is present in a fresh worktree off main.
+
+### Outcome
+
+Round count: 1 of 2. Advisor: AGREE (one material note, applied). Decision: **the tests assert extractor behaviour only; no test compares shipped manifests; 2a merges alone; shipped audio stays stale until the owner runs the synthesis (PR 2b, separate owner decision on repo-history growth).** Blind-spot check: `triage/ISSUES-CONSOLIDATED.md` is tracked on origin/main (see the git ls-tree check in the PR comment); the seats read the owner's main checkout, which is on a feature branch where triage/ is untracked. Future seats are told to read it with `git show origin/main:triage/ISSUES-CONSOLIDATED.md`. Implementer: the L3 implementer agent (Sonnet-class) under council lead Sonnet 5.5. Status: phase 2 released.
