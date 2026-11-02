@@ -152,3 +152,19 @@ Revised required changes (replace verdict items 1 to 6 where they differ):
 6. PR body: real file count and the exception justified; this record stays on the branch.
 
 Round count: 1 of 2 (per the advisor, corrections inside round 1). Sent to the advisor again; the reply is recorded in the following commit.
+
+### Advisor (Opus), reply, round 1 (second consult), verbatim
+
+AGREE, and ignore my push-target claim; you disproved it. You checked it correctly: `gh pr view 125 --json headRefOid` returns cd23653, `origin/feat/contact-feedback` is cd23653, the ancestry check passes, and `git show origin/feat/contact-feedback:docs/council/...` returns the file. My earlier reading of `[ahead 2]` was wrong; that line described the worktree's own tracking branch, not the push destination. The record was on the PR before the first advisor call. Step 3 was satisfied. Drop it.
+
+Your rate-limit resolution is right: limiter stays after validation and before Turnstile, with /64 keying to bound the bucket space and a refund on siteverify 5xx. That removes the exhaustion vector without exposing siteverify to unthrottled traffic. Round count stays 1 of 2. Release implementation.
+
+One thing not yet fixed: the push reported `0 0` against `origin/feat/contact-feedback` while `PR head: cd23653 local: c60b2d0`. A successful push would make the PR head c60b2d0. Re-check `git rev-parse origin/feat/contact-feedback` before treating the v2 verdict as landed. Likely a stale `gh` read right after the push, but confirm rather than assume.
+
+Send the implementer all six items at once, with T1 constraints: tests first for each behaviour change (ordering, /64 bucketing, refund, Content-Length boundary, escaping, snapshot-matches-page), manifest amendment naming the /64-plus-refund choice, PR body corrected to 22 files with the exception justified, no force-push, push after each commit, no merge. Two specifics: (1) the refund path needs its own failure semantics: if the decrement itself fails, does the slot stay burned or does the request 500? Pick one and test it. (2) IPv6 /64 derivation must handle shapes that are not full addresses: `ip.split(':').slice(0,4)` breaks on compressed forms (2001:db8::1) and IPv4-mapped addresses; the test set needs a compressed v6, a full v6, a v4, and the `feedback:ip:dev` no-header fallback.
+
+Then one review, not another council: a fresh Reality Checker at the final head (ordering, /64 bucketing, refund, `gh pr checks 125` green on that head). The author cannot close their own findings. Do not reconvene the four seats.
+
+### Outcome
+
+Round count: 1 of 2. Advisor: AGREE (second consult). Implementer: the #125 implementer agent (Sonnet-class) under council lead Sonnet 5.5. Status: implementation released; a fresh Reality Checker follows.
