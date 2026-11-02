@@ -89,3 +89,18 @@ Risks. The top[ -]?k boundary is inference, UNVERIFIED against real model output
 Adopt the Skeptic's design in full: the NFKC and zero-width pre-pass; line prep with per-cell table checks; tier 1 everywhere (8-gram, template markers, engine config colon form, backend line; drop the {{...}} rule); tier 2 outside fences and table rows (role labels, bare model:/temperature:/seed, the trailing label rule everywhere); unclosed fences treated as closed at EOF with tier 1 and the trailing label still running; every RC bypass input becomes a red test first, the accept set stays green, a behaviour-only red check is added, the no-imports test stays. PR title "fix(ben): output gate (QA R-01, output side)"; body "Refs R-01, does not close it"; follow-up issue: https://github.com/veeresh-bikkaneti/system-design-and-architecture/issues/179. Manifest acceptance wording updated: the gate catches known leak shapes; fenced/listed/tabled leak shapes are rejected by tier 1; a false reject falls back safely.
 
 Round count: 2 of 2. Sent to the advisor next; if the advisor does not agree, the loop stops with BUDGET EXCEEDED and the owner decides (procedure step 6).
+
+### Advisor (Opus), reply, round 2, verbatim (O1 part)
+
+AGREE: round 2 closes, implement the tiered design. The Skeptic's design directly answers B1: tier 1 runs inside fences, lists, tables and after an unclosed fence, so every bypass the Reality Checker demonstrated is reachable by a rule. The narrowed tier 2 (bare model:/temperature:/seed only when followed by a number) resolves N1 without reopening the leak. The NFKC and zero-width pre-pass covers N3 at two lines. Dropping the {{...}} rule for lack of leak evidence is the right call. No material notes. Round 2 of 2 closes, release implementation.
+
+Three things to put in the implementer brief, because they are where this design can be built wrong:
+- "At segment start" is doing load-bearing work in tier 1. `\b(top[ -]?k|...)\s*:\s*\d` without a segment anchor will fire on prose like "...tuning knobs such as top-k: 64 in the config." The Skeptic accepted that as a safe false-reject, but the implementer needs to know whether "segment" means line-start-after-strip or table-cell-start, and the tests must pin it. Otherwise two readings ship on different days.
+- Order the pre-pass before everything, including the 8-gram. NFKC after the n-gram match leaves the fullwidth bypass open on the one rule the Skeptic left "unchanged." State it as: normalize, strip zero-width, line prep, tier 1, tier 2.
+- "At EOF treat an open fence as closed" must not re-enable tier 2 retroactively. The design says tier 2 still skips lines after an unclosed fence. An implementer reading "treat as closed" literally may run tier 2 over them. Both behaviours are defensible; the Skeptic picked one. Say which, and test a leak and a legit line after an unclosed fence.
+
+Then: a fresh Reality Checker at the final head, re-running its own bypass table as red-before-green. Not another council round.
+
+### Outcome (round 2)
+
+Round count: 2 of 2. Advisor: AGREE, no material notes. Decisions on the three pitfalls: "segment" means the line after markdown stripping, or one table cell (split on |); the pipeline order is NFKC, zero-width strip, line prep, tier 1 (including the 8-gram), tier 2; an unclosed fence is closed at EOF for fence-state purposes only: tier 2 still skips the lines after the opening fence, tier 1 and the trailing-label rule run on them, and the tests cover one leak and one legit line after an unclosed fence. Implementer: the O1 implementer agent (Sonnet-class) under council lead Sonnet 5.5. Status: implementation released; a fresh Reality Checker follows.
