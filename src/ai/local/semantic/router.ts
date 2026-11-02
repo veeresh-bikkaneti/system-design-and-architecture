@@ -260,6 +260,22 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   ];
   if (named.length > 0) reasons.push(`named: ${named.join(', ')}`);
 
+  // Pinned decision for unique tags (same result wherever it fires).
+  const pinTags = (namedTags: string[]): Decision => {
+    const pinned = namedTags.map((slug) => {
+      const hit = lessons.find((lesson) => lesson.slug === slug);
+      return hit ?? { slug, score: THRESHOLDS.lesson, best: THRESHOLDS.lesson, chunks: [] };
+    });
+    const rest = lessons.filter((lesson) => !namedTags.includes(lesson.slug));
+    return {
+      ...base,
+      action: 'lesson',
+      lessons: [...pinned, ...rest].slice(0, 3),
+      pinned: namedTags,
+      reasons: [`named tag ${namedTags.join(', ')}`, ...reasons],
+    };
+  };
+
   // Rule layer: cheap, high-precision, and already covered by tests.
   if (isOffCourseTopic(question)) {
     return { ...base, action: 'redirect', reasons: ['blocked topic', ...reasons] };
@@ -281,6 +297,10 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   }
 
   if (offCourse) {
+    // "Help me setup the tutor" can embed near off_topic. Nobody gets
+    // shrugged at for asking how to switch Ben on, so the setup pin goes
+    // first and only this pin: the other tag pins keep their old order.
+    if (isTutorSetupQuestion(question)) return pinTags(namedTagLessons(question));
     if (topScore >= THRESHOLDS.override && vote.confidence < THRESHOLDS.overrideVote) {
       return { ...base, action: 'lesson', reasons: ['a lesson matches strongly despite the vote', ...reasons] };
     }
@@ -298,20 +318,7 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   // Anti-Corruption Layer because that MDX quotes the DDD books, and the
   // 0.45 gate would return before a later pin could fire.
   const namedTags = namedTagLessons(question);
-  if (namedTags.length > 0) {
-    const pinned = namedTags.map((slug) => {
-      const hit = lessons.find((lesson) => lesson.slug === slug);
-      return hit ?? { slug, score: THRESHOLDS.lesson, best: THRESHOLDS.lesson, chunks: [] };
-    });
-    const rest = lessons.filter((lesson) => !namedTags.includes(lesson.slug));
-    return {
-      ...base,
-      action: 'lesson',
-      lessons: [...pinned, ...rest].slice(0, 3),
-      pinned: namedTags,
-      reasons: [`named tag ${namedTags.join(', ')}`, ...reasons],
-    };
-  }
+  if (namedTags.length > 0) return pinTags(namedTags);
 
   // Whether the course covers it is a retrieval fact, not an intent: "what is MVC"
   // reads like a general tech question, but the MVC lesson answers it.
