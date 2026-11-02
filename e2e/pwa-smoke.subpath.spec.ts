@@ -36,11 +36,18 @@ test('SUB1 SCOPE GUARD: the worker registers with scope == the base path', async
       { timeout: 45000, intervals: [1000] },
     )
     .toBe(`${new URL(page.url()).origin}${BASE}`);
-  const script = await page.evaluate(async () => {
-    const reg = await navigator.serviceWorker.getRegistration();
-    return reg?.active?.scriptURL ?? reg?.installing?.scriptURL ?? reg?.waiting?.scriptURL ?? '';
-  });
-  expect(script.endsWith(`${BASE}sw.js`)).toBe(true);
+  // Poll until some worker exposes its script URL (the registration can exist
+  // for a moment before installing/waiting/active is populated).
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const reg = await navigator.serviceWorker.getRegistration();
+          return reg?.active?.scriptURL ?? reg?.installing?.scriptURL ?? reg?.waiting?.scriptURL ?? '';
+        }),
+      { timeout: 45000, intervals: [500] },
+    )
+    .toMatch(new RegExp(`${BASE}sw\.js$`));
 });
 
 test('SUB2 the manifest link resolves under the base and scopes to it', async ({ page, request }) => {
