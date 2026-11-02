@@ -1,0 +1,53 @@
+        | self | who are you | self | -> | self | self | 1.000 | 0.274 | authn-authz | about Ben or a follow-up
+CHANGED | self | can you help me set up Ben | lesson | -> | redirect | self | 0.812 | 0.450 | tutor-loop | named tag tutor-loop
+CHANGED | self | how do I set up Ben on my laptop | lesson | -> | redirect | self | 0.630 | 0.450 | tutor-loop | named tag tutor-loop
+CHANGED | self | can you help me set up local AI | lesson | -> | redirect | self | 0.468 | 0.450 | tutor-loop | named tag tutor-loop
+        | self | what can you help me with | redirect | -> | redirect | self | 0.790 | 0.228 | interview-framework | no lesson is close enough
+        | self | can you teach me | redirect | -> | redirect | off_topic | 0.582 | 0.267 | search-autocomplete | off_topic is outside the course
+        | self | what model do you run on | redirect | -> | redirect | self | 0.369 | 0.263 | estimation-reference-numbers | no lesson is close enough
+        | self | do you remember what I asked earlier | redirect | -> | redirect | self | 0.942 | 0.249 | event-sourcing-cqrs | no lesson is close enough
+        | self | how do you work | redirect | -> | redirect | self | 0.768 | 0.323 | interview-framework | no lesson is close enough
+        | self | is Ben free to use | redirect | -> | redirect | self | 0.696 | 0.267 | authn-authz | no lesson is close enough
+        | self | what should I call you | redirect | -> | redirect | self | 0.566 | 0.199 | authn-authz | no lesson is close enough
+        | self | who built this tutor | parametric_fallback | -> | parametric_fallback | tech | 0.695 | 0.282 | search-autocomplete | general tech, no lesson covers it
+        | self | are you running on my device | self | -> | self | self | 1.000 | 0.266 | cloud-native-architecture | about Ben or a follow-up
+        | self | what is your name again | self | -> | self | self | 0.793 | 0.252 | resilience-patterns | about Ben or a follow-up
+        | self | hey Ben, good evening | redirect | -> | redirect | self | 0.929 | 0.174 | interview-framework | no lesson is close enough
+        | self | how do I install the tutor | redirect | -> | redirect | off_topic | 0.631 | 0.233 | search-autocomplete | off_topic is outside the course
+CHANGED | self | do you use the internet to answer | clarify | -> | redirect | self | 0.792 | 0.370 | search-autocomplete | course question, no lesson is a clear match
+        | tech | what is a mutex | parametric_fallback | -> | parametric_fallback | tech | 0.541 | 0.232 | microservices-vs-monolith | general tech, no lesson covers it
+        | tech | what is a semaphore | parametric_fallback | -> | parametric_fallback | tech | 0.833 | 0.198 | data-partitioning | general tech, no lesson covers it
+        | tech | what is a deadlock | clarify | -> | clarify | course | 0.873 | 0.449 | distributed-transactions | course question, no lesson is a clear match
+        | tech | how does garbage collection work | clarify | -> | clarify | course | 0.527 | 0.375 | autocomplete-freshness-safety | course question, no lesson is a clear match
+        | tech | what is a linked list | parametric_fallback | -> | parametric_fallback | tech | 0.964 | 0.312 | nosql-databases | general tech, no lesson covers it
+        | tech | explain big O notation | parametric_fallback | -> | parametric_fallback | tech | 0.818 | 0.380 | estimation-reference-numbers | general tech, no lesson covers it
+        | tech | TCP vs UDP | clarify | -> | clarify | course | 1.000 | 0.442 | designing-chat-at-scale | course question, no lesson is a clear match
+        | tech | what is a REST API | lesson | -> | lesson | course | 0.759 | 0.584 | graphql-vs-rest | named tag graphql-vs-rest
+        | tech | what does git rebase do | parametric_fallback | -> | parametric_fallback | tech | 0.884 | 0.315 | resilience-patterns | general tech, no lesson covers it
+        | tech | what is a closure in JavaScript | parametric_fallback | -> | parametric_fallback | tech | 0.875 | 0.263 | solid-principles | general tech, no lesson covers it
+        | tech | how does DNS work | clarify | -> | clarify | course | 0.476 | 0.413 | multi-region-active-active | course question, no lesson is a clear match
+        | tech | what is GraphQL | lesson | -> | lesson | course | 0.829 | 0.767 | graphql-vs-rest | a lesson covers this
+        | tech | what is a thread pool | clarify | -> | clarify | course | 0.722 | 0.392 | resilience-patterns | course question, no lesson is a clear match
+        | tech | what is TypeScript | parametric_fallback | -> | parametric_fallback | tech | 1.000 | 0.340 | solid-principles | general tech, no lesson covers it
+        | tech | how do I use Postman | redirect | -> | redirect | self | 0.489 | 0.223 | designing-chat-at-scale | no lesson is close enough
+        | tech | what is an API gateway product like Kong | lesson | -> | lesson | course | 0.748 | 0.686 | api-gateways | a lesson covers this
+        | course | can you explain caching | lesson | -> | lesson | course | 1.000 | 0.661 | caching-strategies | a lesson covers this
+        | course | can you explain DDD | lesson | -> | lesson | course | 0.530 | 0.513 | domain-driven-design | named tag domain-driven-design
+        | course | could you help me understand sharding | lesson | -> | lesson | course | 0.814 | 0.599 | sharding-strategies | a lesson covers this
+        | course | can you tell me about the CAP theorem | lesson | -> | lesson | course | 0.881 | 0.737 | cap-theorem | named tag cap-theorem
+        | course | what do you think about microservices | lesson | -> | lesson | course | 1.000 | 0.729 | microservices-vs-monolith | a lesson covers this
+        | course | do you know what a load balancer is | lesson | -> | lesson | course | 0.886 | 0.718 | load-balancers | a lesson covers this
+        | course | can you explain RAG to me | lesson | -> | lesson | tech | 0.617 | 0.490 | designing-ai-systems | named tag designing-ai-systems
+        | course | are you able to explain rate limiting | self | -> | self | self | 0.784 | 0.776 | rate-limiting | about Ben or a follow-up
+        | course | can you help me with the saga pattern | lesson | -> | lesson | course | 0.748 | 0.614 | distributed-transactions | named tag distributed-transactions
+        | course | what would you use for a message queue | lesson | -> | lesson | course | 1.000 | 0.802 | message-queues | a lesson covers this
+        | follow | can you give an example | lesson | -> | lesson | course | 0.923 | 0.676 | caching-strategies | a lesson covers this
+        | follow | explain it simpler | lesson | -> | lesson | course | 1.000 | 0.661 | caching-strategies | a lesson covers this
+        | follow | what about the downsides | lesson | -> | lesson | course | 1.000 | 0.650 | caching-strategies | a lesson covers this
+        | follow | how would I invalidate it | lesson | -> | lesson | course | 1.000 | 0.682 | caching-strategies | a lesson covers this
+        | follow | can you say more about that | lesson | -> | lesson | course | 1.000 | 0.650 | caching-strategies | a lesson covers this
+        | follow | and in a distributed system? | lesson | -> | lesson | course | 1.000 | 0.649 | caching-strategies | a lesson covers this
+        | follow | why is that faster | lesson | -> | lesson | course | 1.000 | 0.702 | caching-strategies | a lesson covers this
+        | follow | give me an analogy | lesson | -> | lesson | course | 0.915 | 0.636 | caching-strategies | a lesson covers this
+        | follow | is that the same as a CDN | lesson | -> | lesson | course | 0.924 | 0.668 | cdns | a lesson covers this
+        | follow | what do you mean by hot data | lesson | -> | lesson | course | 1.000 | 0.584 | caching-strategies | a lesson covers this
