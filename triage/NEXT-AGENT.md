@@ -1,8 +1,8 @@
-Handoff 2026-11-02T16:52Z | origin/main 385e411 | open PRs #109 #125 #135 #174 #177 #182 #183 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
+Handoff 2026-11-02T19:43Z | origin/main 653587d | open PRs #109 #135 #177 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
 
-# Next-agent handoff (snapshot 2026-11-02, evening)
+# Next-agent handoff (snapshot 2026-11-02, late evening)
 
-Read this first, then `AGENTS.md`. The remote is the record: GitHub issues #143-#180, PRs, and `triage/README.md`. Anything below can be re-verified with `gh pr list`, `gh issue list --label round-2-triage`, `git log origin/main`.
+Read this first, then `AGENTS.md`. The remote is the record: GitHub issues #143-#184, PRs, and `triage/README.md`. Anything below can be re-verified with `gh pr list`, `gh issue list --label round-2-triage`, `git log origin/main`.
 
 ## 1. The prompt (paste this to the next agent)
 
@@ -10,19 +10,20 @@ Read this first, then `AGENTS.md`. The remote is the record: GitHub issues #143-
 
 ## 2. What is on main (verified 2026-11-02)
 
-Main is at `385e411` or later. Merged this session: #132 docs, #140 Ben setup pin (4 Reality Checker rounds), #141 triage board, #142 never-merge-unfixed + remote-is-truth rules, #169, #170 PR gates CI, #171 council records, #172 council procedure, #173 probe fix (my mistake broke main for ~25 minutes, fixed), #175 TTS extractor fix (L3).
-Ruleset `Protect main branch` (24196526) now requires checks `PR Frontend gates` + `PR Worker gates`, thread resolution, last-push approval, 1 approval; admin bypass stays.
+Main is at `653587d` or later. Merged this session: #132 docs, #140 Ben setup pin (4 Reality Checker rounds), #141 triage board, #142 never-merge-unfixed + remote-is-truth rules, #169, #170 PR gates CI, #171 council records, #172 council procedure, #173 probe fix (my mistake broke main for ~25 minutes, fixed), #175 TTS extractor fix (L3), #182 handoff, #183 handoff-checkpoint rule, #125 contact form + privacy page + worker /api/feedback (T1, full council, independent RC, 8/8 mutation checks), #174 Ben output gate (3 independent RC rounds, CodeQL clean).
+Ruleset `Protect main branch` (24196526) requires checks `PR Frontend gates` + `PR Worker gates`, thread resolution, last-push approval, 1 approval; admin bypass stays.
 
 ## 3. In flight (all pushed to the remote)
 
-| PR | What | State | Next action |
+| PR / issue | What | State | Next action |
 |---|---|---|---|
-| #174 | O1 Ben output gate (QA R-01, output side) | Independent RC found BLOCKING B1 (leak shapes slip past when wrapped in list/table/fence). Council round 2 of 2 done, advisor AGREE. Agent implementing the tiered sanitizer. | Fresh Reality Checker at the final head must re-run its bypass table red-before-green. Merge only if no BLOCKING and checks green on that head. Title/body must say "Refs R-01, does not close it" (follow-up #179). |
-| #125 | Contact/feedback form + privacy page + worker POST /api/feedback (T1) | 4-seat council done, advisor AGREE. Agent implementing 6 fixes: IPv6 /64 key, refund on siteverify 5xx, timeouts, privacy wording (Veer retention ~60 days, snapshot, sign-in exchange hop), tests, escaping, PR body = real file count (22). | Fresh Reality Checker at the final head. Needs owner infra before it works live (see section 5); code fails closed (503) without secrets, deploy-worker is manual. |
-| #177 | C2 lesson content: cache warming, reranking, agentic trio | Agent done; Nishtala claim verified in the paper; Ben eval 87.6% vs main 88.1% explained by issue #180. Independent RC running. | Read RC verdict. Merge only with RC clean AND the owner's call on the eval trade-off (see #180). |
-| #135 | Chunker (fragments 189 to 0) | Merged main in, passes gates, but accuracy 88.1 to 86.1, drift 2.9% vs 3% gate, h-d-ai-art now answers off-course. PARKED. | Owner decision together with #177 (issue #180). Optionally try fixing the off-course case without touching eval cases. |
+| #177 | C2 lesson content: cache warming, reranking, agentic trio | Content RC clean (sources verified). Ben eval 87.6% vs main 88.1% is a batching artefact (#180). | Merge only after the owner's call on the eval trade-off (#180), same decision as #135. |
+| #135 | Chunker (fragments 189 to 0) | Passes gates but accuracy 88.1 to 86.1, drift 2.9% vs 3% gate, one off-course case regressed. PARKED. | Owner decision together with #177 (#180). |
+| #184 | O1 follow-up: `stripTags` skips to the next '>' and can hide a leak (MEDIUM, fails unsafe, narrow) plus L1-L3 | Found by RC round 3 on #174; recorded, not fixed. | New small T2 task: red-first tests, one-line fix, own review (not a 4th loop of #174). |
+| #179 | O1 follow-up: delimit and role-strip prior turns | Needs `QaChatPanel.tsx` (panel slices own it). | After the panel slices or #109. |
+| #176, #178, #180, #181 | rate-limit rows never deleted + public salt; audio regeneration; batch-composition eval sensitivity; Veer sign-out cleanup unverified | Open issues. | See section 4. |
 
-Not started: #109 PWA (T1, 4 conflicts, collides with QaChatPanel/gist-sync/AuthBar/index.html, so Dev B panel work and S1/W4 wait for it), L4 docs pass (#151), L5 site counts (#152), W2 Veer corpus refresh (#164, T1), P1a panel focus (#155), W1/W3/W4/S1/S2 (T1, need DEC-1..6 in #147), L1, L2, C3, Q1.
+Not started: #109 PWA (T1, 4 conflicts, collides with QaChatPanel/gist-sync/AuthBar/index.html), L4 docs pass (#151), L5 site counts (#152), W2 Veer corpus refresh (#164, T1), P1a panel focus (#155), W1/W3/W4/S1/S2 (T1, need DEC-1..6 in #147), L1, L2, C3, Q1.
 Held: `fix/ben-index-batch-1` (66a3ef0, BATCH=1, owner hold, no PR). Experiments: `experiment/drift-m3`, `experiment/drift-m4` (WIP, not for merge).
 
 ## 4. Owner decisions and inputs still open (nothing else needs them)
@@ -45,7 +46,8 @@ Held: `fix/ben-index-batch-1` (66a3ef0, BATCH=1, owner hold, no PR). Experiments
 - The advisor tool forwards the whole transcript: paste seat reports into the repo record first, consult in the same session.
 - Git Bash: avoid multi-line `node -e`/heredocs for edits (quoting breaks); use the file tools. CRLF working copies can make edits silently miss.
 - Local machine and permission setup details are kept out of this public file (see AGENTS.md `docs/agent-notes.md`, "What stays out of a pushed handoff"); the owner can supply them.
-- Agents die on network errors: resume them rather than relaunching blindly, and check the state of their branch first.
+- Agents die on network errors, rate limits and session ends: check the state of their branch and PR first, then resume or relaunch with a self-contained brief; a stopped agent cannot be resumed after a session ends.
+- A fix that adds a sanitizer can itself raise a CodeQL alert: run the code-scanning check before calling a security fix done.
 
 ## 7. Tools state
 
