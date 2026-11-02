@@ -53,6 +53,20 @@ A full council has five seats:
 
 **Full-council pass:** at least **3 of the 4 non-Chair seats** support the proposal, and the Chair does not veto. Record votes and any dissent. A veto blocks implementation until resolved. Limit debate to **two rounds**; if there is no decision after round two, invoke the budget-exceeded procedure.
 
+### Council procedure (constitution)
+
+Whenever this section requires a council, or a decision is contested, run this loop. It adds a verdict and an advisor check to the seats above; it does not replace them.
+
+1. **Convene.** Set the goal of each seat for the task at hand (not a generic role) and spread the seats over more than one model. Seats may run on cheaper models.
+2. **Verdict.** Sonnet 5.5 chairs the council: it collects the seat reports and writes one verdict with the votes, the dissent, and the evidence.
+3. **Advise.** Send the verdict to Opus (the advisor) before any implementation. The advisor answers whether it agrees and gives feedback.
+4. **Agree: implement.** If the advisor agrees, proceed under §4 and the tier rules.
+5. **Contradict: loop.** If the advisor disagrees with the verdict, or raises a material finding the verdict missed, reconvene the seats with the advisor's feedback and the contradiction stated, write a revised verdict, and send it back to the advisor. Repeat until they agree.
+6. **Bounds.** The loop obeys §9. If the council reaches two rounds or the fix loops reach three without agreement, stop and report `BUDGET EXCEEDED`; the owner/Chair decides. The loop never overrides the frozen core, an owner veto, or the merge rules in §2.
+7. **Record.** Put the verdict, votes, advisor feedback, and each loop in the PR body or `EVIDENCE_LOG.md`.
+
+A T3 direct task needs no council; the advisor may still be consulted.
+
 ## 4. Consensus Manifest — required before code
 
 No implementation code without an approved manifest. Keep it concise and specific to the task. The approval path follows the risk tier above; the manifest is required at every tier.
