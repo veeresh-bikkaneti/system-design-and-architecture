@@ -17,7 +17,7 @@ import { isMainModule } from './is-main.mjs';
 export const INDEX_VERSION = 1;
 /** Section text kept for the reply and for Qwen's material. The vector sees all of it. */
 const TEXT_LIMIT = 700;
-const BATCH = 32;
+const BATCH = 1;
 
 /** Quantize unit vectors to int8 with one float scale per row. */
 export function encodeVectors(rows) {

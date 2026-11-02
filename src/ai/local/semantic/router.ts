@@ -57,6 +57,8 @@ export const THRESHOLDS = {
    * embed well, and in a sentence a title word ("client") is not a name.
    */
   nameBoostMaxTokens: 3,
+  /** General-knowledge fallback reads no lesson score, so it needs a tech majority, not a plurality. */
+  techMajority: 0.5,
   /** Qwen's draft must stay this close to the material it was given. */
   draftFit: 0.45,
 } as const;
@@ -318,7 +320,7 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   if (topScore >= THRESHOLDS.lesson) {
     return { ...base, action: 'lesson', reasons: ['a lesson covers this', ...reasons] };
   }
-  if (vote.intent === 'tech') {
+  if (vote.intent === 'tech' && vote.confidence > THRESHOLDS.techMajority) {
     return { ...base, action: 'parametric_fallback', reasons: ['general tech, no lesson covers it', ...reasons] };
   }
   if (topScore >= THRESHOLDS.clarify) {
