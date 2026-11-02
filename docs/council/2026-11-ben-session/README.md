@@ -9,7 +9,7 @@ Council votes, skeptic/historian notes, drift measurements, manifests, reviewer 
 | Drift and BATCH=1 | `drift-manifest-draft.md`, `drift-measure-2.md`, `drift-measure-3.md`, `miss-investigation.md`, `batch1.patch`, `c1p-c2.diff`, `probe-*.txt` |
 | Design | `capsule-inference-ladder.md`, `browser-ai-research.md`, `manifest-pr-eval.md`, `ticket-measuring-tool.md` |
 | Reality Checker | `rc-139.md`, `rc-140.md` (round 1), `rc-140-round2.md`, `-round3.md`, `-round4.md` |
-| Probe scripts | `rc140b-probe*.test.ts`, `keaton-main.mts`, `skC.cjs`, `tab.cjs`, `run.sh` |
+| Probe scripts | `rc140b-probe*.ts.txt` (renamed from .test.ts so vitest does not collect them; copy next to router.ts as .test.ts to rerun), `keaton-main.mts`, `skC.cjs`, `tab.cjs`, `run.sh` |
 
 Not included on purpose: `diag-b1.json` and `diag-b32.json` (about 290 KB each, regenerable with `npm run eval:ben`) and scratch copies of `router.ts` versions (they are in git history). The experiment worktrees are on the remote as branches `experiment/drift-m3` and `experiment/drift-m4` (WIP, not for merge).
 
