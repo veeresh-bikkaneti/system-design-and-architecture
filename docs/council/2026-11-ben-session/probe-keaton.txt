@@ -1,0 +1,8 @@
+self | Who is Michael Keaton | redirect (off-course)
+self | who is Michael Keaton
+self | who is Tom Hanks
+self | who is the CEO of Netflix
+self | who was Alan Turing
+self | what is Michael Keaton known for
+self | who is Linus Torvalds
+self | who invented the database
