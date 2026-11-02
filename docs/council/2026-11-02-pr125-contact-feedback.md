@@ -121,3 +121,34 @@ Pass rule met (4 of 4 support, no dissent). Required changes before the advisor 
 Non-blocking, tracked not built: a global feedback bucket after Turnstile; a Cloudflare WAF rate rule on /api/feedback (owner step, added to the owner list); a cleanup sweep for rate_limit_counters (issue #176); a secret salt (issue #176).
 
 Round count: 1 of 2. Sent to the advisor next; the reply is recorded in the following commit.
+
+### Advisor (Opus), reply, round 1, verbatim
+
+DISAGREE. The record is not on the PR, and one verdict item is wrong. Two problems, the first mechanical, the second substantive.
+
+MATERIAL: you pushed the council record to the wrong branch. Your own command output says it: `## feat/contact-feedback-sync...origin/feat/contact-feedback-sync [ahead 2]`, and `git push origin HEAD:feat/contact-feedback` reported `0 0` against `origin/feat/contact-feedback`. That worktree is on `feat/contact-feedback-sync`, not `feat/contact-feedback`. PR #125's head is `08a339e` on `feat/contact-feedback`. Verify with `gh pr view 125 --json headRefOid` and `git log --oneline -1 origin/feat/contact-feedback`. If `cd23653` is not an ancestor of the PR head, the record is on a side branch and step 3 of the procedure is unsatisfied: the reports must be in the record on the remote before the advisor call. Fix the push target, then re-consult.
+
+MATERIAL: verdict item 1 contradicts Seat B's measurement. You adopted Seat A's "move `checkRateLimit` to after successful siteverify." Seat B measured the actual order as: parse, validation, D1 rate-limit write, free env-secret check, Turnstile, Discord, and separately recorded a test at `rate-limit-validation.test.ts:67` pinning validation before rate limit. Moving the limiter after siteverify means every unauthenticated request now reaches Cloudflare's siteverify before any per-IP throttle exists: you trade "garbage tokens write D1 rows" for "garbage tokens cause unbounded outbound siteverify calls." Seat C independently rated the D1 exhaustion non-blocking, medium, and Seat A's own "BLOCKING" was qualified as "unless owner accepts." Seat C already gave the cheaper fix that both seats support: key IPv6 on the /64 so the bucket space is bounded, plus refund-on-siteverify-failure if you want the slot back. That removes the exhaustion vector without inverting the throttle order. Decide between "move the limiter" and "bound the key space". Whichever you pick, the T1 manifest amendment must name it, and Seat B's existing ordering test will need updating either way.
+
+One more thing: Seat D reports the PR body still says "14 scoped files" against a real diff of 21 files, +1950/-19. AGENTS.md section 4 caps a manifest at 3 scoped files with exceptions justified. Correct the count and the justification in the same pass as the other fixes.
+
+Not blocking, but note it in the record: all four seats flagged privacy-wording items (retention ~60 days, snapshot overclaim, the sign-in exchange hop through the Worker). Those are the same class as QA R-24, which is already a tracked finding; say so in the record so the Chair sees that #125 is now absorbing part of another slice's scope.
+
+Sequencing: do not re-run the council. This is one round of corrections inside round 1. Fix the push target, resolve the rate-limit question with the manifest amendment, correct the file count, then come back. Round count stays 1 of 2.
+
+### Lead's response and revised verdict (v2), round 1
+
+1. Push target: checked, not a defect. `gh pr view 125 --json headRefOid` returns `cd23653` and `git rev-parse origin/feat/contact-feedback` is `cd23653`; `git merge-base --is-ancestor cd23653 origin/feat/contact-feedback` succeeds, and `git show origin/feat/contact-feedback:docs/council/2026-11-02-pr125-contact-feedback.md` returns this file. The `[ahead 2]` line the advisor quoted was the worktree's own sync branch (`feat/contact-feedback-sync`) before the push; the push target `HEAD:feat/contact-feedback` is the PR branch, and the PR head is now `cd23653`. The reports were therefore on the remote before the first advisor call. (PR head was 08a339e before this record landed; it is now cd23653.)
+2. Rate limit: ACCEPTED. Verdict item 1 is replaced. The limiter stays AFTER validation and BEFORE Turnstile (no unbounded siteverify calls). The D1 exhaustion vector is bounded by (a) keying IPv6 on its /64 prefix so the bucket space is bounded by the attacker's address space and not by free IPv6 rotation, and (b) refunding the slot when siteverify itself fails with a 5xx or network error, so a Cloudflare outage does not lock out five legitimate users per IP. Cleanup of old counter rows and a secret salt stay in issue #176; a Cloudflare WAF rate rule on /api/feedback is added to the owner's setup steps. The T1 manifest amendment names this choice. The ordering test (validation before rate limit, rate limit before Turnstile) is kept and a refund test is added.
+3. File count: the real diff is 22 files (gh pr view 125 --json files) and +1950/-19; the PR body must state the real count and justify the exception (feature = 1 route + 1 page + 1 privacy page + tests + prerender/sitemap/deploy workflow + docs). To be corrected in the PR body in the same pass.
+4. Scope note for the Chair: the three privacy-wording items (Veer retention about 60 days versus the claimed 30, the prerender snapshot overclaim, the sign-in exchange hop) overlap QA R-24 (retention wording, slice P1e, issue #158) and INT R-02/R-16 (docs slice L4, issue #151). #125 absorbs the page-level fixes in its own files; the README/ai-tutor/architecture docs and the QaChatPanel retention string remain in those slices.
+
+Revised required changes (replace verdict items 1 to 6 where they differ):
+1. IPv6 /64 keying; refund on siteverify 5xx or network error; limiter order unchanged; tests: ordering, /64 bucketing, refund.
+2. AbortSignal.timeout on siteverify, the Discord call, and the client fetch; ContactPage separates 503/404 from a Turnstile 400.
+3. Privacy accuracy: Veer retention wording matches code; snapshot matches the live page; sign-in exchange hop disclosed; deletion route for Discord messages stated.
+4. Tests for the surviving mutations: Content-Length cap and 16384/16385 boundary; name, lesson and email escaping; one test that the snapshot and the page carry the same retention sentence.
+5. Escape `<` and `@` and collapse newlines in name and lesson.
+6. PR body: real file count and the exception justified; this record stays on the branch.
+
+Round count: 1 of 2 (per the advisor, corrections inside round 1). Sent to the advisor again; the reply is recorded in the following commit.
