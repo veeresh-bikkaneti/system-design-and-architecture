@@ -54,3 +54,7 @@ public/feed.xml
 # TTS synthesis scratch: per-block WAVs, self-cleaned on success; a killed
 # run can orphan them, so they must never be committed.
 public/audio/*-blocks-*/
+
+# graphify output (derived, regenerable with: graphify update src)
+graphify-out/
+src/graphify-out/

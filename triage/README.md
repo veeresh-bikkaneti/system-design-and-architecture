@@ -1,5 +1,7 @@
 # Round-2 triage — handoff (read this first on a new device)
 
+> **Newest state and the paste-in prompt for the next agent: [`NEXT-AGENT.md`](NEXT-AGENT.md).** The PR-state section below is older.
+
 Everything needed to continue is in this folder and in the open PRs. Nothing lives only on the original machine.
 
 **Open the board:** download `triage/dashboard.html` from this branch and open it in a browser. Its status/owner boxes are saved in *that browser only* (localStorage), so statuses do **not** follow you between devices. Treat the board as the plan; track real progress in PRs (or ask to move it to GitHub issues: decision D7 below).
