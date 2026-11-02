@@ -26,3 +26,13 @@ Verified: the repo is PUBLIC (`gh repo view`). `.ai-context/` is git-excluded vi
 Adopt all nine, applied in the revised text at this commit: the frozen-core bullet is now a short invariant (checkpoints are the guarantee; the handoff is the remote file; no merge exemption; hooks are a final checkpoint, never relied on); the annex holds the steps: one rolling handoff branch and one draft PR; the freshness test (first line: UTC time, origin/main SHA, open PR numbers); exclusions for a public repo (no local paths, usernames, emails, tokens, session URLs, worktree paths, agent ids); the session lead owns the file; local steps (memory, .ai-context, graph only if code changed) are conveniences, not records; checkpoint cost counts against the section 7 budget with a minimum-handoff fallback and BUDGET EXCEEDED; on a limit warning finish and stop.
 
 Round count: 1 of 2. Sent to the advisor next; the reply is recorded in the following commit.
+
+### Advisor (Opus), reply, round 1, verbatim (handoff-rule part)
+
+AGREE: the revised rule is sound, implement it. All nine findings are applied. The frozen-core bullet is now a short invariant, the operational detail is in the annex, and the two items the Skeptic flagged as "fix first" are both resolved: checkpoints-are-the-guarantee replaces the unreliable warning assumption, and one rolling branch with one draft PR replaces per-checkpoint PR churn. The public-repo exclusions and the freshness test are real improvements: a reader can check `git rev-parse origin/main` against the handoff's first line and know whether to trust it. Round 1 of 2 closes. No material notes.
+
+One thing to fix while you are in the file, non-material but immediate: the handoff already pushed in #182 violates the exclusion rule just written. `triage/NEXT-AGENT.md` section 6 names `~/.claude/settings.json`, the Orca removal, and the owner's `--dangerously-skip-permissions` usage; section 3 carries agent ids. The repo is public. Strip those to the local `.ai-context/HANDOFF.md` copy and leave branch and PR names in the pushed file. Do it in #182 (still open) rather than a new PR: the rolling-branch principle applies to its own handoff.
+
+### Outcome
+
+Round count: 1 of 2. Advisor: AGREE, no material notes. Implementer: Sonnet 5.5 (council lead). Status: PR #183 ready for review; follow-up applied in #182 (handoff scrubbed to the exclusion rule and given a freshness first line).
