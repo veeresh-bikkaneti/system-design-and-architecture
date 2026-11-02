@@ -185,6 +185,57 @@ describe('ContactPage', () => {
     );
   });
 
+  it.each([503, 404])('says contact is not set up yet on %i', async (status) => {
+    mockTurnstile('test-token');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ error: 'Service not configured' }), { status })),
+    );
+    renderContact();
+    fillValid();
+    fireEvent.click(screen.getByRole('button', { name: 'Send feedback' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('contact is not set up yet');
+    expect(alert.textContent).not.toContain('retry the spam check');
+  });
+
+  it('asks for a spam-check retry on a 400 when a token was sent', async () => {
+    mockTurnstile('test-token');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ error: 'Invalid submission' }), { status: 400 })),
+    );
+    renderContact();
+    fillValid();
+    fireEvent.click(screen.getByRole('button', { name: 'Send feedback' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('retry the spam check');
+    expect(alert.textContent).not.toContain('not set up');
+  });
+
+  it('gives the submit fetch an abort signal so a hung server cannot freeze the form', async () => {
+    mockTurnstile('test-token');
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ status: 'ok' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    renderContact();
+    fillValid();
+    fireEvent.click(screen.getByRole('button', { name: 'Send feedback' }));
+    await screen.findByRole('status');
+    const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('shows a retry message when the request times out', async () => {
+    mockTurnstile('test-token');
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new DOMException('timed out', 'TimeoutError'); }));
+    renderContact();
+    fillValid();
+    fireEvent.click(screen.getByRole('button', { name: 'Send feedback' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('took too long');
+    expect((screen.getByLabelText('Message') as HTMLTextAreaElement).value).not.toBe('');
+  });
+
   it('shows the rate-limit message on 429', async () => {
     mockTurnstile('test-token');
     vi.stubGlobal(

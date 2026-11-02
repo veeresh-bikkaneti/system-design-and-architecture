@@ -147,6 +147,7 @@ export function ContactPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15_000),
       });
       if (res.ok) {
         setStatus('success');
@@ -168,16 +169,27 @@ export function ContactPage() {
       if (res.status === 429 || res.status === 502) {
         // The server's own wording for these two is already user-facing.
         setErrorText(serverText !== '' ? serverText : 'Something went wrong. Please try again.');
+      } else if (res.status === 503 || res.status === 404) {
+        setErrorText('Sorry, contact is not set up yet, so your message was not sent. Please try again later.');
       } else if (res.status === 400 && token === null) {
         // No token reached the server: the spam check never ran.
         setErrorText('The spam check could not load, so your message was not sent. Please try again.');
       } else {
-        setErrorText('Please check your message and try again.');
+        setErrorText(
+          res.status === 400
+            ? 'The spam check did not pass. Please retry the spam check and send again.'
+            : 'Please check your message and try again.',
+        );
       }
       setStatus('error');
       resetWidget();
-    } catch {
-      setErrorText('Something went wrong. Please try again.');
+    } catch (err) {
+      const timedOut = err instanceof DOMException && (err.name === 'TimeoutError' || err.name === 'AbortError');
+      setErrorText(
+        timedOut
+          ? 'The request took too long. Your message is still here; please try again.'
+          : 'Something went wrong. Please try again.',
+      );
       setStatus('error');
       resetWidget();
     }
