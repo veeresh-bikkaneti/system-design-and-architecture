@@ -338,3 +338,11 @@ Append-only record of completed work: what was attempted, what happened, and wha
 - **UNVERIFIED / NOT run:** real model output false-positive rate, e2e, real browser, CI/Linux, BATCH=1 eval, holdout edits (none made). Novel confabulation is not caught; partial leaks under 8 words pass.
 - **Process note:** an early inference.ts edit silently missed (CRLF) and the gated test stayed red until fixed; one improvement: `.gitattributes` or an editor-config for line endings.
 - **Round 2 (RC B1, tiered gate):** the Reality Checker showed leak shapes wrapped in lists, tables, fences, an unclosed fence, trailing `Model:`, fullwidth and zero-width text bypassed the round-1 gate. `sanitize.ts` is now tiered (see manifest round 2). Every RC bypass input was added as a test and failed (19 failures against the round-1 gate, 20 with the zero-width case) before the rewrite; now `npm test` 587/587. R-01 stays open for prior-turn hardening (#179). Known false rejects: lines like `Top-K: 64` in prose or code. UNVERIFIED: real model output.
+
+## 2026-11-02 — TTS extractor: prose after multi-line widgets, apostrophe titles (slice L3, PR #175, issue #150)
+
+- **Tier:** T2 (no T1 paths). Council: Skeptic SUPPORT WITH CHANGES, advisor AGREE (docs/council/2026-11-02-l3-tts-extractor.md).
+- **Bug (verified):** `_drop_jsx_block` never ended a multi-line `<Quiz ... />` (no `</Quiz>`, opening line not `/>`-terminated), so it ran to EOF and dropped "Go deeper" and "Sources & further reading" in all 41 lessons: 2114 blocks before, 2630 after the fix (+516). `_read_meta` cut `"...Someone Else's Computer"` at the apostrophe (cloud-native-architecture). The issue's "22 blocks" is UNVERIFIED.
+- **Files:** `scripts/tts/extract_narration.py`, `scripts/tts/test_extract.py`, `package.json` (`test:tts`), `.github/workflows/pr-gates.yml`, manifest, this log.
+- **Failing-first:** 8 of 10 new tests failed on e5d7220 (4 widget-shape, quiz-tail, trailing sections 41 lessons, title meta, apostrophe); 10/10 pass after. Tests assert extractor behaviour only, never shipped audio.
+- **Not done on purpose:** audio/manifests NOT regenerated (needs the Kokoro venv, 164 files / 313 MB); tracked in #178. Shipped audio is stale until then.

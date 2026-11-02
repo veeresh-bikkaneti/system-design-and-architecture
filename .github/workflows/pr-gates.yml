@@ -48,6 +48,8 @@ jobs:
       - run: npm run content:check
       - run: npm run content:validate
       - run: npm run test
+      # Narration extractor unit tests (stdlib unittest, no venv needed).
+      - run: npm run test:tts
       # Typecheck only. The full build needs Hugging Face (see header).
       - run: npx tsc -b
 
