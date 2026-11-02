@@ -1,6 +1,16 @@
 # Consensus Manifest: L3 TTS extractor (issue #150, INT R-09)
 
-Status: PROPOSED, phase 1. No fix code exists. Awaiting Chair + Skeptic (C) approval.
+Status: APPROVED for phase 2 (council record: docs/council/2026-11-02-l3-tts-extractor.md). This manifest covers PR 2a only; PR 2b is tracked in #178.
+
+
+## Amendments after council round 1 (these supersede the text below where they differ)
+
+- **Tests assert EXTRACTOR behaviour only.** No test reads `public/audio` or any committed narration manifest. They compare `extract_blocks()` output with MDX source (snippets or `content/lessons/*.mdx`). Shipped audio stays stale on purpose until the owner runs synthesis (PR 2b, #178); the browser reader (`src/lib/listen.ts`) is the truth. PR 2a can merge alone.
+- **The issue's "22" is UNVERIFIED.** The measured figure is 516 blocks across 41 lessons (2114 before, 2630 after; verified by running the extractor).
+- **Scope of PR 2a (supersedes the 3-file framing and the "exception" for generated files):** `scripts/tts/extract_narration.py`, `scripts/tts/test_extract.py`, `package.json` (script `test:tts`), `.github/workflows/pr-gates.yml` (one step), this manifest, the council record, and an `EVIDENCE_LOG.md` entry. NO audio, NO `public/audio`, NO narration manifests are regenerated or touched.
+- **Fix:** a skipped multi-line self-closing component ends on a bare `/>` line at or above the opening tag's indent (nested `/>` is deeper; `/>` inside strings is never bare). Title regex is `title:\s*(['"])(.*?)\s*,`, mirroring the summary regex.
+- **CI:** `npm run test:tts` (stdlib `unittest discover -s scripts/tts -p test_extract.py`, no venv) runs in the "PR Frontend gates" job. `test_align.py` is NOT in the gate: it imports `synthesize`, which needs `huggingface_hub`/torch (venv); it stays manual.
+- **PR 2b** (owner-run synthesis, 164 files / 313 MB, history-growth decision): issue #178.
 
 ```text
 CONSENSUS MANIFEST
