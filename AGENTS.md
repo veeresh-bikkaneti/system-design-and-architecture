@@ -21,6 +21,13 @@ Higher precedence wins. If a request conflicts with the frozen core, do not sile
 - **Test behavior changes first.** Add or update a test that demonstrates the failure before applying the minimal fix. Confirm it fails for the intended reason, then make it pass.
 - **Surface blockers immediately.** Do not conceal, defer, or work around a blocker that changes scope, risk, or correctness.
 - **Report QA findings as soon as they are found.** Distinguish verified results from suspected issues; do not wait until the final report.
+- **Never merge anything that is not fixed.** A change with an unresolved review finding, a failing required gate, or a required gate that applies and was not run does not merge. Do not present it to the owner as ready to merge and do not ask whether to merge it: fix it, re-run the affected gates, and get a review of the latest push by someone other than the author.
+  - A finding is closed only when the reviewer who raised it confirms the fix or withdraws it, or when the Chair records an accepted-risk decision with a reason in the PR and `EVIDENCE_LOG.md`. A finding the reviewer marks non-blocking does not block. The author never closes their own finding.
+  - A *required gate* is a §11 command that the diff's paths trigger (for example `eval:ben` only when `src/ai/local/` changes). A gate that does not apply is recorded as N/A with the reason. An applicable gate that cannot run is reported NOT RUN to the owner and the change waits.
+  - A pre-existing gap outside the change may be merged around only if the reviewer confirms it is not in the diff against `origin/main` and it is recorded in the PR body (and in `EVIDENCE_LOG.md` for T1/T2).
+  - If a §9 limit is reached with a finding still open, report `BUDGET EXCEEDED`; the change stays unmerged. The Chair may narrow scope, defer the finding (recorded), or close the PR.
+  - The owner/Chair may waive this rule in writing, per PR, for an outage revert or hotfix; the waiver and its reason go in the PR and `EVIDENCE_LOG.md`. A clean change still needs the owner's explicit per-PR word to merge.
+- **The remote is the source of truth: no work or decision lives only on one machine.** Push each branch after each commit and open a PR (draft is fine) at the first push; before a T1/T2 manifest is approved the PR is a draft carrying only the manifest or plan. Opening or keeping a PR does not un-park work: hold status is stated in the PR. Decisions, handoffs, and review reports live in the repository or in PR comments, never only in a local file, memory, or worktree. Never push a secret: check before pushing, and if one reaches the remote, stop, tell the owner, and rotate it. Session-end checks are in `docs/agent-notes.md`.
 
 ## 3. Risk tiers and review path
 
