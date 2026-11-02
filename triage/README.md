@@ -30,9 +30,9 @@ INT R-29..R-52 (minus struck R-45) and 15 `INT NEW*` items have **no titles**. N
 | D4 | Ben history TTL / forget-on-close + retention wording 30d vs ~60d | S3, panel copy |
 | D5 | Is a build/version stamp required (QA R-27)? | M1 |
 | D6 | Is #135 in flight; which branch is chunker base | C1 |
-| D7 | Track in GitHub issues/project instead of the browser-local board? | portability |
-| D8 | Push `fix/ben-index-batch-1` to remote as a held branch? | portability |
-| D9 | Merge #140 as is, or fix the two Minors first? | Ben routing |
+| D7 | ~~Track in GitHub issues~~ **DONE 2026-11-02**: one issue per slice, #143-#167 (table below) | portability |
+| D8 | ~~Push `fix/ben-index-batch-1`~~ **DONE**: pushed at 66a3ef0, HELD, no PR, do not merge | portability |
+| D9 | ~~Merge #140 as is?~~ **Closed by constitution (PR #142)**: unfixed work is never merged. Both Minors were fixed in d375ebc; round-3 re-review decides. | Ben routing |
 | D10 | Keep or shelve #125 and #109 (before panel/auth slices start) | Dev B, Dev D |
 
 ## Order of work
@@ -44,3 +44,38 @@ INT R-45 (struck), INT NEW3-4 (informational), INT NEW4-5 (no defect), INT NEW1-
 ## Tooling notes
 - User-level `~/.claude/settings.json` sets `skipDangerousModePermissionPrompt: true`; project `.claude/settings.json` hooks do not ask. A user-level setting `blockReadsOutsideWorkingDirectories: true` plus a `PermissionRequest` hook (`orca-agent-hook.exe`) are the likely sources of any remaining prompts. UNVERIFIED which one the owner saw.
 - Local-only worktrees/branches on the original machine are scratch; the work is in the PRs.
+
+## GitHub issues (source of truth for status; the browser board is only a view)
+Filter by label: `round-2-triage`, `dev:A`..`dev:E`, `priority:P0`..`P3`, `tier:T1`, `decision`, `blocked`.
+
+| Slice | Issue |
+|---|---|
+| A1 | #143 |
+| C1 | #144 |
+| C2 | #145 |
+| C3 | #146 |
+| G0 | #147 |
+| L1 | #148 |
+| L2 | #149 |
+| L3 | #150 |
+| L4 | #151 |
+| L5 | #152 |
+| M1 | #153 |
+| O1 | #154 |
+| P1a | #155 |
+| P1b | #156 |
+| P1c | #157 |
+| P1e | #158 |
+| Q1 | #159 |
+| S1 | #160 |
+| S2 | #161 |
+| S3 | #162 |
+| W1 | #163 |
+| W2 | #164 |
+| W3 | #165 |
+| W4 | #166 |
+| X1 | #167 |
+
+## Constitution added by the owner (PR #142, AGENTS.md section 2)
+1. Never merge anything that is not fixed; do not ask about it; fix, re-verify, re-review.
+2. The remote is the source of truth: no work or decision only on one machine.
