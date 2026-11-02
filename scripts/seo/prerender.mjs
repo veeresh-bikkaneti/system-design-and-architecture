@@ -467,7 +467,7 @@ async function buildPrivacy() {
 <h2>Veer (optional)</h2>
 <p>Ben stays on your device. Veer is a separate choice, and only after you sign in. Questions you ask Veer are sent to this course's own server and are deleted after 30 days.</p>
 <h2>Feedback form (optional)</h2>
-<p>The contact form sends exactly what you type — category, message, and, only if you give them, name, email, and lesson — to a private Discord channel. A name or email is used only for a reply, never published.</p>
+<p>The contact form sends exactly what you type — category, message, and, only if you give them, name, email, and lesson — to a private Discord channel. A name or email is used only for a reply, never published. For rate limiting the course's server stores your IP address hashed with a fixed, non-secret salt (pseudonymous, not anonymous) plus an hourly count, only for rate limiting; these rows are not deleted automatically yet.</p>
 <h2>Spam checks</h2>
 <p>The feedback form runs Cloudflare Turnstile, which sends Cloudflare your IP address and browser signals for bot verification only — not for tracking or advertising. See <a href="https://developers.cloudflare.com/turnstile/reference/turnstile-privacy-addendum/">Cloudflare's Turnstile Privacy Addendum</a>.</p>
 <h2>Hosting logs</h2>

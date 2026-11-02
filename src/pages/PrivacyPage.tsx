@@ -73,8 +73,13 @@ export function PrivacyPage() {
             choose to give them — a name, an email address, and a lesson.
             Messages are delivered to a private Discord channel and stored
             under Discord&apos;s policies. A name or email you give is used
-            only for a reply, never published. Rate limiting uses a hashed
-            counter, never your raw IP address, in our own records.
+            only for a reply, never published. To limit spam, the course's server
+            also keeps a counter per visitor: your IP address is hashed with a
+            fixed, non-secret salt, so the result is pseudonymous, not
+            anonymous (anyone with the database could guess their way back to
+            an address). Only that hash and an hourly count are stored, and
+            only for rate limiting. These counter rows are not deleted
+            automatically yet, so they are kept until we add a cleanup.
           </p>
         </section>
 

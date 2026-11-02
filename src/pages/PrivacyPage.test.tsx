@@ -74,8 +74,11 @@ describe('PrivacyPage', () => {
     expect(text).toContain('private Discord channel');
     expect(text).toContain("Discord's policies");
     expect(text).toContain('only for a reply, never published');
-    expect(text).toContain('hashed');
-    expect(text).toContain('never your raw IP address');
+    expect(text).toContain('hashed with a fixed, non-secret salt');
+    expect(text).toContain('pseudonymous, not anonymous');
+    expect(text).toContain('only for rate limiting');
+    expect(text).toContain('not deleted automatically');
+    expect(text).not.toContain('never your raw IP address');
   });
 
   it('states the corrected Turnstile disclosure and links the privacy addendum', () => {
