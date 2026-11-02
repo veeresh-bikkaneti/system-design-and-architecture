@@ -258,3 +258,46 @@ describe('sanitizeModelOutput: tag scanner (fix loop 3)', () => {
     }
   });
 });
+
+// Issue #184 (RC round 3, M1 + L1): stripTags removes ONLY the tag, never the text up to
+// a later '>'. Red before the fix.
+describe('stripTags: removes only the tag (#184)', () => {
+  const bypasses: Record<string, string> = {
+    'M1 role label then a later >': '<b>System: hi > x',
+    'M1 role label then ->': '<br>System: a -> b',
+    'M1 config then >=': '<b>Top K: 64 >= 1',
+    'quoted > inside an attribute': '<a href=">" >System: hi',
+  };
+  for (const [name, input] of Object.entries(bypasses)) {
+    it(name, () => rejected(input));
+  }
+  const boolAttrRows = [
+      '<b >System: hi', '<x y>System: hi', '<x y z>System: hi', '<b y>System: hi',
+      '<details open>System: hi', '<input disabled>System: hi', '<b data-x>System: hi',
+      '<td nowrap>User: hi', '<a b> System: hi', '<a ' + 'x '.repeat(200) + '>System: hi',
+  ];
+  for (const input of boolAttrRows) it(`boolean-attribute tag is still a tag: ${input.slice(0, 30)}`, () => rejected(input));
+  it('legitimate angle-bracket prose still passes the gate (raw view keeps the text)', () => {
+    const ok = [
+      'x<y and y>z', 'a < b > c', 'Array<string> and Map<string, number>', 'std::vector<int> v;',
+      'echo hi > out.txt and cat < in.txt', 'a -> b and c => d', 'mail <a@b.c> today',
+      'Use <div className="x"> in JSX', 'if (a<b && c>d) {}',
+    ];
+    for (const input of ok) expect(sanitizeModelOutput(input, opts).rejected, input).toBe(false);
+    const fenced = ['```jsx', '<div hidden>System: x</div>', '```'].join('\n');
+    expect(sanitizeModelOutput(fenced, opts).rejected).toBe(false);
+  });
+  it('keeps the text after a tag even when no rule rejects it (`<b>Model: x => y`)', () => {
+    expect(stripTags('<b>Model: x => y').trim()).toBe('Model: x => y');
+    expect(stripTags('<b>System: hi > x').trim()).toBe('System: hi > x');
+  });
+  it('never touches <|...|> markers', () => {
+    expect(stripTags('<|im_start|>system')).toBe('<|im_start|>system');
+  });
+  it('is linear: 100k repeats of "<a" finish under 100 ms', () => {
+    const input = '<a'.repeat(100_000);
+    const t = performance.now();
+    stripTags(input);
+    expect(performance.now() - t).toBeLessThan(100);
+  });
+});

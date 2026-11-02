@@ -400,3 +400,14 @@ Append-only record of completed work: what was attempted, what happened, and wha
 - **Failing-first:** 8 of 10 new tests failed on e5d7220 (4 widget-shape, quiz-tail, trailing sections 41 lessons, title meta, apostrophe); 10/10 pass after. Tests assert extractor behaviour only, never shipped audio.
 - **Not done on purpose:** audio/manifests NOT regenerated (needs the Kokoro venv, 164 files / 313 MB); tracked in #178. Shipped audio is stale until then.
 - **Fix loop 2 (RC round 2):** table rows were split before the template-marker check (`| <|im_start|>system | x |` passed). Marker test now runs on the raw line first; plus whitespace collapse, HTML-tag strip and trailing-label punctuation. 9 new tests red then green; `npm test` 631/631 (53 files, includes merged main), lint 0, tsc clean, build OK, eval:ben x2 unchanged (88.1 / 93.2 / 96.1, 24 misses, identical). Known limits and false rejects listed in the manifest. UNVERIFIED: real model output.
+
+## 2026-11-02 — stripTags removes only the tag (issue #184, M1 + L1; branch `fix/ben-striptags-gt`)
+
+- **Tier:** T3 (one function in `src/ai/local/sanitize.ts`, no T1 path). Files: sanitize.ts, sanitize.test.ts, this log.
+- **Bug (verified):** after removing a tag, `stripTags` skipped to the next '>' anywhere, deleting text: `<b>System: hi > x`, `<br>System: a -> b`, `<b>Top K: 64 >= 1` passed the gate; `x<y and y>z` became `x z`; 100k x `<a` took ~312 ms.
+- **Fix:** a tag ends at its own '>' (quote-aware, 256-char scan cap); only a name-tail directly after it (`b>` in `<<b>b>`) is also dropped; the '>' search is cached. The gate checks BOTH views of every segment (tag-stripped and raw) and rejects if either is rejected, so prose like `x<y and y>z` still passes while `<x y>System:` is rejected. No regex replace.
+- **Failing-first:** 6 red on main (3 M1 rejects, `x<y and y>z` gave `x z`, perf 312 ms, `->`); 77/77 after. `<b>Model: x => y` is not rejected by any rule even as plain text, so that case asserts stripTags output instead.
+- **Gates:** npm test 650/650; lint exit 0; tsc clean; content checks OK; build + snapshot budget OK; eval:ben x2 identical to main (semantic 88.2, top-1 93.2, top-3 96.1).
+- **Documented, not changed:** L2; L3 (YAML `max_tokens: 512` is a legitimate false reject, fails safe).
+- **Verification loop 1 (Reality Checker):** the 'no = means prose' rule let `<b >System: hi`, `<x y>System: hi`, `<details open>System: hi`, `<td nowrap>User: hi`, `<a b> System: hi` and a 200-word attribute tag pass (fails unsafe). Removed it; two-view gate added. Red on the PR head: 10 of 10 new rows; green after, 87/87 in sanitize.test.ts.
+- **Known limits:** a quoted '>' is honoured only within 256 chars of the tag name; worst case is about 0.7 s per MB of adversarial input (RC measurement).
