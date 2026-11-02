@@ -278,6 +278,20 @@ describe('router', () => {
     expect(decision.lessons[0]?.slug).toBe('tutor-loop');
   });
 
+  it.each([
+    'how do I set up a tutor business',
+    'set up a tutor for math lessons near me',
+    'install ben franklin biography',
+    'ben setup meme',
+    'setup local ai on my gpu',
+    'set up my netflix account',
+    'set up my smart tv',
+  ])('does not pin tutor-loop for look-alike "%s" under an off_topic vote', (question) => {
+    const decision = route({ question, vector: vec(3), index });
+    expect(decision.pinned).toBeUndefined();
+    expect(decision.action).toBe('redirect');
+  });
+
   it.each(['who is Tom Hanks', 'what is the capital of France'])(
     'still redirects off-topic "%s"',
     (question) => {

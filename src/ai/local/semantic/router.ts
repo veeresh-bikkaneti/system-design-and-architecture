@@ -157,11 +157,27 @@ function isTutorSetupQuestion(question: string): boolean {
   const request = /\bget\s+the\s+ai\s+set\s*up\b/.test(text);
   const verb = request || /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text.replace(/\bthe\s+ai\s+set\s*up\b/g, ''));
   const aiEnv = /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
-  const ownBox =
-    /\b(python|venv|cuda|conda|pip|pipenv|docker|laptop|mac|macbook|wsl|jupyter|gpu|variables|api key)\b|\bdev(elopment)?\s+env|\bmy\s+(machine|project)\b|\b(open|azure)\s+ai\b/.test(
-      text,
-    );
-  return verb && aiEnv && !ownBox;
+  return verb && aiEnv && !OWN_BOX.test(text);
+}
+
+const OWN_BOX =
+  /\b(python|venv|cuda|conda|pip|pipenv|docker|laptop|mac|macbook|wsl|jupyter|gpu|variables|api key)\b|\bdev(elopment)?\s+env|\bmy\s+(machine|project)\b|\b(open|azure)\s+ai\b/;
+
+/**
+ * The stricter test used to beat an off_topic/debate vote. An off-topic vote
+ * is a decent hint that the question really is about something else, so only
+ * a definite Ben ("the tutor", "local AI", WebLLM, or "Ben" ending the
+ * question) or the "ai env" reading may override it, and never with an
+ * own-machine signal. "a tutor business" and "ben franklin biography" stay
+ * redirected. ponytail: "set up Ben please" (Ben not last) is not protected
+ * here; the normal pin still catches it when the vote is not off-topic.
+ */
+function isDefiniteTutorSetup(question: string): boolean {
+  const text = question.toLowerCase();
+  if (!isTutorSetupQuestion(question) || OWN_BOX.test(text)) return false;
+  const definite =
+    /\b(the|this|your|that)\s+tutor\b|\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\bben\s*[?.!]*$/.test(text);
+  return definite || /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
 }
 
 export function namedTagLessons(question: string): string[] {
@@ -300,7 +316,7 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
     // "Help me setup the tutor" can embed near off_topic. Nobody gets
     // shrugged at for asking how to switch Ben on, so the setup pin goes
     // first and only this pin: the other tag pins keep their old order.
-    if (isTutorSetupQuestion(question)) return pinTags(namedTagLessons(question));
+    if (isDefiniteTutorSetup(question)) return pinTags(namedTagLessons(question));
     if (topScore >= THRESHOLDS.override && vote.confidence < THRESHOLDS.overrideVote) {
       return { ...base, action: 'lesson', reasons: ['a lesson matches strongly despite the vote', ...reasons] };
     }
