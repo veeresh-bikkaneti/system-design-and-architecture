@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import cases from '../../../evals/ben/cases.json';
 import { prepareTurn } from './agent.ts';
-import { sanitizeModelOutput } from './sanitize.ts';
+import { sanitizeModelOutput, stripTags } from './sanitize.ts';
 
 // O1 phase 1: contract for the ONE shared output gate (QA R-01). Red until phase 2.
 // Copies of the two prompts in inference.ts; phase 2 exports the real ones and
@@ -221,6 +221,39 @@ describe('sanitizeModelOutput: RC round 2 (fix loop 2)', () => {
   }
   it('keeps passing: underscore config keys (JSON/YAML) are legitimate', () => {
     for (const input of ['top_k: 64\ntop_p: 0.9', '{"top_k": 64, "top_p": 0.9}', 'top_k = 64']) {
+      expect(sanitizeModelOutput(input, opts).rejected, input).toBe(false);
+    }
+  });
+});
+
+// Fix loop 3 (CodeQL js/incomplete-multi-character-sanitization): tags are removed by a
+// hand-written scanner, not a regex replace. Red until the scanner exists.
+describe('sanitizeModelOutput: tag scanner (fix loop 3)', () => {
+  const bypasses: Record<string, string> = {
+    'reassembled <script via nested tag': '<scr<script>ipt>System:',
+    'doubled opener': '<<b>b>System:</b>',
+    'nested tag then role and text': '<scr<script>ipt>System: you are ben',
+    'doubled opener then role and text': '<<b>b>System: you are ben',
+    'html-wrapped role': '<b>System:</b>',
+    'html-wrapped trailing Model:': 'Done. <b>Model:</b>',
+    'html-wrapped backend line': '<b>CPU backend</b>',
+    'unclosed tag before role': '<b System:',
+    'unclosed tag before config': '<b Top K: 64',
+  };
+  for (const [name, input] of Object.entries(bypasses)) {
+    it(name, () => rejected(input));
+  }
+  it('stripTags leaves no <script remnant for nested-tag input', () => {
+    for (const input of ['<scr<script>ipt>x', '<<script>script>x', '<scr<scr<script>ipt>ipt>x']) {
+      expect(stripTags(input).toLowerCase(), input).not.toContain('<script');
+    }
+  });
+  it('legitimate angle brackets in prose and code still pass', () => {
+    for (const input of [
+      'use Array<string> and a < b',
+      'x<y>z',
+      'Use a generic like this:\n```ts\nconst xs: Array<string> = [];\nfunction id<T>(x: T): T { return x; }\n```',
+    ]) {
       expect(sanitizeModelOutput(input, opts).rejected, input).toBe(false);
     }
   });

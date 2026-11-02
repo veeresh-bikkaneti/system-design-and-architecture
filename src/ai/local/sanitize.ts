@@ -49,13 +49,49 @@ const FENCE = /^\s*```/;
 
 const words = (text: string): string[] => text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 
+/**
+ * Remove HTML-ish tags in ONE pass, with no regex replace: the scanner consumes through the
+ * FIRST '>' after a '<' that opens a tag, so it can never glue a tag back together from
+ * remnants (the `<scr<script>ipt>` shape CodeQL flags). A '>' left dangling right after a
+ * removed tag is dropped too, so `<<b>b>System:` still reads as `System:`. An unclosed tag
+ * loses just its `<name`. Never touches `<|...|>` markers (they start with '<|').
+ */
+export function stripTags(input: string): string {
+  const isLetter = (c: string) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+  let out = '';
+  let i = 0;
+  while (i < input.length) {
+    const c = input[i];
+    const n = input[i + 1] ?? '';
+    if (c !== '<' || !(isLetter(n) || n === '/')) {
+      out += c;
+      i++;
+      continue;
+    }
+    const close = input.indexOf('>', i + 1);
+    if (close === -1) {
+      i++;
+      if (input[i] === '/') i++;
+      while (i < input.length && (isLetter(input[i]) || (input[i] >= '0' && input[i] <= '9'))) i++;
+      out += ' ';
+      continue;
+    }
+    out += ' ';
+    i = close + 1;
+    const nextOpen = input.indexOf('<', i);
+    const nextClose = input.indexOf('>', i);
+    if (nextClose !== -1 && (nextOpen === -1 || nextClose < nextOpen)) i = nextClose + 1;
+  }
+  return out;
+}
+
 /** Strip quote, bullet, number, heading and emphasis wrappers from one segment. */
 function prep(segment: string): string {
   // Tags first (never `<|...|>` markers: they start with '<|'), then emphasis, then whitespace runs.
-  let s = segment.replace(/<\/?[a-z][^>]*>/gi, '').replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
+  let s = stripTags(segment).replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
   for (let i = 0; i < 6; i++) {
     const next = s
-      .replace(/^(>|#+|[-+•]|\d+[.)])\s*/, '')
+      .replace(/^([<>]|#+|[-+•]|\d+[.)])\s*/, '')
       .replace(/^_+|_+$/g, '')
       .trim();
     if (next === s) break;
