@@ -116,9 +116,9 @@ The pipeline has five stages, and each one is a place quality can quietly die:
    relevance gets lost. A reranker is usually a **cross-encoder**: it reads the question and
    one candidate *together* and outputs a relevance score, which is far sharper but needs a
    fresh model pass per candidate, per query. That's the trade-off: you pay extra latency
-   and compute (a few more tens to hundreds of milliseconds, depending on model and
-   candidate count — measure yours) for better top-5 quality, and you keep it affordable by
-   only reranking the short list, never the whole corpus.
+   and compute (it grows with the number of candidates and the model size — measure
+   yours) for better top-5 quality, and you keep it affordable by only reranking the
+   short list, never the whole corpus.
 5. **Generate.** The question plus the winning chunks go into the prompt, and the model
    answers with the evidence in front of it. Ask it to cite which card each claim came
    from and you get provenance for free.
