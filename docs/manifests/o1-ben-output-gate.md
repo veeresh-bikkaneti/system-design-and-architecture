@@ -70,3 +70,14 @@ sanitizeModelOutput(raw: string, opts: { systemPrompts: string[]; fallback: stri
 - **W1 (T1, later):** copies `sanitize.ts` verbatim with a CI diff check, or imports from a shared path; thresholds and rule lists must match. This PR does not touch `worker/` or `QaChatPanel.tsx`.
 - **R-26 scope:** javascript:, JavaScript:, vbscript: and data: markdown links on react-markdown 10.1.0 (no urlTransform override in src). The test is a regression guard, not a claim about other vectors.
 - **File count:** 8 = `sanitize.ts`, `inference.ts`, `sanitize.test.ts`, `inference.test.ts`, `ChatMarkdown.test.tsx`, this manifest, `EVIDENCE_LOG.md`, `docs/council/2026-11-02-o1-output-gate.md`.
+
+## Round 2 amendments (Reality Checker B1; council round 2 of 2, advisor AGREE)
+
+- **Tiered gate replaces the round-1 blanket skip.** Pipeline: NFKC, strip zero-width, line prep (strip `>`, bullets, numbers, `|`, `#`, `*_` and backtick wrappers; table rows are split into cells), tier 1, tier 2. "Segment" = a stripped line or one table cell.
+- **Tier 1 runs everywhere** (fenced, listed, tabled, unclosed fence): 8-word prompt overlap (after normalisation), template markers (`<|...|>`, `[INST]`, `<<SYS>>`, `lesson material:`, `what you already said:`), engine config colon form `\b(top[ -]?k|top[ -]?p|temp|max[ _]?tokens)\s*:\s*\d` (not anchored, so `Settings - TopK: 64` is caught; `top_k` and `top_k = 64` in code pass), and a `cpu|gpu|wasm|webgpu backend` line. The `{{...}}` rule is dropped.
+- **Tier 2 runs outside fences and table rows:** role labels (`system|user|assistant|human|student|learner|tutor:`), and `model:`/`temperature:`/`seed[:=]` only when bare or followed by just a number. A trailing label (the last non-empty line ends in `model|system|user|assistant|tutor|human:`) runs everywhere.
+- **Unclosed fence:** closed at EOF for fence-state only. Tier 2 still skips lines after the opening fence; tier 1 and the trailing label do run there.
+- **Known tier-1 false rejects (fail safe):** prose or fenced code with `Top-K: 64`, `TopK: 64`, `temp: 1`. Accepted: a false reject falls back to NO_SOURCE or the card answer; a leak is the Blocker.
+- **Acceptance wording (replaces earlier):** the gate catches known leak shapes, including when wrapped in lists, tables, fences or markdown emphasis. A partial leak under 8 words, homoglyph tricks and novel confabulation can pass.
+- **R-01 is not closed by this PR.** Prior-turn delimiting and role-label stripping (needs `QaChatPanel.tsx`) remain OPEN, tracked in issue #179.
+- **W1 (Veer, T1)** must copy `sanitize.ts` verbatim.
