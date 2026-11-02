@@ -2,7 +2,7 @@ name: PR gates
 
 # Runs the repo's section 11 gates on every pull request, so a change is checked
 # BEFORE it merges (deploy.yml only runs on push to main). The two jobs named
-# "Frontend gates" and "Worker gates" are meant to be required status checks in
+# "PR Frontend gates" and "PR Worker gates" are meant to be required status checks in
 # the main ruleset (issue #168). They have no path filter on purpose: a required
 # check that is skipped never reports and would block every merge.
 #
