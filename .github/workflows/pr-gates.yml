@@ -6,12 +6,16 @@ name: PR gates
 # the main ruleset (issue #168). They have no path filter on purpose: a required
 # check that is skipped never reports and would block every merge.
 #
-# Not here, on purpose:
+# Not in the required jobs, on purpose:
 #  - eval:ben has its own advisory workflow (pr-ben-eval.yml).
-#  - ben:index downloads the embedder model from Hugging Face; it stays in
-#    deploy.yml and in pr-ben-eval.yml.
+#  - `npm run build` runs a prebuild hook that downloads Ben's embedder from
+#    Hugging Face. A Hugging Face outage must not block every merge, so the
+#    required Frontend job only typechecks (`tsc -b`). The full build runs in the
+#    e2e job and in deploy.yml.
 # The e2e job reports on PRs but is not meant to be required until it has proven
 # stable (owner decision in #168).
+# Job names carry a "PR " prefix so they do not collide with the same-named jobs
+# in deploy.yml (which run on push to main and include ben:index and eval:ben).
 #
 # Never pull_request_target: this runs the PR's own code with a read-only token.
 
@@ -28,11 +32,13 @@ concurrency:
 
 jobs:
   frontend:
-    name: Frontend gates
+    name: PR Frontend gates
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
@@ -42,12 +48,11 @@ jobs:
       - run: npm run content:check
       - run: npm run content:validate
       - run: npm run test
-      # Typecheck + production build + prerender + snapshot budget. No
-      # VITE_BASE_PATH: this build is only a gate, it is not deployed.
-      - run: npm run build
+      # Typecheck only. The full build needs Hugging Face (see header).
+      - run: npx tsc -b
 
   worker:
-    name: Worker gates
+    name: PR Worker gates
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -55,6 +60,8 @@ jobs:
         working-directory: worker
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
@@ -65,11 +72,13 @@ jobs:
       - run: npm run test
 
   e2e:
-    name: E2E smoke tests
+    name: PR E2E smoke tests
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
