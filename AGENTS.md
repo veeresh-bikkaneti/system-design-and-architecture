@@ -55,17 +55,15 @@ A full council has five seats:
 
 ### Council procedure (constitution)
 
-Whenever this section requires a council, or a decision is contested, run this loop. It adds a verdict and an advisor check to the seats above; it does not replace them.
+Run this loop for every T1 task, every change to the frozen core, and any decision a seat or the Chair calls contested (a seat dissents, or the Chair or a seat says so in writing). A T2 task needs the Chair and Skeptic review in the table above plus step 3 below. A T3 task needs neither; the advisor may still be consulted. The loop adds a verdict and an advisor check to the seats above; it does not replace them.
 
-1. **Convene.** Set the goal of each seat for the task at hand (not a generic role) and spread the seats over more than one model. Seats may run on cheaper models.
-2. **Verdict.** Sonnet 5.5 chairs the council: it collects the seat reports and writes one verdict with the votes, the dissent, and the evidence.
-3. **Advise.** Send the verdict to Opus (the advisor) before any implementation. The advisor answers whether it agrees and gives feedback.
-4. **Agree: implement.** If the advisor agrees, proceed under §4 and the tier rules.
-5. **Contradict: loop.** If the advisor disagrees with the verdict, or raises a material finding the verdict missed, reconvene the seats with the advisor's feedback and the contradiction stated, write a revised verdict, and send it back to the advisor. Repeat until they agree.
-6. **Bounds.** The loop obeys §9. If the council reaches two rounds or the fix loops reach three without agreement, stop and report `BUDGET EXCEEDED`; the owner/Chair decides. The loop never overrides the frozen core, an owner veto, or the merge rules in §2.
-7. **Record.** Put the verdict, votes, advisor feedback, and each loop in the PR body or `EVIDENCE_LOG.md`.
-
-A T3 direct task needs no council; the advisor may still be consulted.
+1. **Convene.** Write each seat's goal for the task at hand (not a generic role) and spread the seats over more than one model. Seats may run on cheaper models. If every seat ran on one model, record "no model diversity".
+2. **Verdict.** The council lead (currently Sonnet 5.5) collects the seat reports and writes one verdict with the votes, the dissent, and the evidence. The lead is not the Chair: it holds no vote and no veto, and the Chair decides (§3).
+3. **Advise.** Before any implementation, send the advisor (currently Opus) the verdict and the unedited seat reports, dissent included. The advisor replies exactly `AGREE`, `AGREE WITH NOTES`, or `DISAGREE`, with its reasons. Record the reply verbatim. If the advisor is unavailable, stop; do not approve your own verdict.
+4. **Agree: implement.** On `AGREE`, or `AGREE WITH NOTES` where no note is material, proceed under §4 and the tier rules. A note is *material* if it changes safety, scope, tier, or the acceptance conditions.
+5. **Contradict: loop.** On `DISAGREE`, or a material note, reconvene the seats with the advisor's feedback and the contradiction stated, write a revised verdict, and send it back to the advisor. Repeat until the advisor agrees.
+6. **Bounds.** Each reconvene counts as a council round (§3, §9). If round two ends without `AGREE`, or the fix loops reach three, stop and report `BUDGET EXCEEDED`; the owner/Chair decides. The loop never overrides the frozen core, an owner veto, or the merge rules in §2. Council, lead, and advisor tokens are tracked apart from the §7 task budget, with a default cap of 60,000 per decision (UNVERIFIED figure, taken from `docs/council/2026-11-ben-session/capsule-inference-ladder.md`); only the Chair may authorise more, in writing.
+7. **Record, on the remote, before approval.** In the PR body or a pushed `EVIDENCE_LOG.md` entry: a verdict line; a seat table (seat, model, vote); the advisor's reply verbatim; the round count (n of 2). If the lead model also implements, say so; the advisor's `AGREE` is then required for T2 as well as T1. A record that exists only on one machine does not count.
 
 ## 4. Consensus Manifest — required before code
 
