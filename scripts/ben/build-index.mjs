@@ -17,7 +17,18 @@ import { isMainModule } from './is-main.mjs';
 export const INDEX_VERSION = 1;
 /** Section text kept for the reply and for Qwen's material. The vector sees all of it. */
 const TEXT_LIMIT = 700;
-const BATCH = 32;
+/**
+ * One text per call, on purpose. The q8 model quantizes activations with a
+ * single scale per tensor (24 DynamicQuantizeLinear nodes), so in a batch every
+ * chunk borrows its neighbours' value ranges. Measured: a chunk embedded inside
+ * a batch of 32 scored 0.992 cosine against itself embedded alone, and shrinking
+ * the chunk count (779 -> 763) moved an unchanged chunk's score by up to 0.0255,
+ * because the batches were reshuffled. The browser embeds questions one at a
+ * time, so the index does too. Padding is not the culprit: [text, text] is an
+ * exact match and an unpadded row still moved, so attention masks cannot fix it.
+ * Cost: next to nothing (whole index 12.1 s -> 12.5 s on a laptop).
+ */
+const BATCH = 1;
 
 /** Quantize unit vectors to int8 with one float scale per row. */
 export function encodeVectors(rows) {
@@ -35,7 +46,7 @@ export function encodeVectors(rows) {
   return { data: Buffer.from(bytes.buffer).toString('base64'), scales };
 }
 
-async function embedAll(embed, texts) {
+export async function embedAll(embed, texts) {
   const out = [];
   for (let i = 0; i < texts.length; i += BATCH) {
     out.push(...(await embed(texts.slice(i, i + BATCH))));
