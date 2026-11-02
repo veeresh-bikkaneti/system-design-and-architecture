@@ -43,7 +43,7 @@ const ROLE_LABEL = /^(system|user|assistant|human|student|learner|tutor)\s*:/i;
 const BARE_LABEL = /^(model|temperature|seed)\s*[:=]\s*(-?\d+(\.\d+)?)?\s*$/i;
 
 // Trailing label (everywhere): the answer ends on "Model:"
-const TRAILING_LABEL = /\b(model|system|user|assistant|tutor|human)\s*:\s*$/i;
+const TRAILING_LABEL = /\b(model|system|user|assistant|tutor|human)\s*:\s*[.!?]*$/i;
 
 const FENCE = /^\s*```/;
 
@@ -51,7 +51,8 @@ const words = (text: string): string[] => text.toLowerCase().split(/[^a-z0-9]+/)
 
 /** Strip quote, bullet, number, heading and emphasis wrappers from one segment. */
 function prep(segment: string): string {
-  let s = segment.replace(/[*`]/g, '').trim();
+  // Tags first (never `<|...|>` markers: they start with '<|'), then emphasis, then whitespace runs.
+  let s = segment.replace(/<\/?[a-z][^>]*>/gi, '').replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
   for (let i = 0; i < 6; i++) {
     const next = s
       .replace(/^(>|#+|[-+•]|\d+[.)])\s*/, '')
@@ -85,6 +86,8 @@ export function sanitizeModelOutput(raw: string, opts: SanitizeOptions): Sanitiz
   let inFence = false;
   let lastLine = '';
   for (const line of text.split('\n')) {
+    // Markers are checked on the raw line, before any fence handling, table splitting or stripping.
+    if (TEMPLATE_MARKER.test(line)) reasons.add('template-marker');
     if (FENCE.test(line)) {
       inFence = !inFence;
       continue;

@@ -81,3 +81,10 @@ sanitizeModelOutput(raw: string, opts: { systemPrompts: string[]; fallback: stri
 - **Acceptance wording (replaces earlier):** the gate catches known leak shapes, including when wrapped in lists, tables, fences or markdown emphasis. A partial leak under 8 words, homoglyph tricks and novel confabulation can pass.
 - **R-01 is not closed by this PR.** Prior-turn delimiting and role-label stripping (needs `QaChatPanel.tsx`) remain OPEN, tracked in issue #179.
 - **W1 (Veer, T1)** must copy `sanitize.ts` verbatim.
+
+## Fix loop 2 amendments (Reality Checker round 2; verification loop 2 of max 3, not a council round)
+
+- **B1 (blocking, implementation bug):** table rows were split on `|` before the template-marker check, so `| <|im_start|>system | x |` and `|<|im_end|>|` passed. The marker test now also runs on the raw line (after NFKC and zero-width stripping) before any fence handling, splitting or stripping, in addition to per-cell.
+- **Hardening inside the approved design:** (a) line prep collapses whitespace runs, so `Top  K : 64` and `Top<TAB>K: 64` match; (b) line prep strips simple HTML tags (`</?[a-z][^>]*>`, never `<|...|>` markers), so `<b>System:</b>`, `Done. <b>Model:</b>` and `<b>CPU backend</b>` are caught; (c) the trailing label allows trailing punctuation, so `Model:.` is caught.
+- **Deliberate, kept as designed (known limits):** `top_k` / `top_p` with an underscore pass (legit JSON/YAML keys); a value on the NEXT line (`TopK:` then `64`); code forms `temp=1` and `top_k = 64`; 7-word prompt runs; Cyrillic homoglyphs; markup placed between prompt words.
+- **Known false rejects (fail safe, kept):** mid-sentence `top-k: 64 means ...`, and answers whose last line ends in `Model:`, `System:` or `user:`. A false reject falls back to NO_SOURCE or the card answer.
