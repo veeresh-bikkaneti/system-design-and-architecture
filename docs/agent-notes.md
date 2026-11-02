@@ -29,6 +29,18 @@ fluff. Claude Code applies it through the `i-have-adhd` skill; other agents foll
 - Exceptions: an "explain" request may run long (still no preamble or closer), a destructive
   action is still confirmed first, and a rule never deletes the answer itself.
 
+## Handoff checkpoints (never leave work hanging on a limit)
+
+Checkpoint = after each merge, council verdict, PR opened or closed, owner decision, background agent started or finished, and again before any limit or session end. No warning is guaranteed; the checkpoints are the guarantee. If the harness supplies a limit notice, or a PreCompact or SessionEnd hook is configured, treat it as a final checkpoint (UNVERIFIED that a limit notice is delivered in every case).
+
+1. **Repo handoff (the only step that counts as a record).** Update `triage/NEXT-AGENT.md` and push it. Use ONE rolling handoff branch and ONE draft PR; every checkpoint is a push to it, never a new PR (each PR run costs about 5 minutes of CI across 3 jobs). A handoff PR gets no merge exemption; a handoff in an unmerged draft PR counts as saved. The session lead edits the file; sub-agents report to the lead and never edit it; on a rejected push, fetch and rebase, never force-push.
+2. **Freshness test.** The first line holds the UTC time, the SHA of `origin/main`, and the open PR numbers (`gh pr list`). A reader compares `git rev-parse origin/main` with that SHA; a mismatch means the handoff is stale and the reader re-verifies before acting.
+3. **What stays out of a pushed handoff** (the repository is public): local absolute paths, usernames, emails, tokens, session URLs, worktree paths, agent ids. Name branches and PR numbers instead. Agent ids and worktree names belong in the local copy only.
+4. **Local conveniences (not records).** Update the agent's project memory; copy the handoff to `.ai-context/HANDOFF.md` (the session-end hook overwrites `SESSION_STATE.md` each session, so do not rely on that file); run `graphify update src` only if code changed since the last run (code-only, no LLM, derived output in `src/graphify-out/`, gitignored, never committed; the full semantic graph needs `/graphify` in an assistant session).
+5. **Branches and agents.** `git rev-list --left-right --count origin/<b>...<b>` is `0 0` for every branch you made; each background agent has a one-line state (branch, PR, next action) in the handoff.
+6. **Budget.** Checkpoint cost counts against the section 7 budget. If it would exceed it, write the minimum (state line, `origin/main` SHA, open PRs, next action) and report `BUDGET EXCEEDED` per section 9.
+7. **On a limit warning:** finish 1 to 6, start no new agents, then stop.
+
 ## Session end (remote is the source of truth)
 
 Before stopping, for every branch you created or pushed:

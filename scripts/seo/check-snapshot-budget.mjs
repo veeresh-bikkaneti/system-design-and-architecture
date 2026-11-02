@@ -76,8 +76,29 @@ const routes = [
   { label: '(home)', out: 'index.html' },
   { label: '(roadmap)', out: 'roadmap/index.html' },
   { label: '(badges)', out: 'badges/index.html' },
+  { label: '(contact)', out: 'contact/index.html' },
+  { label: '(privacy)', out: 'privacy/index.html' },
   ...lessonSlugs.map((slug) => ({ label: slug, out: `lesson/${slug}/index.html` })),
 ];
+
+// Third-party script gate (contact-form Manifest): the privacy page claims
+// no analytics product is used, so no prerendered page may load a
+// third-party script. The one exception is Cloudflare Turnstile, and only
+// on /contact — where the form loads it at runtime. Relative paths (Vite
+// assets under either base path) are same-origin and always allowed.
+const SCRIPT_SRC_RE = /<script[^>]+src=["']([^"']+)["']/g;
+
+function thirdPartyScripts(outPath) {
+  const html = readFileSync(join(repoRoot, 'dist', outPath), 'utf8');
+  const offenders = [];
+  for (const m of html.matchAll(SCRIPT_SRC_RE)) {
+    const src = m[1];
+    if (!/^(https?:)?\/\//i.test(src)) continue;
+    if (src.startsWith('https://challenges.cloudflare.com/') && outPath === 'contact/index.html') continue;
+    offenders.push(src);
+  }
+  return offenders;
+}
 
 const results = routes.map((r) => ({ ...r, bytes: snapshotBytes(r.out) }));
 const lessonResults = results.filter((r) => !r.label.startsWith('('));
@@ -104,6 +125,14 @@ if (lessonTotal > TOTAL_BUDGET) {
     `snapshot-budget FAIL: lesson snapshot total is ${fmt(lessonTotal)} — exceeds total budget ${fmt(TOTAL_BUDGET)}`,
   );
   failed = true;
+}
+for (const r of routes) {
+  for (const src of thirdPartyScripts(r.out)) {
+    console.error(
+      `snapshot-budget FAIL: ${r.label} loads third-party script ${src} — the privacy page claims no third-party tracking`,
+    );
+    failed = true;
+  }
 }
 if (failed) {
   console.error(
