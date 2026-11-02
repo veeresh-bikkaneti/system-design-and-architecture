@@ -19,7 +19,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "ben:index": "node scripts/ben/build-index.mjs",
-    "eval:ben": "vitest run --config vitest.eval.config.ts; status=$?; cat evals/ben/REPORT.md; exit $status"
+    "eval:ben": "node scripts/ben/run-eval.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "4.3.0",

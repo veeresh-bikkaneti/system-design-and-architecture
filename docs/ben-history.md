@@ -132,6 +132,8 @@ the real embedder.
 ## Sources
 
 This document summarizes the commit history and PR discussion on this repository
-(`veeresh-bikkaneti/system-design-and-architecture`, PRs #22, #28, #32, #33, #34) as of the changes
-described above. See `docs/ai-tutor.md` for how the shipped architecture actually works, and
-`docs/adr/0001-ben-semantic-routing.md` for the router's own design record.
+(`veeresh-bikkaneti/system-design-and-architecture`, PRs #22, #28, #32, #33, #34, and the 2026-11-01
+Ben ranking/setup series #127–#134) as of the changes described above. See `docs/ai-tutor.md` for
+how the shipped architecture actually works, `docs/adr/0001-ben-semantic-routing.md` for the
+router's own design record, and `docs/ben-arena-setup.md` for the arena pick that became #130, #131,
+and #134.

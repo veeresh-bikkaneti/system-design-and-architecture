@@ -95,6 +95,17 @@ async function tryPromptApi(): Promise<Engine | null> {
 }
 
 async function loadWebLlm(): Promise<Engine> {
+  // No GPU, no point: skip the big import and the weights download and fail now
+  // instead of after a long wait. We only ask for an adapter (fallback ones are
+  // fine) and never a device, so this costs next to nothing.
+  let adapter: unknown = null;
+  try {
+    adapter = await navigator.gpu?.requestAdapter();
+  } catch {
+    // A GPU that throws is a GPU we cannot use.
+  }
+  if (!adapter) throw new Error('No WebGPU adapter on this device.');
+
   publish({ phase: 'loading', progress: 0, detail: 'Fetching WebLLM' });
   const webllm = await import('@mlc-ai/web-llm');
   const candidate = webllm.prebuiltAppConfig.model_list.find((entry) =>

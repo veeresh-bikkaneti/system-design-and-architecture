@@ -29,6 +29,16 @@ fluff. Claude Code applies it through the `i-have-adhd` skill; other agents foll
 - Exceptions: an "explain" request may run long (still no preamble or closer), a destructive
   action is still confirmed first, and a rule never deletes the answer itself.
 
+## Session end (remote is the source of truth)
+
+Before stopping, for every branch you created or pushed:
+
+- `git status --porcelain --untracked-files=no` prints nothing.
+- `git rev-list --left-right --count origin/<branch>...<branch>` prints `0` and `0` (or the branch had no upstream and you pushed it with `-u`).
+- A rejected push is never forced. Fetch, rebase, re-verify, or stop and report.
+- A held or parked branch is pushed too; its hold status is written in its PR or README.
+- Not enforced by tooling yet: the "Protect main branch" ruleset has no required status checks, no required thread resolution, and an always-bypass admin role (checked 2026-11-02). Making these mechanical is the owner's decision (tracked in an issue).
+
 ## Evidence log
 
 After every T1 or T2 task, D appends one entry to `EVIDENCE_LOG.md`:

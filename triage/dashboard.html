@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>SDM Round-2 Triage Dashboard</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#faf8f5;--card:#fff;--ink:#292524;--mut:#78716c;--line:#e7e5e4}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:20px;max-width:1400px;margin:auto}
+h1{margin:0 0 4px;font-size:22px}h2{font-size:16px;margin:18px 0 8px}.sub{color:var(--mut);margin-bottom:12px}
+.warn{background:#fef3c7;border:1px solid #f59e0b;padding:10px 12px;border-radius:8px;margin-bottom:12px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px}.tile b{display:block;font-size:22px}.tile span{color:var(--mut);font-size:12px}
+.bar{height:9px;background:var(--line);border-radius:6px;overflow:hidden;display:flex;margin:4px 0}.bar i{display:block;height:100%}
+.wave{margin-bottom:6px;color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.slices{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
+.sl{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.sl.on{outline:2px solid #2563eb}.sl.blocked{background:#fafaf9}
+.sl h3{margin:0;font-size:14px;cursor:pointer}.sl small{color:var(--mut)}
+.chip{display:inline-block;font-size:11px;padding:1px 6px;border-radius:5px;margin-right:3px;background:#f5f5f4}
+.t1{background:#fee2e2;color:#991b1b;font-weight:700}.lock{background:#e0e7ff;color:#3730a3}.blk{background:#fef3c7;color:#92400e}.ok{background:#dcfce7;color:#166534}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+select,input,button{font:inherit;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}button{cursor:pointer}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th,td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:#f5f5f4;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.obsb{background:#44403c;color:#fff;font-size:11px;font-weight:700;padding:1px 6px;border-radius:5px}tr.obs td{background:#f5f5f4;color:#a8a29e}tr.obs td.ttl{text-decoration:line-through}tr.obs .obsb{text-decoration:none;display:inline-block}.chk{color:#166534;font-size:12px}
+.sev{font-weight:700;font-size:12px}.Blocker{color:#b91c1c}.Major{color:#c2410c}.Minor{color:#a16207}.Gate{color:#4338ca}
+.dep{color:var(--mut);font-size:12px}.P0{background:#b91c1c;color:#fff}.P1{background:#ea580c;color:#fff}.P2{background:#ca8a04;color:#fff}.P3{background:#a8a29e;color:#fff}
+.pri{display:inline-block;font-weight:700;font-size:11px;padding:1px 6px;border-radius:5px}#prs td,#prs th{font-size:13px}tr.done td,tr.na td{opacity:.5}tr.slot td{color:var(--mut);font-style:italic}
+</style></head><body>
+<h1>System Design Mastery — Round-2 Triage</h1>
+<div class="sub">Source: systwm-designALL-ISSUES-CONSOLIDATED.md · reviewed at main <code>915725c</code> · status saved in this browser (localStorage) · IDs unchanged from v1</div>
+<div class="warn"><b>Titles for 38 findings are missing.</b> The consolidated file stops at INT R-28. This board has 56 real rows + 38 placeholder slots (INT R-29–R-52 minus struck R-45, and the 15 <code>INT NEW*</code> items). Placeholders carry an ID only, with a hint where the 56 known rows cross-reference them (labelled <i>inferred</i>). Searched: Temp session dirs, <code>.agents/</code>, <code>.swarm/</code>, all git refs, WSL home. Not found. Paste <code>REPORT-round2.md</code> (coursework-integrity) or give its real path and I'll fill them in. Slice 6 below cannot be assigned until then.</div>
+<div class="tiles" id="tiles"></div><div class="bar" id="pbar"></div>
+<h2>Pending work already in flight (open PRs + held branches)</h2>
+<table id="prs"></table>
+<h2>Five developer chunks</h2>
+<div class="slices" id="devs"></div>
+<h2>Slices by wave</h2>
+<div id="waves"></div>
+<h2>All tickets</h2>
+<div class="ctl">
+ <select id="fpri"><option value="">All priorities</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select>
+ <select id="fdev"><option value="">All devs</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>Chair</option></select>
+ <select id="fsl"><option value="">All slices</option></select>
+ <select id="fsev"><option value="">All severities</option><option>Blocker</option><option>Major</option><option>Minor</option></select>
+ <select id="fst"><option value="">All statuses</option></select>
+ <input id="q" placeholder="search…" size="20"><button id="clr">Show all</button><button id="exp">Export JSON</button>
+</div>
+<table><thead><tr><th>Pri</th><th>ID</th><th>Sev</th><th>Tier</th><th>Issue</th><th>Slice</th><th>Dev</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table>
+<script>
+const ST=["Todo","Manifest","In progress","In review","PR open","Done","Deferred","Obsolete"];
+// Slices: id -> [name, wave, tier, lock, program?, files hint, dependsOn, brief note]
+const SL={
+"G0":["Chair decisions (not agent work)",0,"—","","","Written decisions only","","Chair lands these; each unblocks named slices."],
+"O1":["Ben output gate (sanitizeModelOutput)",1,"T2","","1 manifest","src/ai/local/agent.ts, inference.ts, new sanitize module; ChatMarkdown render test","","Build the ONE shared gate spec Veer will mirror. Reject n-gram overlap with either system prompt, role labels, template markers; fall back to deterministic NO_SOURCE. Do not fix by shortening the prompt. Do not touch QaChatPanel.tsx."],
+"W1":["Veer worker hardening (T1)",2,"T1","WORKER","1–2 manifests","worker/src/qa/graph.ts, routes.ts","O1","Full council. Mirror O1's gate on finalAnswer before stream completes and before qa_messages insert + checkpoint; demote summary out of SystemMessage; atomic quota + log throttle skip."],
+"W2":["Veer corpus refresh (T1)",1,"T1","WORKER","1 manifest (exception: >3 files)","worker/src/qa/curriculum.ts, NEW D1 migration (never edit 0006), agent.test.ts, tools.ts, deploy-worker.yml, qa:index","","Full council. Regenerate 378→404 seed rows (+26), test to 41, derive tool text from CURRICULUM.length, LESSON_VIDEOS parity, qa:index freshness step in deploy + PR freshness gate."],
+"W3":["Exam bank rebuild (T1)",3,"T1","WORKER","program","worker exam bank + worker/README.md answer map","DEC-1","Full council. New disjoint bank, no answer leaks, cover 41 lessons; issue no credential before fixed."],
+"W4":["Gist-merge semantics (T1)",3,"T1","","1 manifest","src/lib/gist-sync.ts, progress-merge.ts, tests","DEC-1","Full council. Merge must not resurrect un-complete; update pinned tests."],
+"A1":["Progress, badges, retake semantics",3,"T2","","1–2 manifests","src/store/progress.ts, badges.ts, Quiz.tsx, LessonPage.tsx, badge page copy","DEC-1","Implement the decision; pass→failing-retake tests (NEW2-4)."],
+"S1":["Token scope check at sign-in (T1)",3,"T1","","1 manifest","src/store/session.ts, AuthBar.tsx","DEC-2","Full council. Verify granted scopes; reject non-gist-only."],
+"S2":["Response headers on mirror Worker",3,"T1?","WORKER","1 manifest","mirror Worker (UNVERIFIED whether under worker/) + CSP build-artifact test","DEC-3","Add headers; test dist/index.html CSP has no unsafe-inline/eval in script-src."],
+"S3":["Ben history retention",3,"T2","","1 manifest","src/components/qa/useQaHistory.ts","DEC-4","TTL/size cap or forget-on-close. No client-side encryption."],
+"P1a":["Panel a11y 1: dialog focus management",1,"T2","PANEL","1 manifest","QaChatPanel.tsx, QaWidget.tsx","","aria-modal + trap + inert background (reuse Layout.tsx:180-186 pattern), focus into dialog on open, FAB ref return on close, Escape."],
+"P1b":["Panel a11y 2: live region, status, cues",2,"T2","PANEL","1 manifest","QaChatPanel.tsx","P1a","Persistent aria-live polite region; status title/wrap; composer aria-describedby; Veer lock cue. Verify with a real screen reader."],
+"P1c":["Panel a11y 3: contrast, targets, motion",2,"T3","PANEL","1 manifest","QaChatPanel.tsx, index.css","P1b","stone-600 icons/labels, pills min-h-6, toggles min-h-7, reduced-motion pulse. Re-measure each."],
+"P1e":["Panel copy and pills",4,"T3","PANEL CHUNK","1 manifest","QaChatPanel.tsx, turn.ts","P1c, C1, DEC-4","Retention wording, Guide source pills, pill title rule. turn.ts overlaps C1's sectionLead — start after C1 merges."],
+"M1":["Model load readiness state machine",3,"T2","PANEL","program (3 manifests)","inference.ts, embedder.ts, runtime.ts, then panel","P1c, DEC-5","Readiness machine loading/ready/failed/cancelled; bounded wait using downloadprogress; cancel; KEEP sticky-failure cache (pinned by S8); timing instrumentation; provisional labels for keyword answers; shared applyDraft path."],
+"C1":["Chunker and index pipeline (#135 lane)",1,"T2","CHUNK","program (2–3 manifests)","scripts/ben/chunk-lessons.mjs, build-index.mjs, turn.ts (sectionLead)","DEC-6","Branch fix/ben-chunk-fragments exists locally — check it first. Sentence-boundary chunks, fragment predicate + evidenced exceptions ledger at build time, keep captions/tables, cap after folding, one ### rule. Fresh manifest off current main."],
+"C2":["Lesson content gaps and contradictions",1,"T3","MDX","1 manifest","caching-strategies.mdx, RAG lesson, designing-ai-systems.mdx, agentic-ai-patterns.mdx","","Define cache warming; explain reranking as a pipeline step; reconcile agentic trio."],
+"C3":["Eval and contract guards",5,"T3","CHUNK","1–2 manifests","evals/ben/cases.json (NEVER holdout.json), validator, parity test, e2e/diagram-layout.spec.ts","C1","Cover 5 ungated lessons, card↔corpus parity, validator=loader, replace waitForTimeout(2500). Re-run eval twice before citing numbers."],
+"L1":["Quiz option-length rebalance",2,"T3","MDX","1 manifest","question bank across lessons","C2","Rebalance 152/190 longest-correct; add longest-share check."],
+"L2":["Sources, links, video attributions",3,"T3","MDX","1 manifest","Sources sections, VideoCard notes","L1","Link papers/RFCs first; verify 4 VideoCard channels live; one label per video."],
+"L3":["TTS extractor and narration manifests",1,"T2","","1 manifest","scripts/tts extractor + re-extract","","Fix ACL prose drop + apostrophe title truncation, then re-extract, validate, regenerate narration index."],
+"L4":["Docs truth pass (no code)",1,"T3","DOCS","1 manifest","README.md, docs/ai-tutor.md, docs/architecture.md, docs/adr/0001, style guide","","Qualify 'no server' claims incl. #139 no-WebGPU; ADR 0001 to as-built routing; style guide to corpus."],
+"L5":["Site counts and generated artifacts",1,"T3","","1 manifest","RoadmapPage.tsx, prerender.mjs, .gitignore, public/sitemap.xml + llms.txt","","Hero count from live lesson list; delete committed sitemap/llms.txt + gitignore (AGENTS.md §11)."],
+"Q1":["Live probe backlog (QA, no code)",5,"—","","run","60 black-box cases, qa-round2/blackbox/NOTES.md §5","M1, P1a","Fresh profile mandatory for F2/F6. Re-probe BB-06/17/20. Never cite ~18 min."],
+"X1":["AWAITING SOURCE — 38 findings",9,"?","","","","Source report","Cannot be assigned until REPORT-round2.md content is supplied."]};
+// id|sev|slice|tier|title|needs
+const D=`QA R-01|Blocker|O1|T2|F1 Ben echoes system prompt into answer|
+QA R-26|Minor|O1|T3|Markdown javascript:/data: link render test (unverified)|
+QA R-02|Blocker|M1|T2|F2 model download blocks chat, no timeout/cancel|
+QA R-04|Major|M1|T2|F6 keyword vs semantic answers, no provisional label|QA R-02
+QA R-27|Minor|M1|T3|F7 no build/version/model status|DEC-5
+QA R-06|Major|W1|T1|Veer no output-side leak guard|O1
+QA R-07|Major|W1|T1|Veer rolling summary puts user text in system prompt|
+QA R-23|Minor|W1|T1|Quota race + throttle skip without CF-Connecting-IP|
+QA R-08|Major|S1|T1|Legacy GH token in sessionStorage; verify scopes|DEC-2
+QA R-22|Minor|S2|T1?|CSP / response header gaps|DEC-3
+QA R-25|Minor|S3|T2|Ben history in localStorage forever|DEC-4
+QA R-09|Major|P1a|T2|Focus escapes dialog (no trap/aria-modal)|
+QA R-10|Major|P1a|T2|Focus not returned to FAB on close|QA R-09
+QA R-11|Major|P1a|T2|Focus not moved into dialog on open|QA R-09
+QA R-16|Minor|P1a|T3|Escape does not close dialog|QA R-09
+QA R-14|Major|P1b|T2|No live region for answer/status|
+QA R-17|Minor|P1b|T3|Veer toggle no sign-in cue|
+QA R-18|Minor|P1b|T3|Header status truncated, no title|
+QA R-20|Minor|P1b|T3|Disabled composer has no aria-describedby|
+QA R-12|Major|P1c|T3|Header icon contrast 2.54:1|
+QA R-13|Major|P1c|T3|Confidence label contrast 4.39:1|
+QA R-15|Major|P1c|T3|Source pills 22.5px < 24px|
+QA R-19|Minor|P1c|T3|Thinking dots pulse under reduced motion|
+QA R-21|Minor|P1c|T3|Ben/Veer toggles exactly 24px|
+QA R-24|Minor|P1e|T3|Retention wording says 30d, code ≈60d|DEC-4
+INT R-12|Major|P1e|T3|Guide answers lose their source pill|
+INT R-20|Minor|P1e|T3|Ben pill titles shortened; Veer shows full|
+QA R-03|Major|C1|T2|F4 fragment answers; sentence-boundary chunking + build gate|DEC-6
+INT R-10|Major|C1|T2|Diagram captions dropped by both chunkers|QA R-03
+INT R-23|Minor|C1|T3|Chunker files text under next heading|
+INT R-24|Minor|C1|T3|Chunker exceeds 150-word cap|QA R-03
+INT R-25|Minor|C1|T3|Tables flattened / split mid-row|
+INT R-26|Minor|C1|T3|### handling inconsistent across chunkers/TOC|
+QA R-05|Major|C2|T3|F5 cache warming / reranking not defined in lessons|
+INT R-13|Major|C2|T3|Agentic trio contradiction|
+INT R-11|Major|C3|T3|5 lessons have no Ben eval cases|C1
+INT R-27|Minor|C3|T3|Validator weaker than loader (correctIndex only)|
+INT R-28|Minor|C3|T3|No card↔corpus parity guard|
+QA R-28|Minor|C3|T3|Eval report superseded; hard sleep in e2e/diagram-layout.spec.ts:158|
+INT R-08|Major|L1|T3|Correct answer longest in 80% of questions|
+INT R-14|Major|L2|T3|Sources 180/181 unlinked|
+INT R-19|Major|L2|T3|4 "(unverified…)" VideoCard attributions shipped|
+INT R-21|Minor|L2|T3|Same video, different source labels|
+INT R-09|Major|L3|T2|TTS extractor drops ACL prose, truncates title|
+INT R-02|Blocker|L4|T3|README/ai-tutor.md claim no server while Veer shipped|
+INT R-15|Major|L4|T3|ADR 0001 presents removed Wikipedia lookup as current|
+INT R-16|Major|L4|T3|architecture.md says not deployed / never leaves browser|INT R-02
+INT R-22|Minor|L4|T3|Style guide contradicts corpus|
+INT R-17|Major|L5|T3|Committed sitemap/llms.txt stale|
+INT R-18|Major|L5|T3|Hero says Thirty-six lessons vs 41|
+INT R-01|Blocker|W2|T1|Veer corpus stale 39 lessons; reindex + migration + deploy step|
+INT R-03|Major|W2|T1|Stale 39/36 counts locked in tests/text|INT R-01
+INT R-04|Major|W3|T1|Server exam leaks answers, 3/41 lessons, no UI|DEC-1
+INT R-05|Major|A1|T2|Badges for clicking Mark complete; LinkedIn framing|DEC-1
+INT R-06|Major|A1|T2|Failing retake never revokes completion|DEC-1
+INT R-07|Major|W4|T1|Gist merge resurrects un-complete|DEC-1
+DEC-1|Gate|G0|—|Assessment semantics: what completion, badges, credential require|
+DEC-2|Gate|G0|—|Token policy: reject non-gist-only tokens? long-term cookie migration?|
+DEC-3|Gate|G0|—|Response headers on mirror; accept Pages residual?|
+DEC-4|Gate|G0|—|Ben history TTL/forget-on-close + retention wording (30d vs ~60d)|
+DEC-5|Gate|G0|—|Is a build/version stamp required?|
+DEC-6|Gate|G0|—|Is #135 in flight? Which branch is the chunker base?|
+INT NEW1-1|Major?|W2|T1|[inferred] Rides with INT R-01 regeneration — title not in source|INT R-01
+INT NEW1-3|Minor?|L4|T3|[inferred] Style-guide evidence, same doc as INT R-22 — merged into R-22|
+INT NEW2-1|?|W3|T1|[inferred] Assessment bank item — title not in source|DEC-1
+INT NEW2-4|?|A1|T2|[inferred] Regression tests for assessment semantics — title not in source|DEC-1
+INT NEW2-5|?|W3|T1|[inferred] Longest-share check for exam bank — title not in source|DEC-1
+INT NEW3-1|?|L4|T3|[inferred] Docs pass with INT R-02 — title not in source|
+INT NEW3-3|?|L2|T3|[inferred] Sources header-rationale correction — title not in source|
+INT NEW3-4|Info|X1|—|Informational, not a fix|
+INT NEW4-1|?|L3|T2|[inferred] TTS widening: 22 blocks — title not in source|
+INT NEW4-2|?|L3|T2|[inferred] TTS re-extract — title not in source|
+INT NEW4-3|?|W2|T1|[inferred] PR freshness gate for qa:index — title not in source|INT R-01
+INT NEW4-5|Info|X1|—|No defect|
+INT NEW?-a|?|X1|?|Unknown NEW id #1 — not in source|Source report
+INT NEW?-b|?|X1|?|Unknown NEW id #2 — not in source|Source report
+INT NEW?-c|?|X1|?|Unknown NEW id #3 — not in source|Source report`
+.split("\n").map(l=>{const [id,sev,slice,tier,title,needs]=l.split("|");return{id,sev,slice,tier,title,needs}});
+// INT R-29..R-52 minus R-45 (R-45 STRUCK: round-1 reviewer error, do not cite)
+D.push({id:"INT R-45",sev:"Struck",slice:"X1",tier:"—",title:"Round-1 reviewer error",needs:""});
+for(let n=29;n<=52;n++){ if(n==45)continue; D.push({id:"INT R-"+n,sev:"?",slice:"X1",tier:"?",title:"Title not in source file — awaiting report",needs:"Source report"}); }
+// OBSOLETE = retired by the source file itself. Checked against main 6b8110f: no merged PR since the review SHA (915725c) closed any real finding (#132 is docs-only and left INT R-02/R-16 open).
+const OBS={"INT R-45":"STRUCK in source: round-1 reviewer error. Do not cite or fix.","INT NEW3-4":"Informational only (per source file). No fix.","INT NEW4-5":"No defect (per source file). No fix.","INT NEW1-3":"DUPLICATE: same document as INT R-22, merged into it (per source file). Work under INT R-22."};
+const INFO=new Set(Object.keys(OBS));
+const NOTE={"INT R-02":"Re-checked on main 6b8110f: #132 reworded Ben setup only. README + docs/architecture.md still unqualified about Veer. STILL OPEN.","INT R-16":"Re-checked on main 6b8110f: docs/architecture.md:9-13,78-79 unchanged. STILL OPEN.","INT R-17":"Re-checked: public/sitemap.xml + llms.txt still tracked on main. STILL OPEN.","INT R-18":"Re-checked: 'Thirty-six' still at RoadmapPage.tsx:187 + prerender.mjs:344. STILL OPEN."};
+// PRIORITY rubric: P0 = Blocker or student sees leaked/wrong output or wrong public data; P1 = Major that breaks correctness, A-level a11y, or public counts, and unblocks others;
+// P2 = other Majors (AA a11y, assessment, editorial, decision-gated); P3 = Minor / hardening / polish. Default from severity, overrides below.
+const P0=["QA R-01","QA R-02","INT R-01","INT R-02","INT NEW1-1"];
+const P1=["QA R-03","QA R-04","QA R-06","QA R-09","QA R-10","QA R-11","QA R-05","INT R-03","INT R-10","INT R-17","INT R-18","INT R-12","INT NEW4-3"];
+const pri=i=>P0.includes(i.id)?"P0":P1.includes(i.id)?"P1":(i.sev=="Major"||i.id=="QA R-16"||i.id=="QA R-07")?"P2":i.sev=="Gate"?"P0":"P3";
+// DEV chunks. Slice default + item overrides.
+const DEVS={A:"Ben answers: output gate, model readiness, chunker, evals",B:"Chat panel owner (single owner of QaChatPanel.tsx)",C:"Veer worker (T1): corpus, hardening, headers, exam bank",D:"Auth, progress, TTS, guards (T1 + small independents)",E:"Content, docs, links + live QA probes",Chair:"Owner decisions (not dev work)"};
+const SDEV={O1:"A",M1:"A",C1:"A",C3:"A",P1a:"B",P1b:"B",P1c:"B",P1e:"B",W1:"C",W2:"C",W3:"C",S2:"C",A1:"D",W4:"D",S1:"D",S3:"D",L3:"D",L5:"D",C2:"E",L1:"E",L2:"E",L4:"E",Q1:"E",G0:"Chair",X1:"?"};
+const IDEV={"INT R-27":"D","INT R-28":"D","QA R-28":"D"};
+const dev=i=>IDEV[i.id]||SDEV[i.slice]||"?";
+const PRS=[
+ ["#140","fix/ben-setup-pin-order","MERGEABLE · green · needs owner approval","Ben pin order (router.ts, cases.json). Not a ticket from this list. Shares cases.json with INT R-11 and router.ts with QA R-04.","1st","Merge first: tiny, green, and later Ben slices rebase onto it. Fix-round-1 edits were uncommitted at shutdown — check the pinorder worktree before trusting."],
+ ["#132","docs/ben-setup-honest","UNKNOWN · green · blocked on review","README.md + docs/ai-tutor.md. SAME files as INT R-02 / R-16 (L4 docs pass).","2nd","Merge before L4 starts, or L4 conflicts on README + ai-tutor.md."],
+ ["#135","fix/ben-chunk-fragments","DIRTY (conflicts) · eval trade-off −2.1 pts","IS slice C1 (QA R-03 + INT R-10/R-24). Owner said: needs deadline + re-measure after BATCH work.","after BATCH decision","Dev A takes it over: rebase, re-measure, extend to cover INT R-10/23/24/25/26. Not mergeable as-is."],
+ ["#125","feat/contact-feedback","MERGEABLE · green · T1, parked","Contact form + worker /api/feedback. Collides with W2 (deploy-worker.yml), L4 (README), L5 (prerender.mjs, generate-sitemap.mjs), worker/src/index.ts.","decide","Land before W2/L4/L5 or those rebase onto it. Needs council record + owner infra setup (secrets)."],
+ ["#109","feat/pwa","DIRTY (4 conflicts) · T1, parked, thin e2e","Collides with QaChatPanel.tsx (Panel queue), gist-sync.ts (W4), AuthBar.tsx (S1), index.html (QA R-22 CSP).","decide","Biggest blast radius. Decide merge/shelve BEFORE Dev B and Dev D touch those files."],
+ ["local","fix/ben-index-batch-1 (66a3ef0)","HELD by owner · no PR","BATCH=1: fails drift gate alone (3/69 vs 2). Tied to QA R-28(a) — the unexplained 1.0-pt eval gap — and tickets #136/#138.","hold","Do not merge. Owner must write new blind holdout first (ADR 0001 §7). C3 evals and #135 re-measure wait on this."]];
+const ORDER=[["1","#140 pin order"],["2","#132 docs"],["3","Owner: DEC-1…DEC-6 + #125/#109 fate"],["4","#125 (if keep) → then W2, L4, L5 rebase on it"],["5","#109 (if keep) → then Dev B panel + Dev D S1/W4 rebase on it"],["6","BATCH decision → #135 re-measure → C1, C3"]];
+const $=id=>document.getElementById(id);
+let S=JSON.parse(localStorage.getItem("sdm-triage")||"{}"),F="";
+const save=()=>localStorage.setItem("sdm-triage",JSON.stringify(S));
+const st=i=>OBS[i.id]?"Obsolete":(S[i.id]||{}).s||"Todo";
+const isSlot=i=>i.slice=="X1"||/not in source/.test(i.title);
+const work=i=>i.sev!="Gate"&&!OBS[i.id];
+$("fsl").innerHTML+=Object.entries(SL).map(([k,v])=>`<option value="${k}">${k} ${v[0]}</option>`).join("");
+$("fst").innerHTML+=ST.map(s=>`<option>${s}</option>`).join("");
+function brief(k){const v=SL[k],its=D.filter(i=>i.slice==k);
+return `ROLE: implementer for slice ${k} "${v[0]}" in repo system-design-and-architecture (read AGENTS.md first; it is binding).
+OBJECTIVE: ${v[7]}
+FINDINGS (details: systwm-designALL-ISSUES-CONSOLIDATED.md, same IDs):
+${its.map(i=>`- ${i.id} [${i.sev}] ${i.title}${i.needs?` (after: ${i.needs})`:""}`).join("\n")}
+TIER: ${v[2]}${v[2].startsWith("T1")?" — critical path; FULL COUNCIL (Chair+A,B,C,D) manifest required before any code; touch no T1 path the manifest does not name":""}
+SCOPE HINT: ${v[5]}  (max 3 files per manifest; justify exceptions; ${v[4]||"1 manifest"})
+FILE-COLLISION GROUP: ${v[3]||"none"} — do not run in parallel with other slices in this group.
+DEPENDS ON: ${v[6]||"none"}
+PROCESS: new branch off current main; write Consensus Manifest, get approval; failing test first; minimal fix; gates npm test, npm run lint, npm run build${/src\/ai\/local|Ben|chunk/i.test(v[0]+v[5])?", npm run eval:ben (read docs/adr/0001-ben-semantic-routing.md first; new cases in cases.json, NEVER holdout.json; re-run twice)":""}. Open a PR; NEVER merge. Append EVIDENCE_LOG.md entry for T1/T2.
+RULES: label claims verified/inferred/UNVERIFIED; a check not run is NOT RUN; invent no URLs/results; do not rely on the "ai env" reading; never cite "~18 min".
+STOP AND REPORT if: scope exceeds 3 files, risk tier rises, a T1 path is needed, or 3 fix loops fail.
+REPORT: {task_id, status, owner, evidence, blocker} + tests run/passed, files changed, UNVERIFIED items.`}
+function render(){
+ const W=D.filter(work),real=W.filter(i=>!isSlot(i)),dn=W.filter(i=>st(i)=="Done").length;
+ const fl=W.filter(i=>["Manifest","In progress","In review","PR open"].includes(st(i))).length;
+ $("tiles").innerHTML=[["Real findings",real.length],["Awaiting titles",W.filter(isSlot).length],["Obsolete",D.filter(i=>OBS[i.id]).length],["Blockers",real.filter(i=>i.sev=="Blocker").length],["T1 items",real.filter(i=>i.tier.startsWith("T1")).length],["In flight",fl],["Done",dn],["Decisions open",D.filter(i=>i.sev=="Gate"&&st(i)!="Done").length]].map(([a,b])=>`<div class="tile"><b>${b}</b><span>${a}</span></div>`).join("");
+ $("pbar").innerHTML=`<i style="width:${dn/W.length*100}%;background:#16a34a"></i><i style="width:${fl/W.length*100}%;background:#2563eb"></i>`;
+ const wn=["Wave 0 — Chair decisions","Wave 1 — start now (parallel-safe unless sharing a lock)","Wave 2 — after Wave 1 dependency","Wave 3 — after decisions / prior slices","Wave 4","Wave 5","","","","Blocked — source missing"];
+ $("waves").innerHTML=wn.map((n,w)=>{const ks=Object.keys(SL).filter(k=>SL[k][1]==w);if(!ks.length)return"";
+  return `<div class="wave">${n}</div><div class="slices">${ks.map(k=>{const v=SL[k],its=D.filter(i=>i.slice==k&&work(i)),d=its.filter(i=>st(i)=="Done").length,o=(S["slice:"+k]||{}).o||"";
+   const gates=D.filter(i=>i.sev=="Gate"&&st(i)!="Done").map(i=>i.id),bl=v[6].split(/,\s*/).filter(x=>gates.includes(x));
+   return `<div class="sl ${F==k?"on":""} ${bl.length?"blocked":""}"><h3 onclick="F='${k}';$('fsl').value='${k}';render()">${k} · ${v[0]}</h3>
+   <div><span class="chip ${v[2].startsWith("T1")?"t1":""}">${v[2]}</span>${v[3].split(" ").filter(Boolean).map(l=>`<span class="chip lock">lock:${l}</span>`).join("")}${bl.length?`<span class="chip blk">blocked: ${bl.join(",")}</span>`:""}${v[4]?`<span class="chip">${v[4]}</span>`:""}</div>
+   <small>${k=="G0"?D.filter(i=>i.sev=="Gate").length+" decisions":its.length+" findings · "+d+" done"}${v[6]?" · needs "+v[6]:""}</small>
+   <div class="bar"><i style="width:${its.length?d/its.length*100:0}%;background:#16a34a"></i></div>
+   <small>${v[5]}</small>
+   <div><input size="14" placeholder="assign agent/owner" value="${o}" onchange="S['slice:${k}']={o:this.value};save()"> <button onclick="navigator.clipboard.writeText(brief('${k}')).then(()=>this.textContent='Copied ✓')">Copy agent brief</button></div></div>`}).join("")}</div>`}).join("");
+ $("prs").innerHTML=`<thead><tr><th>PR / branch</th><th>State</th><th>Overlap with triaged tickets</th><th>Merge order</th><th>Action</th></tr></thead><tbody>${PRS.map(p=>`<tr><td><b>${p[0]}</b><br><small>${p[1]}</small></td><td>${p[2]}</td><td>${p[3]}</td><td><b>${p[4]}</b></td><td>${p[5]}</td></tr>`).join("")}</tbody>`+`<tfoot><tr><td colspan=5><b>Sequence:</b> ${ORDER.map(o=>o[0]+") "+o[1]).join(" → ")}. <small>Stale locals (verified MERGED via gh): fix/ben-set-up-pin #131, fix/ben-ranking-unique-tag #128, fix/ben-setup-honest #130, feat/ben-webgpu-gate #139, ci/pr-ben-eval #137. 9 dependabot locals have no open PR (UNVERIFIED if merged or closed). feature/course-qa-p1p2 is 374 behind main (old Veer branch).</small></td></tr></tfoot>`;
+ $("devs").innerHTML=Object.entries(DEVS).map(([k,n])=>{const its=D.filter(i=>work(i)&&dev(i)==k&&!isSlot(i)),sl=Object.keys(SL).filter(s=>SDEV[s]==k);
+  const c=p=>its.filter(i=>pri(i)==p).length;
+  return `<div class="sl"><h3 onclick="$('fdev').value='${k}';render()">${k=="Chair"?"Chair":"Dev "+k} · ${n}</h3>
+  <div>${["P0","P1","P2","P3"].map(p=>c(p)?`<span class="pri ${p}">${p}×${c(p)}</span> `:"").join("")}<span class="chip">${its.length} tickets</span>${its.some(i=>i.tier.startsWith("T1"))?'<span class="chip t1">T1 council</span>':""}</div>
+  <small>Slices (in order): ${sl.sort((a,b)=>SL[a][1]-SL[b][1]).map(s=>s+"(w"+SL[s][1]+")").join(" → ")}</small>
+  <small>${{A:"Starts now: O1 (QA R-01). Then M1 engine half, C1 after BATCH call. Hands panel UI bits of M1 to Dev B.",B:"Starts now: P1a focus set. Strict queue a→b→c→e; nobody else edits QaChatPanel.tsx. Blocked-by: #109 decision.",C:"Starts now: W2 (INT R-01 blocker). Then W1 after Dev A ships the gate spec. W3 after DEC-1. Rebase on #125 if kept.",D:"Starts now: L3 TTS, L5 counts, guards (INT R-27/R-28, QA R-28b). Then S1/A1/W4/S3 as DEC-1/2/4 land. Owns #109 rebase.",E:"Starts now: C2, L4 (after #132), L1→L2. Ends with Q1 live probes after fixes ship.",Chair:"Decide DEC-1…6 and #125/#109 fate. Unblocks C, D and B."}[k]||""}</small>
+  <div><input size="14" placeholder="name" value="${(S["dev:"+k]||{}).o||""}" onchange="S['dev:${k}']={o:this.value};save()"> ${k!="Chair"?`<button onclick="navigator.clipboard.writeText(sliceBriefs('${k}')).then(()=>this.textContent='Copied ✓')">Copy all briefs</button>`:""}</div></div>`}).join("");
+ const q=$("q").value.toLowerCase();
+ const PR={P0:0,P1:1,P2:2,P3:3};
+ $("rows").innerHTML=D.filter(i=>(!F||i.slice==F)&&(!$("fpri").value||pri(i)==$("fpri").value)&&(!$("fdev").value||dev(i)==$("fdev").value)&&(!$("fsev").value||i.sev==$("fsev").value)&&(!$("fst").value||st(i)==$("fst").value)&&(!q||(i.id+i.title).toLowerCase().includes(q))).sort((a,b)=>PR[pri(a)]-PR[pri(b)]||(SL[a.slice]?SL[a.slice][1]:9)-(SL[b.slice]?SL[b.slice][1]:9)).map(i=>`<tr class="${st(i)=="Done"?"done":""} ${OBS[i.id]?"obs":""} ${isSlot(i)?"slot":""}"><td><span class="pri ${pri(i)}">${pri(i)}</span></td><td><b>${i.id}</b></td><td class="sev ${i.sev.replace("?","")}">${i.sev}</td><td>${i.tier}</td><td class="ttl">${OBS[i.id]?`<span class="obsb">OBSOLETE</span> `:""}${i.title}${OBS[i.id]?`<div class="dep" style="text-decoration:none">${OBS[i.id]}</div>`:""}${NOTE[i.id]?`<div class="chk">✓ ${NOTE[i.id]}</div>`:""}${i.needs?`<div class="dep">after: ${i.needs}</div>`:""}</td><td>${i.slice}</td><td>${dev(i)}</td><td>${OBS[i.id]?`<span class="obsb">Obsolete</span>`:`<select onchange="S['${i.id}']={s:this.value};save();render()">${ST.filter(x=>x!="Obsolete").map(x=>`<option ${x==st(i)?"selected":""}>${x}</option>`).join("")}</select>`}</td></tr>`).join("");
+}
+function sliceBriefs(k){return Object.keys(SL).filter(s=>SDEV[s]==k).sort((a,b)=>SL[a][1]-SL[b][1]).map(s=>brief(s)).join("\n\n=========\n\n")}
+["fpri","fdev","fsl","fsev","fst","q"].forEach(i=>$(i).oninput=()=>{if(i=="fsl")F=$(i).value;render()});
+$("clr").onclick=()=>{F="";["fsl","fpri","fdev"].forEach(x=>$(x).value="");render()};
+$("exp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({slices:SL,items:D.map(i=>({...i,status:st(i)})),owners:Object.fromEntries(Object.entries(S).filter(([k])=>k.startsWith("slice:")))},null,1)]));a.download="triage.json";a.click()};
+render();
+</script></body></html>
