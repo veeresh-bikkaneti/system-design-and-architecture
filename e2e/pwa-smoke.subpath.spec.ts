@@ -47,7 +47,7 @@ test('SUB1 SCOPE GUARD: the worker registers with scope == the base path', async
         }),
       { timeout: 45000, intervals: [500] },
     )
-    .toMatch(new RegExp(`${BASE}sw\.js$`));
+    .toBe(`${new URL(page.url()).origin}${BASE}sw.js`);
 });
 
 test('SUB2 the manifest link resolves under the base and scopes to it', async ({ page, request }) => {
