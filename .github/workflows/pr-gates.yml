@@ -89,3 +89,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run build
       - run: npm run test:e2e
+      # Council 2026-11-02 (PR #109): prove the service worker at the GitHub
+      # Pages subpath. Same install and browser; rebuilds dist with the Pages
+      # base, then runs the subpath-only smoke (scope == base, manifest link,
+      # offline reload, file-like paths) against `vite preview` on that base.
+      - run: npm run build
+        env:
+          VITE_BASE_PATH: /system-design-and-architecture/
+      - run: npm run test:e2e:subpath

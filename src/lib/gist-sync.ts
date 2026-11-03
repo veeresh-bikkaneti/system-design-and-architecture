@@ -36,7 +36,10 @@ export function applySnapshot(snap: ProgressSnapshot): void {
     seenBadges: snap.seenBadges,
     celebratedBadges: snap.celebratedBadges,
   });
-  useSessionStore.getState().markClean(snap.rev);
+  // Pull must NOT mark clean: only a successful push marks clean (see
+  // pushSnapshot). Marking clean here stranded merged progress whenever
+  // the push then failed, and suppressed the push entirely on the next
+  // syncNow via its dirty early-return.
 }
 
 async function github<T>(token: string, path: string, init?: RequestInit): Promise<T> {
@@ -108,6 +111,9 @@ export async function pushSnapshot(
   gistId: string,
   snap: ProgressSnapshot,
 ): Promise<void> {
+  // Taken after the pull and snapshot, before the PATCH await: any markDirty
+  // after this point is a change the push does not contain.
+  const seq = useSessionStore.getState().changeSeq;
   const body = {
     v: 1,
     completedLessons: snap.completedLessons,
@@ -124,7 +130,7 @@ export async function pushSnapshot(
       files: { [GIST_FILENAME]: { content: JSON.stringify(body, null, 2) } },
     }),
   });
-  useSessionStore.getState().markClean(snap.rev);
+  useSessionStore.getState().markClean(snap.rev, seq);
 }
 
 export async function syncNow(opts?: { evenIfPaused?: boolean }): Promise<void> {

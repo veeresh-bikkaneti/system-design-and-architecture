@@ -28,6 +28,8 @@ export interface SessionFields {
   progressRev: number;
   pausedAt: number | null;
   dirty: boolean;
+  /** In-memory counter bumped by every markDirty; lets a push clean only what it pushed. */
+  changeSeq: number;
   loginPrompt: boolean;
 }
 
@@ -36,7 +38,7 @@ export interface SessionState extends SessionFields {
   setGistId: (gistId: string) => void;
   clearSession: () => void;
   markDirty: () => void;
-  markClean: (rev: number) => void;
+  markClean: (rev: number, atChangeSeq?: number) => void;
   pause: () => void;
   resume: () => void;
   loginPrompt: boolean;
@@ -53,6 +55,7 @@ const empty: SessionFields = {
   progressRev: 0,
   pausedAt: null,
   dirty: false,
+  changeSeq: 0,
   loginPrompt: false,
 };
 
@@ -74,8 +77,15 @@ export const useSessionStore = create<SessionState>()(
         set({ ...empty });
       },
 
-      markDirty: () => set({ dirty: true }),
-      markClean: (rev) => set({ dirty: false, progressRev: rev, lastSyncedAt: Date.now() }),
+      markDirty: () => set((s) => ({ dirty: true, changeSeq: s.changeSeq + 1 })),
+      // A push cleans only what it pushed: if markDirty ran after the
+      // snapshot (a change during the PATCH), stay dirty so it is pushed next.
+      markClean: (rev, atChangeSeq) =>
+        set((s) => ({
+          dirty: atChangeSeq !== undefined && atChangeSeq !== s.changeSeq,
+          progressRev: rev,
+          lastSyncedAt: Date.now(),
+        })),
       pause: () => set({ pausedAt: Date.now() }),
       resume: () => set({ pausedAt: null }),
       loginPrompt: false,

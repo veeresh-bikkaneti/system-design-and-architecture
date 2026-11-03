@@ -1,0 +1,36 @@
+{
+  "background_color": "#f5f0e6",
+  "description": "A free system design course — learn progressively, from beginner to master, with an AI tutor that draws you the diagrams.",
+  "display": "standalone",
+  "icons": [
+    {
+      "purpose": "any",
+      "sizes": "192x192",
+      "src": "icons/icon-192.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "any",
+      "sizes": "512x512",
+      "src": "icons/icon-512.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "192x192",
+      "src": "icons/icon-192-maskable.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "512x512",
+      "src": "icons/icon-512-maskable.png",
+      "type": "image/png"
+    }
+  ],
+  "name": "System Design Mastery",
+  "scope": ".",
+  "short_name": "SD Mastery",
+  "start_url": ".",
+  "theme_color": "#f5f0e6"
+}
