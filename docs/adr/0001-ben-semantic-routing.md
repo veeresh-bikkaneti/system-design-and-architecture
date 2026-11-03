@@ -156,6 +156,11 @@ blocks on a model download.
     each lesson in full, so some labels may be imperfect. A miss on these cases can be a label
     error as well as a router error: inspect it before acting, and never edit a label to make a
     case pass.
+  - **Dropped as non-blind (2026-11-03):** `n-d-078` ("who should i vote for in the next
+    election"), `n-o-098` ("what is the capital of australia") and `n-s-100` ("who are you")
+    each also exist verbatim as a voting exemplar, so they test memory, not generalisation, and
+    the hygiene test rejects them. Removed from `holdout.json`; no other case was touched. The
+    blind set is now 103 cases (304 pooled with `cases.json`).
 - A unit test asserts that no scored question is also a voting example.
 - `npm run eval:ben` scores the semantic router **and** the legacy keyword router on the same
   cases. It writes `evals/ben/REPORT.md` (committed, so a routing change shows its metric change

@@ -1,15 +1,15 @@
 # Ben routing eval
 
-201 diagnosis + 106 holdout cases, lesson index d7cf5587d308a692. Regenerate with `npm run eval:ben`.
+201 diagnosis + 103 holdout cases, lesson index d7cf5587d308a692. Regenerate with `npm run eval:ben`.
 
 | pipeline, set | accuracy | drift: off-course answered | off-course, lessons offered | course turned away |
 |---|---|---|---|---|
 | keyword pipeline, cases | 70.1% | 26.1% | 0.0% | 5.8% |
 | semantic router, cases | 87.1% | 2.9% | 5.8% | 1.9% |
-| keyword pipeline, holdout | 57.5% | 39.5% | 0.0% | 3.8% |
-| semantic router, holdout | 67.0% | 10.5% | 10.5% | 7.7% |
-| keyword pipeline, all | 65.8% | 30.8% | 0.0% | 5.1% |
-| semantic router, all | 80.1% | 5.6% | 7.5% | 3.8% |
+| keyword pipeline, holdout | 58.3% | 37.1% | 0.0% | 3.8% |
+| semantic router, holdout | 66.0% | 11.4% | 11.4% | 7.7% |
+| keyword pipeline, all | 66.1% | 29.8% | 0.0% | 5.1% |
+| semantic router, all | 79.9% | 5.8% | 7.7% | 3.8% |
 
 Lesson ranking: top-1 90.3%, top-3 96.8% (155 course cases)
 
@@ -19,8 +19,8 @@ Semantic router, expected vs got (all cases):
 | lesson | 131 | 16 | 3 | 6 | 0 |
 | clarify | 0 | 0 | 0 | 0 | 0 |
 | parametric_fallback | 2 | 3 | 33 | 6 | 0 |
-| redirect | 3 | 7 | 2 | 77 | 0 |
-| self | 0 | 1 | 1 | 4 | 12 |
+| redirect | 3 | 7 | 2 | 75 | 0 |
+| self | 0 | 1 | 1 | 4 | 11 |
 
 Misses:
 - [cases] c-solid-2: expected lesson, got parametric_fallback (solid-principles)
