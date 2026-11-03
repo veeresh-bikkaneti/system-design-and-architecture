@@ -29,6 +29,18 @@ fluff. Claude Code applies it through the `i-have-adhd` skill; other agents foll
 - Exceptions: an "explain" request may run long (still no preamble or closer), a destructive
   action is still confirmed first, and a rule never deletes the answer itself.
 
+## Owner question format (domain questions only)
+
+Technical questions are settled by the council and the advisor and are never sent to the owner (AGENTS.md section 2). This format narrows the owner-communication rule in section 11 (ADHD shape: next action first); it does not replace it. When a domain question is unavoidable, send ONE batched message. A reviewer can check each element:
+
+1. No preamble. The first line is the single next action the owner can take in under two minutes, with the answer options spelled out (for example "reply: 1 yes, 2 no, 3 a name").
+2. Each question has four labelled parts: `What it is` (how the thing works, in plain words), `Why now` (the history or rule that created the question and why it matters today), `Recommendation` (one recommendation and one reason), `If no answer` (what happens if the owner does not answer).
+3. One line headed `Already decided` lists what the council and advisor settled, so the owner does not have to.
+4. At most five items per message, most important first. Never ask the same question twice; say when an earlier question is still open.
+5. Technical detail stays in the linked record, not in the message.
+
+Helpers: agents that have the `/i-have-adhd`, `/pstack:how`, `/pstack:why` and `/unslop` skills use them to build and clean the message; the format above must hold without them.
+
 ## Handoff checkpoints (never leave work hanging on a limit)
 
 Checkpoint = after each merge, council verdict, PR opened or closed, owner decision, background agent started or finished, and again before any limit or session end. No warning is guaranteed; the checkpoints are the guarantee. If the harness supplies a limit notice, or a PreCompact or SessionEnd hook is configured, treat it as a final checkpoint (UNVERIFIED that a limit notice is delivered in every case).
