@@ -83,3 +83,10 @@ None yet. Skeptic (C) and advisor review pending; Chair decides.
 
 ## Chair decision
 Pending.
+
+## Status update (council lead, 2026-11-03) - supersedes the DRAFT status and the UNVERIFIED lines above
+
+- Status: D1 implemented and approved by council and advisor (record: `docs/council/2026-11-03-ben-index-determinism.md`). Independent review: verified with concerns, no blocking finding.
+- Condition 4 result: the Windows and Linux `chunkVectors` hashes DIFFER (`f9feac54...` local, `1837cd2f...` Linux CI); the `content` hash is identical. This is recorded as expected float variation between platforms. Each platform is deterministic on its own (six determinism tests pass on Linux), and the eval outcome is identical on both (87.1 / 2.9 / 5.8 / 1.9). Option C is NOT adopted: a text-keyed cache cannot make two platforms agree. The Linux/CI build is authoritative for the gates; local eval numbers are indicative; the `BEN_INDEX_HASH` line in the CI log is the reference.
+- Drift is 2.9% (2 of 69 off-course cases) against the 3.0% limit: zero slack. Independent measurement: the three newly missed cases moved by 0.02 or less across a decision line, or flipped one neighbour in a near-tie k-NN vote (boundary noise, inferred, not proven). Recorded risk: one more off-course flip turns the post-merge deploy red. Mitigation until D3 refreshes the measurement base: no content or router PR merges unless the advisory `PR Ben eval` summary is green on its exact head.
+- Next: D3 (new blind holdout, written by a fresh agent in a throwaway worktree holding only a copy of `content/lessons/`), then re-measure #135. D2 (router change) is only built if D3 or a content edit shows a gate failing.
