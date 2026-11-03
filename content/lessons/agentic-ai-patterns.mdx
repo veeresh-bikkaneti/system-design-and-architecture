@@ -85,14 +85,16 @@ into the walkie-talkie (plan), runs an errand (act), and reads what came back
 (observe). Then the whole whiteboard — now a little longer — gets re-read for the
 next round.
 
-The three things that separated an agent from a chatbot in the last lesson — tools
-for hands, the model driving the loop, every round re-paying the full context —
-all still hold; they just get more dangerous in a bullpen, where the whiteboard
+The three ingredients that separated an agent from a chatbot in the last lesson — tools
+for hands, a loop the model drives, and a goal — all still hold, and so does the
+catch from its failure modes: every round re-sends the full context. They just get
+more dangerous in a bullpen, where the whiteboard
 every intern perceives is the same one every intern writes to. One 2025 update:
 the tools themselves got standardized — **MCP** (Model Context Protocol) is the
 industry-standard wire for exposing tools to models, one server definition working
 across assistants and agents, with **A2A** for agent-to-agent handoffs. The ad-hoc
-per-vendor function schema is 2023 vintage. Keep the multiplication in your head;
+per-vendor tool wiring is 2023 vintage (tool inputs are still described with JSON
+Schema; MCP standardizes the plumbing around them). Keep the multiplication in your head;
 the numbers section will make you wince.
 
 <VideoCard videoId="Ncn6X3WxN9g" title="Agentic AI Explained: How AI Agents Actually Work" source="Devsplainers" description="Walks the perceive-plan-act-observe loop end to end until the rhythm feels natural." />
