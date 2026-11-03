@@ -17,7 +17,19 @@ import { isMainModule } from './is-main.mjs';
 export const INDEX_VERSION = 1;
 /** Section text kept for the reply and for Qwen's material. The vector sees all of it. */
 const TEXT_LIMIT = 700;
-const BATCH = 32;
+/**
+ * One chunk per forward pass, on purpose (issue #180). The q8 embedder gave a
+ * chunk a different vector depending on its batch neighbours: measured max-abs
+ * difference, alone vs inside a batch of 32, is up to 0.037. That is consistent
+ * with per-tensor activation quantization, but the cause is INFERRED, not
+ * isolated. Do not raise this: the determinism tests fail if it is not 1.
+ */
+export const BATCH = 1;
+
+/** Hash of the quantized bytes plus scales: the canonical form of an encoded matrix. */
+export function hashVectors({ data, scales }) {
+  return createHash('sha256').update(Buffer.from(data, 'base64')).update(JSON.stringify(scales)).digest('hex');
+}
 
 /** Quantize unit vectors to int8 with one float scale per row. */
 export function encodeVectors(rows) {
@@ -108,4 +120,6 @@ if (isMainModule(import.meta.url)) {
       `${index.intents.length} intent examples, ${(json.length / 1024).toFixed(0)} KB, ` +
       `${((Date.now() - started) / 1000).toFixed(1)}s`,
   );
+  // Stable single line: compare Windows vs Linux CI logs for the same commit.
+  console.log(`BEN_INDEX_HASH content=${index.content} chunkVectors=${hashVectors(index.chunkVectors)}`);
 }

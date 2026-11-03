@@ -48,6 +48,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run ben:index
+      - name: Ben index determinism (model required, no skip)
+        run: BEN_REQUIRE_MODEL=1 npx vitest run scripts/ben/build-index.determinism.test.ts
       - run: npm run eval:ben
       - name: Publish report to the run summary
         if: always()
