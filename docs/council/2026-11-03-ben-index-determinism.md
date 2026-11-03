@@ -46,3 +46,17 @@ Adopt all nine.
 - Post-merge: whoever merges watches the deploy.yml run to completion (the Chair role stays with the owner; the check is run by the council lead).
 
 Round count: 1 of 2. Sent to the advisor next; the reply is recorded in the following commit.
+
+### Advisor (Opus), reply, round 1, verbatim summary
+
+AGREE: adopt all nine. The Skeptic read the workflow files and found the silent CI skip, found isDefiniteTutorSetup already on main while techMajority exists only in a council diff, and confirmed public/ben/ is gitignored so the gates measure the Linux-built index. BATCH=1 over length-sorted batches is settled by the measurement (172 of 780 vectors still moved). One correction: the verdict's last line assigned the post-merge deploy watch ambiguously between the council lead and the Chair; the record must say one thing. The discriminating constraint for D1: does the advisory pr-ben-eval.yml job on the D1 branch build the index with BATCH=1 and run all 7 gates, and on which runtime path (onnxruntime-node or WASM)? If the advisory job does not build a fresh index, the merge protocol has no evidence source and D1+D2 must ship together. Two smaller notes: build-index.mjs must EMIT the content hash and chunkVectors hash (a code change in a scoped file, not only an acceptance condition); and the fourth test (env set, model absent, suite fails loudly) must actually run the failure path and cannot be satisfiable by a run where the model is present.
+
+### Verified before launching D1 (council lead)
+
+- .github/workflows/pr-ben-eval.yml runs on pull_request when the PR touches src/ai/local/**, scripts/ben/**, evals/ben/**, content/lessons/**, package.json and a few others. D1 touches scripts/ben/**, so the job runs. It does `npm ci`, `npm run ben:index` (the PR branch's own build-index.mjs, so BATCH=1), then `npm run eval:ben`, then publishes evals/ben/REPORT.md to the run summary. It is continue-on-error and has a 15 minute timeout. So the evidence source for the 7-gate result exists and is the Linux-built index.
+- deploy.yml runs `npm run test` (line 34) before `npm run ben:index` (line 37) and `npm run eval:ben` (line 38), confirming the silent-skip finding.
+- scripts/ben/embedder.mjs uses the onnxruntime-web WASM build inside Node (lines 72-117), the same runtime path on Windows and Linux. That makes cross-OS equality plausible but it stays UNVERIFIED until the recorded hash comparison.
+
+### Outcome
+
+Round count: 1 of 2. Advisor: AGREE. Decided by council and advisor under the owner's standing instruction of 2026-11-02. Correction applied: the council lead runs the post-merge deploy watch and attaches the result to the PR; the owner's merge word is unchanged. D1 scoped files (explicit exception to the 3-file cap, justified by finding B1): scripts/ben/build-index.mjs (BATCH=1, emit content hash and chunkVectors hash), scripts/ben/build-index.determinism.test.ts (BEN_REQUIRE_MODEL=1; the fourth test runs the suite in a subprocess with the env set and the model directory pointed at a missing path and asserts a non-zero exit, so the failure path really runs), .github/workflows/pr-ben-eval.yml and .github/workflows/deploy.yml (run the determinism test as its own step after ben:index with BEN_REQUIRE_MODEL=1).
