@@ -2,18 +2,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * M1 / QA R-02 phase 1: FAILING acceptance tests for the model-load readiness
- * contract (see docs/manifests/m1-ben-model-load.md). Nothing here changes
- * behaviour; the fix lands in M1a.
+ * M1a / QA R-02: acceptance tests for the model-load readiness contract (see
+ * docs/manifests/m1-ben-model-load.md and the council verdict).
  *
  * The WebLLM engine is stubbed, so these pin the state machine and the bounded
  * wait, NOT real WebGPU / Prompt API behaviour (UNVERIFIED in CI).
  *
- * Proposed contract (names are proposals, the Skeptic may rename):
- *   - no-progress bound  : a load with no download progress for 60 s fails.
- *   - slow progress      : any progress event re-arms the bound; no total cap.
- *   - cancelModelLoad()  : phase 'cancelled', pending callers resolve null.
- *   - getLoadTiming()    : { startedAt, firstProgressAt, readyAt, errorCount }.
+ * Contract (the 120 s / 60 s values are UNVERIFIED defaults):
+ *   - before the first progress event: 120 s; after any event: 60 s, re-armed per event.
+ *   - no total cap; cancel is restartable only via retryModelLoad(); failed is sticky.
+ *   - getLoadTiming(): local numbers only.
  */
 
 const createEngine = vi.fn();
@@ -23,7 +21,8 @@ vi.mock('@mlc-ai/web-llm', () => ({
   CreateMLCEngine: (...args: unknown[]) => createEngine(...args),
 }));
 
-const NO_PROGRESS_BOUND_MS = 60_000;
+const FIRST_MS = 120_000;
+const STALL_MS = 60_000;
 
 type Progress = (report: { progress: number; text: string }) => void;
 let reportProgress: Progress = () => {};
@@ -41,7 +40,7 @@ function hangingEngine() {
 }
 
 const readyEngine = {
-  chat: { completions: { create: async () => ({ choices: [{ message: { content: 'ok' } }] }) } },
+  chat: { completions: { create: async () => ({ choices: [{ message: { content: 'A cache keeps recent results close so repeated reads are fast.' } }] }) } },
 };
 
 const load = async () => {
@@ -75,17 +74,19 @@ afterEach(() => {
 });
 
 describe('M1a bounded wait: no progress versus slow progress', () => {
-  it('a create() that never settles and never reports progress fails within the bound', async () => {
+  it('a create() that never settles and never reports progress fails at 120 s, not 60 s', async () => {
     hangingEngine();
     const { answerParametrically, getModelStatus } = await load();
     const answer = answerParametrically('what is amazon', '');
-    await vi.advanceTimersByTimeAsync(NO_PROGRESS_BOUND_MS);
+    await vi.advanceTimersByTimeAsync(FIRST_MS - 1);
+    expect(await state(answer)).toBe('pending'); // long silence is fine before the first event
+    await vi.advanceTimersByTimeAsync(1);
     expect(await state(answer)).toBe('settled');
     expect(await answer).toBeNull();
     expect(getModelStatus().phase).toBe('failed');
   });
 
-  it('slow but steady progress is NOT failed (guard: passes today and must keep passing)', async () => {
+  it('slow but steady progress is NOT failed (no total cap)', async () => {
     hangingEngine();
     const { answerParametrically, getModelStatus } = await load();
     const answer = answerParametrically('what is amazon', '');
@@ -99,22 +100,39 @@ describe('M1a bounded wait: no progress versus slow progress', () => {
     expect(await state(answer)).toBe('pending');
   });
 
-  it('progress that then goes silent for the bound fails (stall after start)', async () => {
+  it('progress that then goes silent fails at exactly 60 s, not before and not at 120 s', async () => {
     hangingEngine();
     const { answerParametrically, getModelStatus } = await load();
     const answer = answerParametrically('what is amazon', '');
     await vi.advanceTimersByTimeAsync(0);
     reportProgress({ progress: 0.2, text: 'Fetching param cache' });
-    await vi.advanceTimersByTimeAsync(NO_PROGRESS_BOUND_MS);
+    await vi.advanceTimersByTimeAsync(STALL_MS - 1);
+    expect(await state(answer)).toBe('pending');
+    await vi.advanceTimersByTimeAsync(1);
     expect(await state(answer)).toBe('settled');
     expect(getModelStatus().phase).toBe('failed');
+  });
+
+  it('an event at 59 s re-arms the bound (59 s more of silence is still fine, 60 s fails)', async () => {
+    hangingEngine();
+    const { answerParametrically, getModelStatus } = await load();
+    const answer = answerParametrically('q', '');
+    await vi.advanceTimersByTimeAsync(0);
+    reportProgress({ progress: 0.1, text: 'a' });
+    await vi.advanceTimersByTimeAsync(59_000);
+    reportProgress({ progress: 0.2, text: 'b' });
+    await vi.advanceTimersByTimeAsync(59_000);
+    expect(await state(answer)).toBe('pending');
+    expect(getModelStatus().phase).toBe('loading');
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(await state(answer)).toBe('settled');
   });
 
   it('a stall-failure is sticky: no second CreateMLCEngine, even if the old create() settles later (S8 holds)', async () => {
     hangingEngine();
     const { answerParametrically, getModelStatus } = await load();
     const first = answerParametrically('q', '');
-    await vi.advanceTimersByTimeAsync(NO_PROGRESS_BOUND_MS);
+    await vi.advanceTimersByTimeAsync(FIRST_MS);
     expect(await state(first)).toBe('settled');
     expect(await first).toBeNull();
     expect(await answerParametrically('q', '')).toBeNull();
@@ -132,7 +150,6 @@ describe('M1a cancel', () => {
     const answer = mod.answerParametrically('what is amazon', '');
     await vi.advanceTimersByTimeAsync(0);
     expect(mod.getModelStatus().phase).toBe('loading');
-    // @ts-expect-error cancelModelLoad does not exist yet (M1a adds it)
     mod.cancelModelLoad();
     expect(await state(answer)).toBe('settled');
     expect(await answer).toBeNull();
@@ -144,7 +161,6 @@ describe('M1a cancel', () => {
     const mod = await load();
     const first = mod.answerParametrically('q', '');
     await vi.advanceTimersByTimeAsync(0);
-    // @ts-expect-error cancelModelLoad does not exist yet (M1a adds it)
     mod.cancelModelLoad();
     expect(await state(first)).toBe('settled');
     expect(await mod.answerParametrically('q', '')).toBeNull();
@@ -152,8 +168,8 @@ describe('M1a cancel', () => {
   });
 });
 
-describe('M1c timing instrumentation (no load-time claim without data)', () => {
-  it('records start, first progress, ready and the error count', async () => {
+describe('M1a timing instrumentation (no load-time claim without data)', () => {
+  it('records start, first progress, ready, the event count and the error count', async () => {
     hangingEngine();
     const mod = await load();
     const answer = mod.answerParametrically('q', '');
@@ -163,19 +179,144 @@ describe('M1c timing instrumentation (no load-time claim without data)', () => {
     resolveEngine(readyEngine);
     await vi.advanceTimersByTimeAsync(0);
     await answer;
-    // @ts-expect-error getLoadTiming does not exist yet (M1c adds it)
     const timing = mod.getLoadTiming();
     expect(timing.startedAt).toBeTypeOf('number');
-    expect(timing.firstProgressAt - timing.startedAt).toBeGreaterThanOrEqual(5_000);
-    expect(timing.readyAt - timing.firstProgressAt).toBeGreaterThanOrEqual(10_000);
+    expect(timing.firstProgressAt! - timing.startedAt!).toBeGreaterThanOrEqual(5_000);
+    expect(timing.readyAt! - timing.firstProgressAt!).toBeGreaterThanOrEqual(10_000);
+    expect(timing.progressEvents).toBe(1);
     expect(timing.errorCount).toBe(0);
   });
 
-  it('counts a failed load', async () => {
+  it('counts a failed load and keeps no message text', async () => {
     createEngine.mockRejectedValue(new Error('Failed to fetch'));
     const mod = await load();
     await mod.answerParametrically('q', '');
-    // @ts-expect-error getLoadTiming does not exist yet (M1c adds it)
-    expect(mod.getLoadTiming().errorCount).toBe(1);
+    const timing = mod.getLoadTiming();
+    expect(timing.errorCount).toBe(1);
+    expect(Object.values(timing).every((v) => v === null || typeof v === 'number')).toBe(true);
+  });
+});
+
+describe('M1a late settles and retry', () => {
+  it('a late resolve after cancel never reaches ready, publishes nothing, and unloads the engine', async () => {
+    hangingEngine();
+    const mod = await load();
+    const answer = mod.answerParametrically('q', '');
+    await vi.advanceTimersByTimeAsync(0);
+    mod.cancelModelLoad();
+    await answer;
+    const seen: unknown[] = [];
+    const unsubscribe = mod.subscribeModel((s) => seen.push(s));
+    seen.length = 0; // drop the replay of the current status
+    reportProgress({ progress: 0.9, text: 'late' });
+    const unload = vi.fn();
+    resolveEngine({ ...readyEngine, unload });
+    await vi.advanceTimersByTimeAsync(0);
+    unsubscribe();
+    expect(seen).toEqual([]);
+    expect(mod.getModelStatus().phase).toBe('cancelled');
+    expect(unload).toHaveBeenCalledTimes(1);
+    expect(mod.getLoadTiming().progressEvents).toBe(0);
+  });
+
+  it("cancel then retry makes a second CreateMLCEngine call and the old call's late resolve is ignored", async () => {
+    hangingEngine();
+    const mod = await load();
+    const first = mod.answerParametrically('q', '');
+    await vi.advanceTimersByTimeAsync(0);
+    const resolveOld = resolveEngine;
+    mod.cancelModelLoad();
+    await first;
+    mod.retryModelLoad();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(createEngine).toHaveBeenCalledTimes(2);
+    expect(mod.getModelStatus().phase).toBe('loading');
+    resolveOld(readyEngine); // stale generation
+    await vi.advanceTimersByTimeAsync(0);
+    expect(mod.getModelStatus().phase).toBe('loading');
+    resolveEngine(readyEngine);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(mod.getModelStatus().phase).toBe('ready');
+    expect(await mod.answerParametrically('q', '')).toContain('cache');
+  });
+
+  it('retryModelLoad() after a failure is a no-op (failed is sticky)', async () => {
+    hangingEngine();
+    const mod = await load();
+    const answer = mod.answerParametrically('q', '');
+    await vi.advanceTimersByTimeAsync(FIRST_MS);
+    await answer;
+    mod.retryModelLoad();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(createEngine).toHaveBeenCalledTimes(1);
+    expect(mod.getModelStatus().phase).toBe('failed');
+  });
+
+  it('retryModelLoad() while idle or loading does nothing', async () => {
+    hangingEngine();
+    const mod = await load();
+    mod.retryModelLoad();
+    expect(createEngine).not.toHaveBeenCalled();
+    void mod.answerParametrically('q', '');
+    await vi.advanceTimersByTimeAsync(0);
+    mod.retryModelLoad();
+    expect(createEngine).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('M1a Prompt API create()', () => {
+  type Opts = { monitor?: (m: EventTarget) => void; signal?: AbortSignal };
+  const hangingPrompt = () => {
+    let monitor: Opts['monitor'];
+    let signal: AbortSignal | undefined;
+    const create = vi.fn((opts: Opts) => {
+      monitor = opts.monitor;
+      signal = opts.signal;
+      return new Promise(() => {});
+    });
+    vi.stubGlobal('LanguageModel', { availability: () => Promise.resolve('downloadable'), create });
+    return { monitor: () => monitor, signal: () => signal };
+  };
+
+  it('a create() with no event fails at 120 s and aborts the signal it was given', async () => {
+    const p = hangingPrompt();
+    const mod = await load();
+    const answer = mod.answerParametrically('q', '');
+    await vi.advanceTimersByTimeAsync(FIRST_MS - 1);
+    expect(await state(answer)).toBe('pending');
+    expect(p.signal()?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await state(answer)).toBe('settled');
+    expect(mod.getModelStatus().phase).toBe('failed');
+    expect(p.signal()?.aborted).toBe(true);
+    expect(createEngine).not.toHaveBeenCalled(); // an abandoned load must not fall through to WebLLM
+  });
+
+  it('downloadprogress events re-arm the 60 s stall bound', async () => {
+    const p = hangingPrompt();
+    const mod = await load();
+    const answer = mod.answerParametrically('q', '');
+    await vi.advanceTimersByTimeAsync(0);
+    const target = new EventTarget();
+    p.monitor()?.(target);
+    await vi.advanceTimersByTimeAsync(30_000);
+    target.dispatchEvent(Object.assign(new Event('downloadprogress'), { loaded: 0.1 }));
+    expect(mod.getModelStatus().progress).toBe(10);
+    await vi.advanceTimersByTimeAsync(STALL_MS - 1);
+    expect(await state(answer)).toBe('pending');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await state(answer)).toBe('settled');
+    expect(mod.getModelStatus().phase).toBe('failed');
+  });
+
+  it('cancel aborts the Prompt API signal', async () => {
+    const p = hangingPrompt();
+    const mod = await load();
+    const answer = mod.answerParametrically('q', '');
+    await vi.advanceTimersByTimeAsync(0);
+    mod.cancelModelLoad();
+    await answer;
+    expect(p.signal()?.aborted).toBe(true);
+    expect(mod.getModelStatus().phase).toBe('cancelled');
   });
 });

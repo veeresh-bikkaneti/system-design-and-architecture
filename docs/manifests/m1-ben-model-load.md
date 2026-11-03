@@ -69,3 +69,18 @@ failed | cancelled | ready: no automatic transition; late settles of an abandone
 **Approvals / votes / dissent:** pending (Skeptic C + advisor; Chair Liz decides). T2 needs Chair + Skeptic.
 
 **Chair decision:** pending.
+
+## Library facts (verified from installed source)
+
+Read at M1a GATE 1 from `node_modules/@mlc-ai/web-llm` 0.2.85 (`package.json`), file `lib/index.js` unless noted. Line numbers are of that installed file.
+
+- `CreateMLCEngine` is just `new MLCEngine(config)` then `await engine.reload(modelId)` and returns the engine only after the load finishes (12922-12927). It takes no abort option.
+- The library does have an abort path, but only through the engine instance: `reload()` creates an `AbortController` (13001) and passes its signal to the config, wasm and weight fetches (13041, 13065, 13115); `engine.unload()` aborts it (13160-13161). `reload()` swallows the `AbortError` and returns normally (13008-13012). Because `CreateMLCEngine` hides the instance until the load ends, M1a cannot call `unload()` mid-load. M1a abandons the wait (the download may continue in the background) and calls `unload()` on a late-arriving engine. Using `new MLCEngine(...)` + `reload()` directly would give a true abort, but would change what `inference.test.ts` mocks; deferred as a follow-up, not done.
+- Progress cadence: one event "Start to fetch params" (8005-8010 region), then one event per finished weight shard during download (`reportCallback` after each shard, 7572-7574; 4 parallel download loops, 7576-7583), then one per shard while loading to the GPU (loading phase), then "Loading GPU shader modules" events throttled to at most one per second (8012-8025), then a final `progress: 1` "Finish loading" (13131-13137). So events are per shard, not per byte: a slow link waits one whole shard between events.
+- Shard size: NOT in the installed package. It comes from the remote `ndarray-cache.json` (`nbytes` per record, 7518-7520). UNVERIFIED, so the 120 s / 60 s numbers stay UNVERIFIED defaults.
+- Whether the silent phases (adapter request, dynamic import, config fetch, wasm fetch) are long: UNVERIFIED; that is what the 120 s first-event window is for.
+- Prompt API: the only types available are the repo's own ambient `src/ai/local/promptApi.d.ts`, which has `monitor` (`downloadprogress`) and no `signal`. M1a passes `signal` anyway (the Chrome docs list it for `create()`; UNVERIFIED here, no Chrome source available) and the browser ignores it if unsupported. Whether `downloadprogress` fires during a stall: UNVERIFIED.
+
+## M1a implemented (what changed)
+
+`src/ai/local/inference.ts` only, plus `inference.readiness.test.ts`. Two-stage bound: 120 s before the first progress event, 60 s after, re-armed on each event, no total cap (numbers unchanged, GATE 1 gave no evidence to change them). The same bound covers the Prompt API `create()` and passes it an `AbortSignal`. Phases `idle/loading/ready/failed/cancelled`; `cancelModelLoad()`; `retryModelLoad()` works only from `cancelled`; failed is sticky. A per-load generation check ignores late progress and late settles; a late engine is discarded and `unload()` is called if it exists. `getLoadTiming()` returns `{ startedAt, firstProgressAt, readyAt, progressEvents, errorCount }`, numbers only, local, no message text (this is M1a, not M1c; the M1c labels in the phase-1 text above are stale). All `@ts-expect-error` comments removed. Cancel and fail abandon the wait; the WebLLM download may continue in the background.

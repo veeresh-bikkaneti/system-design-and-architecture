@@ -19,7 +19,7 @@ import { tokenize } from './retrieve';
  */
 
 export type EngineKind = 'prompt-api' | 'webllm';
-export type ModelPhase = 'idle' | 'loading' | 'ready' | 'failed';
+export type ModelPhase = 'idle' | 'loading' | 'ready' | 'failed' | 'cancelled';
 
 export interface ModelStatus {
   phase: ModelPhase;
@@ -29,11 +29,30 @@ export interface ModelStatus {
 
 interface Engine {
   kind: EngineKind;
+  /** Shown in the header once this engine is ready. */
+  label: string;
   generate(system: string, user: string): Promise<string>;
+  /** Release a load that finished after we had already given up on it. */
+  dispose?(): void;
 }
 
 export const MODEL_LABEL = 'On-device AI';
 export const MODEL_UNAVAILABLE = 'On-device model unavailable · answering from the lessons';
+export const MODEL_CANCELLED = 'On-device model load stopped · answering from the lessons';
+
+/**
+ * Two-stage "no news" bound. There is deliberately NO total cap: a slow but
+ * steady download (QA saw 3-6 %/min) must never be killed for being slow.
+ * - Before the first progress event the load still has the WebGPU adapter
+ *   request, the dynamic import and the config fetch to get through.
+ * - After any progress event the next one must follow within the stall window.
+ * UNVERIFIED defaults: WebLLM reports once per finished weight shard (and
+ * about once a second while compiling shaders), and the shard size comes from
+ * a remote manifest that is not in the installed package, so the right numbers
+ * need a live throttled-network run (getLoadTiming records the data).
+ */
+export const FIRST_PROGRESS_TIMEOUT_MS = 120_000;
+export const STALL_TIMEOUT_MS = 60_000;
 
 let status: ModelStatus = { phase: 'idle', progress: 0, detail: 'Not loaded' };
 const listeners = new Set<(next: ModelStatus) => void>();
@@ -53,30 +72,67 @@ export function subscribeModel(listener: (next: ModelStatus) => void): () => voi
   return () => listeners.delete(listener);
 }
 
-async function tryPromptApi(): Promise<Engine | null> {
+/** Local-only load timing (ms since epoch). Numbers only: no message text, nothing is sent anywhere. */
+export interface LoadTiming {
+  startedAt: number | null;
+  firstProgressAt: number | null;
+  readyAt: number | null;
+  progressEvents: number;
+  errorCount: number;
+}
+
+const timing: LoadTiming = {
+  startedAt: null,
+  firstProgressAt: null,
+  readyAt: null,
+  progressEvents: 0,
+  errorCount: 0,
+};
+
+export function getLoadTiming(): LoadTiming {
+  return { ...timing };
+}
+
+/** What a running load may do. All of it is a no-op once the load has been abandoned. */
+interface LoadContext {
+  signal: AbortSignal;
+  alive(): boolean;
+  /** A real progress event from the library: counts it and re-arms the stall bound. */
+  progress(next: ModelStatus): void;
+  /** A status line that is not a library progress event (does not re-arm the bound). */
+  note(next: ModelStatus): void;
+}
+
+class LoadAbandoned extends Error {}
+
+async function tryPromptApi(ctx: LoadContext): Promise<Engine | null> {
   if (typeof LanguageModel === 'undefined') return null;
   const languageModel = LanguageModel;
   try {
     const availability = await languageModel.availability();
     if (availability === 'unavailable') return null;
 
-    publish({ phase: 'loading', progress: 0, detail: "Starting the browser's built-in AI" });
-    const probe = await languageModel.create({
+    ctx.note({ phase: 'loading', progress: 0, detail: "Starting the browser's built-in AI" });
+    // `signal` is part of the Prompt API's create() options; the ambient type in
+    // promptApi.d.ts predates it, so it is added here.
+    const options: LanguageModelCreateOptions & { signal?: AbortSignal } = {
+      signal: ctx.signal,
       monitor(monitor) {
         monitor.addEventListener('downloadprogress', (event) => {
-          publish({
+          ctx.progress({
             phase: 'loading',
             progress: Math.round(event.loaded * 100),
             detail: "Downloading the browser's built-in AI",
           });
         });
       },
-    });
+    };
+    const probe = await languageModel.create(options);
     probe.destroy();
 
-    publish({ phase: 'ready', progress: 100, detail: "Built-in browser AI" });
     return {
       kind: 'prompt-api',
+      label: 'Built-in browser AI',
       async generate(system, user) {
         // A fresh session per turn: the grounded context (system) changes on
         // every call, so nothing should carry over from the previous question.
@@ -95,7 +151,7 @@ async function tryPromptApi(): Promise<Engine | null> {
   }
 }
 
-async function loadWebLlm(): Promise<Engine> {
+async function loadWebLlm(ctx: LoadContext): Promise<Engine> {
   // No GPU, no point: skip the big import and the weights download and fail now
   // instead of after a long wait. We only ask for an adapter (fallback ones are
   // fine) and never a device, so this costs next to nothing.
@@ -107,16 +163,20 @@ async function loadWebLlm(): Promise<Engine> {
   }
   if (!adapter) throw new Error('No WebGPU adapter on this device.');
 
-  publish({ phase: 'loading', progress: 0, detail: 'Fetching WebLLM' });
+  ctx.note({ phase: 'loading', progress: 0, detail: 'Fetching WebLLM' });
   const webllm = await import('@mlc-ai/web-llm');
+  if (!ctx.alive()) throw new LoadAbandoned();
   const candidate = webllm.prebuiltAppConfig.model_list.find((entry) =>
     entry.model_id.startsWith('Qwen2.5-0.5B-Instruct'),
   );
   if (!candidate) throw new Error('No small WebLLM model is registered.');
 
+  // CreateMLCEngine has no abort option and only hands back the engine once it
+  // has finished loading. Abandoning the wait therefore cannot stop the download
+  // (it may continue in the background); a late result is discarded via dispose().
   const engine = await webllm.CreateMLCEngine(candidate.model_id, {
     initProgressCallback: (report: { progress: number; text: string }) => {
-      publish({
+      ctx.progress({
         phase: 'loading',
         progress: Math.round(report.progress * 100),
         detail: report.text || 'Downloading weights',
@@ -124,9 +184,13 @@ async function loadWebLlm(): Promise<Engine> {
     },
   });
 
-  publish({ phase: 'ready', progress: 100, detail: `${MODEL_LABEL} (WebLLM) on this device` });
   return {
     kind: 'webllm',
+    label: `${MODEL_LABEL} (WebLLM) on this device`,
+    dispose() {
+      // unload() exists on real engines; stubs in tests may not have it.
+      void (engine as { unload?: () => Promise<void> }).unload?.();
+    },
     async generate(system, user) {
       const reply = await engine.chat.completions.create({
         messages: [
@@ -142,24 +206,113 @@ async function loadWebLlm(): Promise<Engine> {
 }
 
 let enginePromise: Promise<Engine> | null = null;
+let generation = 0;
+/** Ends the load in flight (if any) as failed or cancelled. */
+let endActiveLoad: ((phase: 'failed' | 'cancelled', error: Error) => void) | null = null;
+
+function startLoad(): Promise<Engine> {
+  const mine = ++generation;
+  const abort = new AbortController();
+  let done = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  timing.startedAt = Date.now();
+  timing.firstProgressAt = null;
+  timing.readyAt = null;
+  timing.progressEvents = 0;
+
+  const promise = new Promise<Engine>((resolve, reject) => {
+    const alive = () => !done && mine === generation;
+    const end = (phase: 'failed' | 'cancelled', error: Error) => {
+      if (!alive()) return;
+      done = true;
+      clearTimeout(timer);
+      endActiveLoad = null;
+      // Abandon the wait. The Prompt API create() honours the signal; WebLLM's
+      // download may carry on in the background and is discarded if it lands.
+      abort.abort();
+      if (phase === 'failed') {
+        timing.errorCount++;
+        console.error(error); // the message stays in the console, never in getLoadTiming()
+      }
+      publish({
+        phase,
+        progress: 0,
+        detail: phase === 'failed' ? MODEL_UNAVAILABLE : MODEL_CANCELLED,
+      });
+      reject(error);
+    };
+    const arm = (ms: number) => {
+      clearTimeout(timer);
+      timer = setTimeout(
+        () => end('failed', new Error(`No model progress for ${ms / 1000} s.`)),
+        ms,
+      );
+    };
+    const ctx: LoadContext = {
+      signal: abort.signal,
+      alive,
+      note(next) {
+        if (alive()) publish(next);
+      },
+      progress(next) {
+        if (!alive()) return;
+        timing.progressEvents++;
+        timing.firstProgressAt ??= Date.now();
+        arm(STALL_TIMEOUT_MS);
+        publish(next);
+      },
+    };
+
+    endActiveLoad = end;
+    publish({ phase: 'loading', progress: 0, detail: 'Getting the on-device AI ready' });
+    arm(FIRST_PROGRESS_TIMEOUT_MS);
+    void (async () => {
+      const promptApi = await tryPromptApi(ctx);
+      if (promptApi) return promptApi;
+      if (!alive()) throw new LoadAbandoned();
+      return loadWebLlm(ctx);
+    })().then(
+      (engine) => {
+        if (!alive()) {
+          engine.dispose?.(); // late arrival after cancel/fail/retry: throw it away
+          return;
+        }
+        done = true;
+        clearTimeout(timer);
+        endActiveLoad = null;
+        timing.readyAt = Date.now();
+        publish({ phase: 'ready', progress: 100, detail: engine.label });
+        resolve(engine);
+      },
+      (error: unknown) => end('failed', error instanceof Error ? error : new Error(String(error))),
+    );
+  });
+  // Waiting callers handle the rejection; this just keeps an unwatched one quiet.
+  promise.catch(() => {});
+  return promise;
+}
 
 function loadEngine(): Promise<Engine> {
   if (typeof window === 'undefined') {
     return Promise.reject(new Error('The local model only runs in the browser.'));
   }
-  if (!enginePromise) {
-    enginePromise = (async () => {
-      const promptApi = await tryPromptApi();
-      if (promptApi) return promptApi;
-      return loadWebLlm();
-    })().catch((error: unknown) => {
-      // Keep the rejected promise so a later wording call does not refetch Hub weights.
-      console.error(error);
-      publish({ phase: 'failed', progress: 0, detail: MODEL_UNAVAILABLE });
-      throw error;
-    });
-  }
+  // The settled promise is kept on purpose: failed and cancelled loads stay that
+  // way, so a later wording call never refetches Hub weights (S8).
+  enginePromise ??= startLoad();
   return enginePromise;
+}
+
+/** Stop waiting for the model. Waiting callers resolve null; later questions do not restart it. */
+export function cancelModelLoad(): void {
+  if (status.phase === 'loading') endActiveLoad?.('cancelled', new Error('Model load cancelled.'));
+}
+
+/** Explicit "try again", allowed only after a cancel. A failed load stays failed until reload. */
+export function retryModelLoad(): void {
+  if (status.phase !== 'cancelled') return;
+  enginePromise = null;
+  void loadEngine().catch(() => {});
 }
 
 export const SYSTEM_PROMPT =
