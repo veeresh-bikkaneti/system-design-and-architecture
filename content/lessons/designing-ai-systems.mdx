@@ -109,6 +109,16 @@ The pipeline has five stages, and each one is a place quality can quietly die:
    the sous-chef re-checking the stack of pulled cards and keeping only the ones
    actually worth cooking from.
    Retrieval is a funnel: wide and cheap at the top, narrow and careful at the bottom.
+
+   Why a second pass at all? The first stage is usually a **bi-encoder**: question and
+   chunks are embedded *separately*, so every chunk's vector is precomputed and search is
+   just "find nearby points" — fast, but the question and chunk never meet, so subtle
+   relevance gets lost. A reranker is usually a **cross-encoder**: it reads the question and
+   one candidate *together* and outputs a relevance score, which is far sharper but needs a
+   fresh model pass per candidate, per query. That's the trade-off: you pay extra latency
+   and compute (it grows with the number of candidates and the model size — measure
+   yours) for better top-5 quality, and you keep it affordable by only reranking the
+   short list, never the whole corpus.
 5. **Generate.** The question plus the winning chunks go into the prompt, and the model
    answers with the evidence in front of it. Ask it to cite which card each claim came
    from and you get provenance for free.
@@ -249,8 +259,9 @@ Walk one loop yourself:
 One 2025 update to the "tools" ingredient: the industry converged on **MCP** (Model
 Context Protocol) — an open standard for exposing tools to models, so one server
 definition works across assistants and agents instead of every vendor getting a
-bespoke function schema. Describing tools purely as ad-hoc JSON schemas is 2023-era
-advice now. And agents started calling *each other*: **A2A** (Agent-to-Agent) is the
+bespoke wiring. MCP doesn't retire the schema, though: each MCP tool still declares its
+inputs with JSON Schema; what changed is that discovery and calling are standardized, not
+re-invented per vendor. And agents started calling *each other*: **A2A** (Agent-to-Agent) is the
 protocol for agent-to-agent handoffs — one intern formally delegating to another,
 task and context passed along.
 
@@ -539,6 +550,9 @@ Want to keep pulling this thread? These talks and tutorials go further than we d
 
 - Patrick Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks," NeurIPS 2020 — the original RAG paper: a generator with parametric memory plus a dense vector index as non-parametric memory you can swap without retraining.
 - Shunyu Yao et al., "ReAct: Synergizing Reasoning and Acting in Language Models," ICLR 2023 (arXiv Oct 2022) — interleaving reasoning traces with tool actions; the ancestor of the agent loop.
+- Rodrigo Nogueira and Kyunghyun Cho, ["Passage Re-ranking with BERT"](https://arxiv.org/abs/1901.04085), arXiv 2019 — a cross-encoder reranking a retriever's short list.
+- Sentence-Transformers docs, ["Retrieve & Re-Rank"](https://www.sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html) — bi-encoder retrieval followed by cross-encoder reranking, and why.
+- Model Context Protocol specification, ["Tools"](https://modelcontextprotocol.io/specification/2025-06-18/server/tools) (2025-06-18) — tools declare `inputSchema` as JSON Schema; discovery and calling are standardized.
 - Anthropic, "Building Effective Agents" (Dec 2024) — workflows vs. agents, and the case for simple, composable patterns over frameworks.
 - OpenAI, "Prompt caching" (platform docs) — how prefix KV-state reuse cuts time-to-first-token and cached input cost, and why prompt order matters.
 - Woosuk Kwon et al., "Efficient Memory Management for Large Language Model Serving with PagedAttention," SOSP 2023 — paging the KV cache to kill fragmentation; reports 2–4× serving throughput at the same latency.

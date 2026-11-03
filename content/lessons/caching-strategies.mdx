@@ -165,6 +165,30 @@ Defenses, from simplest to fanciest:
 
 <VideoCard videoId="EmorKmfITQE" title="Why Expired Cache Keys CRASH Databases | Interview Question #42" source="Binary Dose" description="One expired TTL and 10,000 requests rush the DB at once — like a concert crowd squeezing through a single door." />
 
+## Cache warming: open the restaurant with the prep done
+
+Every defense above handles a key that *was* hot. **Cache warming** handles the opposite
+moment: the cache is empty (fresh deploy, restart, new region, failover) and every first
+request is a guaranteed miss. Warming means filling the cache *before* real users need it,
+so the first customer of the night doesn't wait while the kitchen chops onions.
+
+The flavours, roughly from simplest to fanciest:
+
+- **Eager pre-population at deploy or startup.** A script or boot hook loads a known-hot
+  set (top products, config, home-page data) before the instance takes traffic. Simple, but
+  you have to know what "hot" is.
+- **Scheduled refresh.** A cron job re-computes expensive entries (leaderboards, reports)
+  on a timer, so readers never trigger the slow query themselves.
+- **Predictive warming.** Use yesterday's access logs, or tonight's big sale, to guess
+  tomorrow's hot keys and load them early. Cheap when the guess is right, wasted memory when
+  it isn't.
+- **Traffic replay.** Replay a sample of recent production reads against the new cache (or
+  mirror live traffic to it) until the hit rate climbs, then shift real users over.
+- **Lazy warming, the default.** Cache-aside already warms itself: each miss fills the key.
+  It costs real users a slow first request, which is exactly what eager warming buys back.
+
+Warm gently: a careless warm-up is a thundering herd you scheduled yourself.
+
 ## Where caches live
 
 Caching isn't one layer — it's a stack. Browser caches, [**CDN** edge caches](/lesson/cdns) (next lesson!),
@@ -244,4 +268,4 @@ Want to keep pulling this thread? These talks and tutorials go further than we d
 - Martin Kleppmann, *Designing Data-Intensive Applications* (O'Reilly, 2017), Ch. 12 — "A cache often contains an aggregation of data" and caches as derived data.
 - Redis documentation, "Eviction policies" — LRU/LFU variants in practice.
 - Marc Brooker (AWS), "DynamoDB and caching" / AWS Architecture Blog posts on request coalescing and DAX.
-- Rajesh Nishtala et al., "Scaling Memcache at Facebook" (NSDI 2013) — cache consistency and thundering-herd mitigation at massive scale.
+- Rajesh Nishtala et al., "Scaling Memcache at Facebook" (NSDI 2013) — cache consistency and thundering-herd mitigation at massive scale, plus its §4.3 "Cold Cluster Warmup" technique for filling an empty cache from a warm one.
