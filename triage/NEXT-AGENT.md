@@ -1,4 +1,4 @@
-Handoff 2026-11-03T00:40Z | origin/main 647b1c7 | open PRs #109 #135 #185 #193 #194 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
+Handoff 2026-11-03T02:10Z | origin/main b88c2e5 | open PRs #135 #185 #193 #194 #195 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
 
 # Next-agent handoff (snapshot 2026-11-02, night)
 
@@ -10,15 +10,17 @@ Read this first, then `AGENTS.md`. The remote is the record: GitHub issues #143-
 
 ## 2. On main (verified)
 
-Main is `647b1c7`. Merged this session: #125 contact form + privacy page + worker endpoint (T1, full council, independent review), #174 Ben output gate (3 independent review rounds), #186 stripTags fix (2 rounds), #175 TTS extractor, #170 PR gates CI, #182/#183 handoff and checkpoint rule, #140, #141, #142, #169, #171, #172, #173 and others. #177 lesson content (merged 647b1c7; its deploy and Ben eval gate passed). All `main` deploys are green through `647b1c7`. Ruleset `Protect main branch` requires `PR Frontend gates` and `PR Worker gates`, thread resolution, last-push approval and one approval; admin bypass stays.
+Main is `b88c2e5`. Merged this session: #125 contact form + privacy page + worker endpoint (T1, full council, independent review), #174 Ben output gate (3 independent review rounds), #186 stripTags fix (2 rounds), #175 TTS extractor, #170 PR gates CI, #182/#183 handoff and checkpoint rule, #140, #141, #142, #169, #171, #172, #173 and others. #177 lesson content (merged 647b1c7; its deploy and Ben eval gate passed). #109 PWA (merged b88c2e5; deploy green; live check posted on the PR: service worker registers at the Pages scope, sitemap/robots/feed/llms.txt are real files, home page renders). All `main` deploys are green through `b88c2e5`. Ruleset `Protect main branch` requires `PR Frontend gates` and `PR Worker gates`, thread resolution, last-push approval and one approval; admin bypass stays.
 
 ## 3. In flight
 
 | PR | What | State | Next action |
 |---|---|---|---|
-| #109 | PWA (T1) | Merged main in, 4-seat council + advisor done (record: `docs/council/2026-11-02-pr109-pwa.md` on branch `feat/pwa`). Owner decisions 1 and 2 recorded (comment on the PR). An implementer is applying the council's required changes: sync-race counter in `session.ts`, denylist so the service worker never answers `sitemap.xml`, `feed.xml`, `llms.txt`, `robots.txt`, audio with the app shell, header check + recovery runbook (no watchdog), a CI test at the real Pages subpath, a service-worker scope guard, T1 tests, PR body fixes, follow-up issues #188-#192. Last CI was pending on head 39d35ad. | When the implementer reports: verify `gh pr checks 109` on the exact head (all green, CodeQL clean), then an independent Reality Checker re-runs the 9 mutation checks plus the scope guard. Merge needs owner decision 3 (see section 4). |
+| #109 | MERGED (b88c2e5) | Owner decision 3 closed ("ignore what Dinesh said; merge if the PWA goal is met and nothing broke"). Independent review verified with concerns, no blocking finding; live check passed. Follow-ups #188-#192. | Nothing. |
 | #177 | MERGED (647b1c7) | Council + advisor decided the eval trade-off (record: `docs/council/2026-11-02-eval-tradeoff.md`, PR #194). Narration for caching-strategies, designing-ai-systems, agentic-ai-patterns is stale until audio regeneration (#178). | Nothing. |
-| #135 | Chunker (fragments 189 to 0) | Parked. Council Skeptic: re-measure after the batching fix, merge only if drift has slack and the off-course case is explained by mechanism. | Waits for the batching fix. |
+| #135 | Chunker (fragments 189 to 0) | Parked until the batching fix (trigger: draft PR within one working session of #109 merging, queued after M1; if M1 is not merged by the end of the next working session, ask the owner a scheduling question). | Batching fix, then re-measure. |
+| #195 | Slice M1: Ben model load never blocks the chat (QA R-02, T2, draft) | Council + advisor AGREE (record `docs/council/2026-11-03-m1-ben-model-load.md`). M1a (inference.ts: two-stage bound 120 s/60 s as UNVERIFIED defaults, cancel, retry only from cancelled, getLoadTiming) and M1b (QaChatPanel.tsx: composer never locked by model loading, provisional label, Stop loading, Try again) implemented; 734/734 tests, e2e 34/34. Independent review running on head 1e48ee7. M1c (R-27 version stamp) deferred. | Read the review; fix BLOCKING; add the manifest judgment call (idle counts as not ready, so a first model-only question gets the deterministic answer and starts no load). Then merge. NOBODY may claim the Ben fix until a fresh-profile throttled-network run records getLoadTiming() (needs a real WebGPU browser; the owner or /browse). |
+| #194 | Eval trade-off record (draft) | Advisor AGREE. | Merge (docs only). |
 | #193 | Rule: ask the owner domain questions only (draft) | Skeptic voted support with changes; all changes applied; record `docs/council/2026-11-02-escalation-domain-only.md` on branch `docs/escalation-domain-only`. | Consult the advisor, record the reply, mark ready, merge when checks are green and the owner has seen it. |
 | #185 | This rolling handoff (draft) | Updated at each checkpoint by pushing to branch `docs/handoff-2026-11-02-late`. | Merge when green. |
 
@@ -26,10 +28,10 @@ Not started: L4 docs pass (#151), L5 site counts (#152), W2 Veer corpus refresh 
 
 ## 4. Owner (domain) items, nothing else needs the owner
 
-1. **Decision 3 on #109.** Earlier PWA records cite "Dinesh's go". `AGENTS.md` section 11 names Liz as Chair. Who approved those records? (Open; the merge of #109 waits for it.)
-2. `REPORT-round2.md` (coursework-integrity): 38 findings have no titles (issue #167).
+1. Decision 3 on #109: CLOSED by the owner (see the table). Nothing is waiting here.
+2. `REPORT-round2.md` (coursework-integrity): 38 findings have no titles (issue #167). The owner says it came from their own e2e QA session earlier on 2026-11-02. A message was sent to their cloud session asking it to push the files to a branch `docs/round2-reports` (check `git ls-remote origin docs/round2-reports`); it cannot reply. If the files appear, build the 38 titles from them.
 3. #125 setup: Discord channel + webhook, Cloudflare Turnstile site for the two hosts, secrets `DISCORD_FEEDBACK_WEBHOOK_URL` and `TURNSTILE_SECRET_KEY`, variable `VITE_TURNSTILE_SITE_KEY`, a Cloudflare WAF rate rule on `/api/feedback`, run Deploy Worker, test a real submission. Until then the form shows "spam check is not set up yet" and Send is disabled.
-4. #178: regenerate narration audio (164 files, 313 MB; needs the owner's speech-synthesis setup; `.git` is already 333 MB).
+4. #178: DEFERRED by the owner (no chapter lacks audio; the extractor bug only dropped trailing sections from the recordings; re-recording is optional polish at about 313 MB). Do not re-record.
 5. DEC-1..6 in #147 (product and security policy choices).
 Already decided by the owner: #109 decision 1 (the `session.ts` scope expansion is signed off) and decision 2 (the broken-deploy residual risk is accepted, no watchdog in the PR).
 
