@@ -11,6 +11,7 @@ export function AuthBar() {
   const signedIn = useSessionStore((s) => Boolean(s.accessToken && s.githubLogin));
   const login = useSessionStore((s) => s.githubLogin);
   const pausedAt = useSessionStore((s) => s.pausedAt);
+  const dirty = useSessionStore((s) => s.dirty);
   const lastSyncedAt = useSessionStore((s) => s.lastSyncedAt);
   const completed = useProgressStore((s) => s.completedLessons);
   const loginOpen = useSessionStore((s) => s.loginPrompt);
@@ -27,7 +28,16 @@ export function AuthBar() {
   async function continueLearning() {
     if (pausedAt) {
       useSessionStore.getState().resume();
-      await syncNow({ evenIfPaused: true });
+      // Sync is a mirror, never a gate: a failing sync must not skip the
+      // navigation below. The signed-in re-check after the catch is the
+      // discriminator — token present means the failure was non-auth
+      // (navigate anyway); token cleared means gist-sync paused + cleared
+      // on 401/403 (open login instead, never navigate signed-out).
+      try {
+        await syncNow({ evenIfPaused: true });
+      } catch {
+        /* fall through to the signed-in check below */
+      }
     }
     if (!useSessionStore.getState().isSignedIn()) {
       setLoginOpen(true);
@@ -44,14 +54,35 @@ export function AuthBar() {
       setError('Paste a GitHub personal access token with gist access.');
       return;
     }
+    // Stage 1 — user fetch. A fetch rejection is a network failure (plain
+    // network copy, never raw); a non-OK response is a token rejection.
+    let userRes: Response;
     try {
-      const userRes = await fetch('https://api.github.com/user', {
+      userRes = await fetch('https://api.github.com/user', {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       });
-      if (!userRes.ok) throw new Error('GitHub rejected that token.');
+    } catch {
+      setError('Could not reach GitHub. Check your connection and try again.');
+      return;
+    }
+    if (!userRes.ok) {
+      setError('GitHub rejected that token.');
+      return;
+    }
+    // Stage 2 — everything after a successful user response. Never raw:
+    // a later-stage 401/403 is recognised because gist-sync paused + cleared
+    // the token (signed-out after catch -> rejection copy); any other
+    // failure with the token retained is a network failure (network copy,
+    // token retained, dialog stays for retry).
+    let sessionStarted = false;
+    try {
       const user = (await userRes.json()) as { login?: string };
-      if (!user.login) throw new Error('GitHub rejected that token.');
+      if (!user.login) {
+        setError('GitHub rejected that token.');
+        return;
+      }
       useSessionStore.getState().setSession({ githubLogin: user.login, gistId: null, accessToken: token });
+      sessionStarted = true;
       const gistId = await findOrCreateGist(token);
       useSessionStore.getState().setGistId(gistId);
       useSessionStore.getState().markDirty();
@@ -59,8 +90,12 @@ export function AuthBar() {
       await syncNow();
       setLoginOpen(false);
       setPat('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign-in failed.');
+    } catch {
+      if (sessionStarted && !useSessionStore.getState().isSignedIn()) {
+        setError('GitHub rejected that token.');
+      } else {
+        setError('Could not reach GitHub. Check your connection and try again.');
+      }
     }
   }
 
@@ -88,7 +123,7 @@ export function AuthBar() {
         </button>
         {signedIn ? (
           <span className="hidden max-w-[10rem] truncate text-xs text-stone-500 sm:inline dark:text-stone-400">
-            {pausedAt ? 'Paused' : lastSyncedAt ? 'Synced' : login}
+            {pausedAt ? 'Paused' : lastSyncedAt && !dirty ? 'Synced' : login}
           </span>
         ) : (
           <button type="button" onClick={startOauth} className="rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-200/60 dark:text-stone-300">
@@ -154,22 +189,51 @@ export function OauthCallbackPage() {
       return;
     }
     void (async () => {
+      // Stage 1 — exchange. A fetch rejection is a network failure (plain
+      // network copy, never raw, never the "OAuth failed." fallback); a
+      // non-OK worker answer — including a 502, which is a response, not a
+      // rejection — is an exchange failure.
+      let res: Response;
       try {
-        const res = await fetch(`${worker.replace(/\/$/, '')}/auth/github/exchange`, {
+        res = await fetch(`${worker.replace(/\/$/, '')}/auth/github/exchange`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code }),
         });
-        if (!res.ok) throw new Error('OAuth exchange failed.');
-        const body = (await res.json()) as { accessToken: string; login: string };
-        useSessionStore.getState().setSession({ githubLogin: body.login, gistId: null, accessToken: body.accessToken });
-        useSessionStore.getState().markDirty();
-        await syncNow();
-        window.history.replaceState({}, '', `${import.meta.env.BASE_URL}oauth/callback`);
-        navigate('/', { replace: true });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'OAuth failed.');
+      } catch {
+        setError('Could not reach GitHub to finish signing in. Check your connection and try again.');
+        return;
       }
+      if (!res.ok) {
+        setError('OAuth exchange failed.');
+        return;
+      }
+      let body: { accessToken: string; login: string };
+      try {
+        body = (await res.json()) as { accessToken: string; login: string };
+      } catch {
+        setError('OAuth exchange failed.');
+        return;
+      }
+      // Stage 2 — post-exchange sync. Sign-in already succeeded, so a
+      // non-auth sync failure completes silently (signed-in, dirty
+      // preserved, no sign-in-failure copy). A 401/403 is recognised
+      // because gist-sync paused + cleared the token: then open login
+      // instead of silently navigating home signed-out.
+      useSessionStore.getState().setSession({ githubLogin: body.login, gistId: null, accessToken: body.accessToken });
+      useSessionStore.getState().markDirty();
+      try {
+        await syncNow();
+      } catch {
+        /* discriminator below is the signed-in state, not the error text */
+      }
+      if (!useSessionStore.getState().isSignedIn()) {
+        useSessionStore.getState().requestLogin();
+        navigate('/', { replace: true });
+        return;
+      }
+      window.history.replaceState({}, '', `${import.meta.env.BASE_URL}oauth/callback`);
+      navigate('/', { replace: true });
     })();
   }, [navigate]);
   return <p className="py-16 text-center text-sm text-stone-600 dark:text-stone-400">{error ?? 'Signing you in…'}</p>;

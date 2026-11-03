@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render } from '@testing-library/react';
+import { act, cleanup, fireEvent, render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import {
   findVisibleBadgesLink,
   resolveDismissFocusTarget,
 } from '../../lib/badge-toast-focus';
+import { lessons } from '../../lib/lessons';
+import { useProgressStore } from '../../store/progress';
+import { BadgeToastHost } from './BadgeToast';
 import { usePausableDismiss } from './usePausableDismiss';
 
 /**
@@ -180,5 +184,94 @@ describe('dismiss focus fallback', () => {
 
     const target = resolveDismissFocusTarget(document, els, [{ key: 1 }], 1);
     expect(target).toBe(toast1.querySelector('button'));
+  });
+});
+
+describe('BadgeToastHost image failure', () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+  // Deterministic catalog slugs: completing one unlocks exactly its lesson
+  // badge (tier/course badges need every lesson in the tier/course).
+  const slugA = lessons[0].meta.slug;
+  const slugB = lessons[1].meta.slug;
+
+  beforeEach(() => {
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // Baseline before every render: the host's first run only establishes
+    // the baseline, so the store must be empty when the host mounts.
+    useProgressStore.setState({ completedLessons: [], quizResults: {} });
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+    useProgressStore.setState({ completedLessons: [], quizResults: {} });
+  });
+
+  function renderHost() {
+    return render(
+      <MemoryRouter>
+        <BadgeToastHost />
+      </MemoryRouter>,
+    );
+  }
+
+  /** Complete lessons after mount so the host diffs a fresh unlock. */
+  function unlock(...slugs: string[]) {
+    act(() => {
+      useProgressStore.setState((state) => ({
+        completedLessons: [...state.completedLessons, ...slugs],
+      }));
+    });
+  }
+
+  it('BT1: single toast, img error hides art but keeps announcement + link + dismiss', () => {
+    const { container } = renderHost();
+    unlock(slugA);
+    const img = container.querySelector('img');
+    expect(img).not.toBeNull();
+    fireEvent.error(img!);
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.textContent).toContain('Badge earned');
+    expect(
+      container.querySelector(`a[href="/badges/lesson-${slugA}"]`),
+    ).not.toBeNull();
+    expect(container.querySelector('button[aria-label^="Dismiss:"]')).not.toBeNull();
+  });
+
+  it('BT2: img error warns exactly once with the iconFile', () => {
+    const { container } = renderHost();
+    unlock(slugA);
+    fireEvent.error(container.querySelector('img')!);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith('lesson.svg');
+  });
+
+  it('BT3: img loads, art visible and warn never called', () => {
+    const { container } = renderHost();
+    unlock(slugA);
+    expect(container.querySelector('img')).not.toBeNull();
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('BT4: img error does not strand the auto-dismiss timer', () => {
+    const { container } = renderHost();
+    unlock(slugA);
+    fireEvent.error(container.querySelector('img')!);
+    act(() => {
+      vi.advanceTimersByTime(DELAY);
+    });
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.textContent).not.toContain('Badge earned');
+  });
+
+  it('BT5: two stacked toasts, error on the first hides only its art', () => {
+    const { container } = renderHost();
+    unlock(slugA, slugB);
+    const imgs = container.querySelectorAll('img');
+    expect(imgs.length).toBe(2);
+    fireEvent.error(imgs[0]);
+    expect(container.querySelectorAll('img').length).toBe(1);
+    expect(
+      container.querySelector(`a[href="/badges/lesson-${slugB}"]`),
+    ).not.toBeNull();
   });
 });
