@@ -27,6 +27,12 @@ const BadgeDetailPage = lazy(() =>
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
+const ContactPage = lazy(() =>
+  import('./pages/ContactPage').then((m) => ({ default: m.ContactPage })),
+);
+const PrivacyPage = lazy(() =>
+  import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
+);
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { Quiz } from './components/Quiz';
 import { VideoCard } from './components/VideoCard';
@@ -205,6 +211,8 @@ function App() {
             <Route path="oauth/callback" element={<OauthCallbackPage />} />
             <Route path="badges" element={<BadgesPage />} />
             <Route path="badges/:id" element={<BadgeDetailPage />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="privacy" element={<PrivacyPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
