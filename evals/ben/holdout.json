@@ -1,58 +1,855 @@
 {
-  "about": "Second held-out set, written after the router and example bank were tuned against cases.json and before this file was ever scored. Do not tune against it: when it starts driving changes, move its cases into cases.json and write a new holdout.",
+  "about": "Blind holdout 2 (added 2026-11-03): scored, never tuned against. When it starts driving changes, fold it into cases.json and write a new holdout. These cases were written blind by an independent author who saw only the course lesson files, never the router, its tests, or any existing question set. They were never tuned against, and every course case was checked against the lesson text.",
   "cases": [
-    { "id": "h-c-cache-warm", "q": "what does warming a cache mean", "intent": "course", "action": "lesson", "lessons": ["caching-strategies"] },
-    { "id": "h-c-lb-sticky", "q": "Why are sticky sessions a problem behind a load balancer?", "intent": "course", "action": "lesson", "lessons": ["load-balancers"] },
-    { "id": "h-c-queue-order", "q": "does a queue guarantee messages arrive in order", "intent": "course", "action": "lesson", "lessons": ["message-queues", "designing-chat-at-scale"] },
-    { "id": "h-c-idem-key", "q": "Where do I store idempotency keys and for how long?", "intent": "course", "action": "lesson", "lessons": ["idempotency"] },
-    { "id": "h-c-gql-n1", "q": "what is the N+1 problem in graphql", "intent": "course", "action": "lesson", "lessons": ["graphql-vs-rest"] },
-    { "id": "h-c-raft-split", "q": "What stops two Raft leaders existing at once?", "intent": "course", "action": "lesson", "lessons": ["consensus-raft"] },
-    { "id": "h-c-cdn-dynamic", "q": "can a CDN help with dynamic pages or only static files", "intent": "course", "action": "lesson", "lessons": ["cdns"] },
-    { "id": "h-c-saga", "q": "explain compensating transactions", "intent": "course", "action": "lesson", "lessons": ["distributed-transactions"] },
-    { "id": "h-c-trace", "q": "How does a trace ID follow a request across services?", "intent": "course", "action": "lesson", "lessons": ["observability"] },
-    { "id": "h-c-dip", "q": "dependency inversion vs dependency injection", "intent": "course", "action": "lesson", "lessons": ["solid-principles"] },
-    { "id": "h-c-shortener-scale", "q": "How many servers would a link shortener with 100 million links need?", "intent": "course", "action": "lesson", "lessons": ["url-shortener", "scaling-web-service"] },
-    { "id": "h-c-rag-chunk", "q": "how should I chunk documents for retrieval", "intent": "course", "action": "lesson", "lessons": ["designing-ai-systems"] },
-    { "id": "h-c-feed-celebrity", "q": "How do you handle celebrities with millions of followers in a feed?", "intent": "course", "action": "lesson", "lessons": ["design-instagram"] },
-    { "id": "h-c-presence", "q": "how does a chat app show who is online", "intent": "course", "action": "lesson", "lessons": ["designing-chat-at-scale"] },
-    { "id": "h-c-kafka-batch", "q": "Is a nightly ETL job still a good idea?", "intent": "course", "action": "lesson", "lessons": ["stream-vs-batch"] },
-    { "id": "h-c-conflict", "q": "How are write conflicts resolved between two regions?", "intent": "course", "action": "lesson", "lessons": ["multi-region-active-active", "replication-consistency-models"] },
-    { "id": "h-c-mtls", "q": "Who issues certificates for service-to-service calls?", "intent": "course", "action": "lesson", "lessons": ["zero-trust-security"] },
-    { "id": "h-c-rbac", "q": "rbac vs abac", "intent": "course", "action": "lesson", "lessons": ["authn-authz"] },
-    { "id": "h-c-leaky", "q": "What is a leaky bucket?", "intent": "course", "action": "lesson", "lessons": ["rate-limiting"] },
-    { "id": "h-c-bff-owner", "q": "who should own the mobile backend team or platform team", "intent": "course", "action": "lesson", "lessons": ["bff-backend-for-frontend"] },
-    { "id": "h-c-mono-modular", "q": "What is a modular monolith?", "intent": "course", "action": "lesson", "lessons": ["microservices-vs-monolith", "microservices-patterns-pitfalls"] },
-    { "id": "h-c-snapshot", "q": "why take snapshots in an event-sourced system", "intent": "course", "action": "lesson", "lessons": ["event-sourcing-cqrs"] },
-
-    { "id": "h-t-go", "q": "what is golang", "intent": "tech", "action": "parametric_fallback" },
-    { "id": "h-t-flutter", "q": "What is Flutter?", "intent": "tech", "action": "parametric_fallback" },
-    { "id": "h-t-spring", "q": "what is spring boot", "intent": "tech", "action": "parametric_fallback" },
-    { "id": "h-t-postman", "q": "what is postman", "intent": "tech", "action": "parametric_fallback" },
-    { "id": "h-t-sass", "q": "what is sass css", "intent": "tech", "action": "parametric_fallback" },
-    { "id": "h-t-copilot", "q": "What is GitHub Copilot?", "intent": "tech", "action": "parametric_fallback" },
-
-    { "id": "h-d-religion-state", "q": "Should church and state be separate?", "intent": "debate", "action": "redirect" },
-    { "id": "h-d-climate", "q": "Is climate change exaggerated by the media?", "intent": "debate", "action": "redirect" },
-    { "id": "h-d-drugs", "q": "Should all drugs be legalized?", "intent": "debate", "action": "redirect" },
-    { "id": "h-d-ai-art", "q": "Is AI art real art?", "intent": "debate", "action": "redirect" },
-    { "id": "h-d-standardized", "q": "Are standardized tests fair to poor students?", "intent": "debate", "action": "redirect" },
-    { "id": "h-d-afterlife", "q": "What happens after we die?", "intent": "debate", "action": "redirect", "alsoOk": ["redirect"] },
-
-    { "id": "h-o-pasta", "q": "how long do I boil pasta", "intent": "off_topic", "action": "redirect" },
-    { "id": "h-o-resume", "q": "can you fix the grammar in my cover letter", "intent": "off_topic", "action": "redirect" },
-    { "id": "h-o-volcano", "q": "why do volcanoes erupt", "intent": "off_topic", "action": "redirect" },
-    { "id": "h-o-cat", "q": "my cat keeps scratching the sofa", "intent": "off_topic", "action": "redirect" },
-    { "id": "h-o-tax", "q": "when is the deadline to file my taxes", "intent": "off_topic", "action": "redirect" },
-
-    { "id": "h-trap-load-truck", "q": "What is the best way to load a moving truck?", "intent": "off_topic", "action": "redirect" },
-    { "id": "h-trap-stream-river", "q": "Why do streams flow into rivers?", "intent": "off_topic", "action": "redirect" },
-    { "id": "h-trap-batch-cookies", "q": "How big should a batch of cookies be for a party?", "intent": "off_topic", "action": "redirect" },
-    { "id": "h-trap-gateway-arch", "q": "Who built the Gateway Arch in St. Louis?", "intent": "off_topic", "action": "redirect" },
-    { "id": "h-trap-replica-watch", "q": "Is it illegal to buy a replica watch?", "intent": "off_topic", "action": "redirect", "alsoOk": ["redirect"] },
-    { "id": "h-trap-token-arcade", "q": "How many tokens do I need for the arcade?", "intent": "off_topic", "action": "redirect" },
-    { "id": "h-trap-cap-graduation", "q": "Where do I buy a graduation cap and gown?", "intent": "off_topic", "action": "redirect" },
-
-    { "id": "h-s-name", "q": "what should I call you", "intent": "self", "action": "self" },
-    { "id": "h-s-morning", "q": "good morning", "intent": "self", "action": "self" }
+    {
+      "id": "n-c-001",
+      "q": "how do ai agents decide what to do next, is it some kind of loop?",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "agentic-ai-patterns"
+      ]
+    },
+    {
+      "id": "n-c-002",
+      "q": "legacy system keeps leaking its ugly field names into my new app, how do i wall it off",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "anti-corruption-layer"
+      ]
+    },
+    {
+      "id": "n-c-003",
+      "q": "how do you replace an old system gradually instead of a big bang rewrite",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "anti-corruption-layer"
+      ]
+    },
+    {
+      "id": "n-c-004",
+      "q": "api gateway vs reverse proxy, whats the diff",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "api-gateways"
+      ]
+    },
+    {
+      "id": "n-c-005",
+      "q": "authentication vs authorization??",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "authn-authz"
+      ]
+    },
+    {
+      "id": "n-c-006",
+      "q": "how does a site remember im logged in without asking my password on every click",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "authn-authz"
+      ]
+    },
+    {
+      "id": "n-c-007",
+      "q": "how do search suggestions pick up a breaking news topic within minutes",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "autocomplete-freshness-safety"
+      ]
+    },
+    {
+      "id": "n-c-008",
+      "q": "how do you stop the search dropdown from suggesting something offensive",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "autocomplete-freshness-safety"
+      ]
+    },
+    {
+      "id": "n-c-009",
+      "q": "how do i rough out how much storage a photo app needs, in like 60 seconds",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "back-of-envelope-estimation"
+      ]
+    },
+    {
+      "id": "n-c-010",
+      "q": "why give the mobile app its own backend separate from the web one",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "bff-backend-for-frontend"
+      ]
+    },
+    {
+      "id": "n-c-011",
+      "q": "a popular cache key expires and a thousand requests slam the db at once, what do i do",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "caching-strategies"
+      ]
+    },
+    {
+      "id": "n-c-012",
+      "q": "can a distributed database give me consistency, availability and partition tolerance all at once",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "cap-theorem"
+      ]
+    },
+    {
+      "id": "n-c-013",
+      "q": "how do cdns make images load faster for people far from my server",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "cdns"
+      ]
+    },
+    {
+      "id": "n-c-014",
+      "q": "i updated my css but users still get the old one, how do i make the edge copies refresh",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "cdns",
+        "caching-strategies"
+      ]
+    },
+    {
+      "id": "n-c-015",
+      "q": "serverless or containers, whats the real difference",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "cloud-native-architecture"
+      ]
+    },
+    {
+      "id": "n-c-016",
+      "q": "how does a cluster pick a new leader when the old one dies",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "consensus-raft"
+      ]
+    },
+    {
+      "id": "n-c-017",
+      "q": "how do i choose a partition key so one partition doesnt get all the traffic",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "data-partitioning"
+      ]
+    },
+    {
+      "id": "n-c-018",
+      "q": "what is RAG and why put a vector db behind an llm",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "designing-ai-systems"
+      ]
+    },
+    {
+      "id": "n-c-019",
+      "q": "how would you design whatsapp so messages arrive in the right order",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "designing-chat-at-scale"
+      ]
+    },
+    {
+      "id": "n-c-020",
+      "q": "what do the double ticks in a messenger actually guarantee",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "designing-chat-at-scale"
+      ]
+    },
+    {
+      "id": "n-c-021",
+      "q": "how does an instagram style feed get built when a celebrity with 50 million followers posts",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "design-instagram"
+      ]
+    },
+    {
+      "id": "n-c-022",
+      "q": "how do i keep an order service and a payment service consistent without two-phase commit",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "distributed-transactions"
+      ]
+    },
+    {
+      "id": "n-c-023",
+      "q": "my db write succeeded but the message to the broker never went out, how do i fix that",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "distributed-transactions",
+        "domain-driven-design"
+      ]
+    },
+    {
+      "id": "n-c-024",
+      "q": "what is a bounded context and an aggregate in domain driven design",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "domain-driven-design"
+      ]
+    },
+    {
+      "id": "n-c-025",
+      "q": "how much downtime per year is 99.99 percent availability",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "estimation-reference-numbers"
+      ]
+    },
+    {
+      "id": "n-c-026",
+      "q": "store every change as an event instead of the current state, how does that even work",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "event-sourcing-cqrs"
+      ]
+    },
+    {
+      "id": "n-c-027",
+      "q": "graphql n+1 problem, how to fix",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "graphql-vs-rest"
+      ]
+    },
+    {
+      "id": "n-c-028",
+      "q": "my rest endpoints send way more fields than the screen needs",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "graphql-vs-rest"
+      ]
+    },
+    {
+      "id": "n-c-029",
+      "q": "why does my payment go through twice when the wifi is flaky",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "idempotency"
+      ]
+    },
+    {
+      "id": "n-c-030",
+      "q": "how should i split my 45 minutes in a system design interview",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "interview-framework"
+      ]
+    },
+    {
+      "id": "n-c-031",
+      "q": "round robin vs least connections",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "load-balancers"
+      ]
+    },
+    {
+      "id": "n-c-032",
+      "q": "kafka vs rabbitmq vs sqs, which one",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "message-queues"
+      ]
+    },
+    {
+      "id": "n-c-033",
+      "q": "our services make a dozen network calls per user request and everything is slow",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "microservices-patterns-pitfalls"
+      ]
+    },
+    {
+      "id": "n-c-034",
+      "q": "four person startup: one big deployable or lots of small services?",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "microservices-vs-monolith"
+      ]
+    },
+    {
+      "id": "n-c-035",
+      "q": "whats the difference between rpo and rto",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "multi-region-active-active"
+      ]
+    },
+    {
+      "id": "n-c-036",
+      "q": "how do i keep the app running if a whole cloud region burns down",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "multi-region-active-active",
+        "replication-consistency-models"
+      ]
+    },
+    {
+      "id": "n-c-037",
+      "q": "how did mvc turn into react components",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "mvc-to-react"
+      ]
+    },
+    {
+      "id": "n-c-038",
+      "q": "when should i pick a document store over a wide column store",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "nosql-databases"
+      ]
+    },
+    {
+      "id": "n-c-039",
+      "q": "logs vs metrics vs traces",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "observability"
+      ]
+    },
+    {
+      "id": "n-c-040",
+      "q": "token bucket vs leaky bucket",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "rate-limiting"
+      ]
+    },
+    {
+      "id": "n-c-041",
+      "q": "quorum reads and writes, what does R + W > N mean",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "replication-consistency-models"
+      ]
+    },
+    {
+      "id": "n-c-042",
+      "q": "i posted a comment, refreshed, and it vanished for a second. why?",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "replication-consistency-models"
+      ]
+    },
+    {
+      "id": "n-c-043",
+      "q": "what is a circuit breaker and when should i add one",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "resilience-patterns"
+      ]
+    },
+    {
+      "id": "n-c-044",
+      "q": "one slow dependency took our whole site down like dominoes",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "resilience-patterns"
+      ]
+    },
+    {
+      "id": "n-c-045",
+      "q": "my single server is dying, what order should i scale things in",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "scaling-web-service"
+      ]
+    },
+    {
+      "id": "n-c-046",
+      "q": "how does typeahead use a trie",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "search-autocomplete"
+      ]
+    },
+    {
+      "id": "n-c-047",
+      "q": "what is consistent hashing",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "sharding-strategies"
+      ]
+    },
+    {
+      "id": "n-c-048",
+      "q": "splitting a huge table across several machines by user id",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "sharding-strategies",
+        "data-partitioning"
+      ]
+    },
+    {
+      "id": "n-c-050",
+      "q": "my class does five different things and every change breaks something, how do i split it",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "solid-principles"
+      ]
+    },
+    {
+      "id": "n-c-051",
+      "q": "lambda vs kappa architecture",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "stream-vs-batch"
+      ]
+    },
+    {
+      "id": "n-c-052",
+      "q": "how to generate unique short codes for a tinyurl clone",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "url-shortener"
+      ]
+    },
+    {
+      "id": "n-c-053",
+      "q": "what does never trust, always verify mean in network security",
+      "intent": "course",
+      "action": "lesson",
+      "lessons": [
+        "zero-trust-security"
+      ]
+    },
+    {
+      "id": "n-t-054",
+      "q": "difference between git merge and git rebase",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-055",
+      "q": "how do i center a div with css",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-056",
+      "q": "what is a python decorator",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-057",
+      "q": "sql left join vs inner join?",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-058",
+      "q": "how does garbage collection work in java",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-059",
+      "q": "difference between == and === in javascript",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-060",
+      "q": "how do i undo my last git commit",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-061",
+      "q": "what's the big O of quicksort",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-062",
+      "q": "what does chmod 755 do",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-063",
+      "q": "how do i read a csv with pandas",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-064",
+      "q": "how do promises and async await work in javascript",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-065",
+      "q": "what is the rust borrow checker",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-066",
+      "q": "how do i set up ssh keys for github",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-067",
+      "q": "explain how docker volumes work",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-068",
+      "q": "what is a regex lookahead",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-t-069",
+      "q": "python list comprehension vs map",
+      "intent": "tech",
+      "action": "parametric_fallback",
+      "lessons": []
+    },
+    {
+      "id": "n-d-070",
+      "q": "tabs or spaces, which is correct",
+      "intent": "debate",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-d-071",
+      "q": "is AI going to take all our jobs",
+      "intent": "debate",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-d-072",
+      "q": "python vs javascript, which is the best language",
+      "intent": "debate",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-d-073",
+      "q": "should billionaires be taxed more heavily",
+      "intent": "debate",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-d-074",
+      "q": "is it ethical for companies to track what users click",
+      "intent": "debate",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-d-075",
+      "q": "vim or emacs? settle it",
+      "intent": "debate",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-d-076",
+      "q": "is there a god",
+      "intent": "debate",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-d-077",
+      "q": "AWS vs Azure vs GCP, which one wins",
+      "intent": "debate",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-d-078",
+      "q": "who should i vote for in the next election",
+      "intent": "debate",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-d-079",
+      "q": "is remote work better than the office, honestly",
+      "intent": "debate",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-080",
+      "q": "how do i make a good cache of supplies for a week of hiking",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-081",
+      "q": "which river has the biggest delta in the world",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-082",
+      "q": "how do i defend against a knight fork in chess",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-083",
+      "q": "tips for queueing up for concert tickets without losing my mind",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-084",
+      "q": "how do i build a sturdy raft for a river camping trip",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-085",
+      "q": "is Njal's saga worth reading for an icelandic lit class",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-086",
+      "q": "how many tokens do i need at the arcade for the claw machine",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-087",
+      "q": "when is the best season to prune an apple tree",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-088",
+      "q": "how many layers should a good wedding cake have",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-089",
+      "q": "which airports are the biggest hubs in europe",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-090",
+      "q": "best spot to fish a mountain stream in spring",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-091",
+      "q": "how do i get past the bottleneck at heathrow passport control",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-092",
+      "q": "how long do i boil pasta for al dente",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-093",
+      "q": "help with my algebra homework: solve 2x + 5 = 17",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-094",
+      "q": "who won the football world cup in 2018",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-095",
+      "q": "best things to do in lisbon in three days",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-096",
+      "q": "write me a poem about autumn",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-097",
+      "q": "i feel kind of lonely today, can we just chat",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-098",
+      "q": "what is the capital of australia",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-o-099",
+      "q": "what should i get my mum for her birthday",
+      "intent": "off_topic",
+      "action": "redirect",
+      "lessons": []
+    },
+    {
+      "id": "n-s-100",
+      "q": "who are you",
+      "intent": "self",
+      "action": "self",
+      "lessons": []
+    },
+    {
+      "id": "n-s-101",
+      "q": "what can you do?",
+      "intent": "self",
+      "action": "self",
+      "lessons": []
+    },
+    {
+      "id": "n-s-102",
+      "q": "are you a real person or a bot",
+      "intent": "self",
+      "action": "self",
+      "lessons": []
+    },
+    {
+      "id": "n-s-103",
+      "q": "how do i use you, what should i ask",
+      "intent": "self",
+      "action": "self",
+      "lessons": []
+    },
+    {
+      "id": "n-s-104",
+      "q": "does this run on my device or do my questions go to a server",
+      "intent": "self",
+      "action": "self",
+      "lessons": []
+    },
+    {
+      "id": "n-s-105",
+      "q": "will you remember what we talked about yesterday",
+      "intent": "self",
+      "action": "self",
+      "lessons": []
+    },
+    {
+      "id": "n-s-106",
+      "q": "which topics can you actually teach me",
+      "intent": "self",
+      "action": "self",
+      "lessons": []
+    },
+    {
+      "id": "n-s-107",
+      "q": "can you write my whole project code for me, or what are your limits",
+      "intent": "self",
+      "action": "self",
+      "lessons": []
+    }
   ]
 }
