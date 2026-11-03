@@ -23,6 +23,8 @@ vi.mock('../../ai/local/inference', () => ({
   MODEL_LABEL: 'On-device AI',
   getModelStatus: () => ({ phase: 'failed', progress: 0, detail: 'Runs in your browser · no API key' }),
   subscribeModel: () => () => {},
+  cancelModelLoad: vi.fn(),
+  retryModelLoad: vi.fn(),
   rewriteWithModel: async () => null,
   answerParametrically: async () => null,
 }));
