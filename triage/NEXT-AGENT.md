@@ -1,4 +1,4 @@
-Handoff 2026-11-02T21:50Z | origin/main aa602b5 | open PRs #109 #135 #177 #185 #193 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
+Handoff 2026-11-03T00:40Z | origin/main 647b1c7 | open PRs #109 #135 #185 #193 #194 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
 
 # Next-agent handoff (snapshot 2026-11-02, night)
 
@@ -10,14 +10,14 @@ Read this first, then `AGENTS.md`. The remote is the record: GitHub issues #143-
 
 ## 2. On main (verified)
 
-Main is `aa602b5`. Merged this session: #125 contact form + privacy page + worker endpoint (T1, full council, independent review), #174 Ben output gate (3 independent review rounds), #186 stripTags fix (2 rounds), #175 TTS extractor, #170 PR gates CI, #182/#183 handoff and checkpoint rule, #140, #141, #142, #169, #171, #172, #173 and others. All `main` deploys are green through `aa602b5`. Ruleset `Protect main branch` requires `PR Frontend gates` and `PR Worker gates`, thread resolution, last-push approval and one approval; admin bypass stays.
+Main is `647b1c7`. Merged this session: #125 contact form + privacy page + worker endpoint (T1, full council, independent review), #174 Ben output gate (3 independent review rounds), #186 stripTags fix (2 rounds), #175 TTS extractor, #170 PR gates CI, #182/#183 handoff and checkpoint rule, #140, #141, #142, #169, #171, #172, #173 and others. #177 lesson content (merged 647b1c7; its deploy and Ben eval gate passed). All `main` deploys are green through `647b1c7`. Ruleset `Protect main branch` requires `PR Frontend gates` and `PR Worker gates`, thread resolution, last-push approval and one approval; admin bypass stays.
 
 ## 3. In flight
 
 | PR | What | State | Next action |
 |---|---|---|---|
 | #109 | PWA (T1) | Merged main in, 4-seat council + advisor done (record: `docs/council/2026-11-02-pr109-pwa.md` on branch `feat/pwa`). Owner decisions 1 and 2 recorded (comment on the PR). An implementer is applying the council's required changes: sync-race counter in `session.ts`, denylist so the service worker never answers `sitemap.xml`, `feed.xml`, `llms.txt`, `robots.txt`, audio with the app shell, header check + recovery runbook (no watchdog), a CI test at the real Pages subpath, a service-worker scope guard, T1 tests, PR body fixes, follow-up issues #188-#192. Last CI was pending on head 39d35ad. | When the implementer reports: verify `gh pr checks 109` on the exact head (all green, CodeQL clean), then an independent Reality Checker re-runs the 9 mutation checks plus the scope guard. Merge needs owner decision 3 (see section 4). |
-| #177 | Lesson content: cache warming, reranking, agentic trio | Content review clean, sources verified. Ben eval 87.6% vs 88.1% on main is the batching artefact (#180). The council Skeptic voted: merge #177 now (option A). | Consult the advisor on the eval verdict (see section 5), record it, then merge #177 (checks green on its head 0b9f0f9; merge it as is). |
+| #177 | MERGED (647b1c7) | Council + advisor decided the eval trade-off (record: `docs/council/2026-11-02-eval-tradeoff.md`, PR #194). Narration for caching-strategies, designing-ai-systems, agentic-ai-patterns is stale until audio regeneration (#178). | Nothing. |
 | #135 | Chunker (fragments 189 to 0) | Parked. Council Skeptic: re-measure after the batching fix, merge only if drift has slack and the off-course case is explained by mechanism. | Waits for the batching fix. |
 | #193 | Rule: ask the owner domain questions only (draft) | Skeptic voted support with changes; all changes applied; record `docs/council/2026-11-02-escalation-domain-only.md` on branch `docs/escalation-domain-only`. | Consult the advisor, record the reply, mark ready, merge when checks are green and the owner has seen it. |
 | #185 | This rolling handoff (draft) | Updated at each checkpoint by pushing to branch `docs/handoff-2026-11-02-late`. | Merge when green. |
@@ -35,7 +35,7 @@ Already decided by the owner: #109 decision 1 (the `session.ts` scope expansion 
 
 ## 5. Decisions already made by the council (do not re-ask the owner)
 
-- Eval trade-off (#180, #177, #135), Skeptic verdict, advisor still to confirm: merge #177 now; build the batching fix next (BATCH=1 or fixed deterministic batching, plus tests that adding a chunk leaves other vectors identical, plus a new blind holdout of about 100 cases written by someone who read no eval output); re-measure #135 on that base; make `eval:ben` a required check only after about 10 clean runs. Acceptance criteria are in the Skeptic report (write it into `docs/council/` before consulting the advisor).
+- Eval trade-off (#180, #177, #135) DECIDED by council and advisor under the owner's standing instruction (record `docs/council/2026-11-02-eval-tradeoff.md`, PR #194): #177 merged; NEXT Ben task = the batching fix (BATCH=1 or fixed deterministic batching, determinism test, the council-4 conditions, current holdout folded into `cases.json`, a new blind holdout of about 100 cases written by a FRESH agent whose brief names only `content/lessons/` and forbids `evals/`, REPORT.md, router code and scratch files, with the paths it was given recorded); trigger: open it as a draft PR within one working session of #109 merging, otherwise ask the owner a scheduling question; then re-measure #135 on that base (merge only if fragments are 0, drift at most 2.9% with one case of slack or a recorded case review, accuracy at least 85%, top-3 at least 90%, and the off-course case `h-d-ai-art` explained by mechanism); make `eval:ben` a required check only after about 10 clean runs.
 - Council cap per task: T3 none, T2 about 40-60k tokens, T1 about 100-150k; stop with `BUDGET EXCEEDED` rather than overspend.
 
 ## 6. Lessons that cost time
