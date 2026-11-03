@@ -69,3 +69,19 @@ Adopt with these decisions.
 - Tier T2. Manifests: #199 stays the data PR; the diagnostic and router work are a new manifest (D2) opened after Step 1.
 
 Round count: 1 of 2. Sent to the advisor next; the reply is recorded in the following commit.
+
+### Advisor (Opus), reply, round 1, verbatim summary
+
+AGREE on holding #199 as a draft, dropping the three collisions, and running a read-only diagnostic before touching the router; the scope-policy reasoning (the ADR routes a tech vote to parametric_fallback) is sound for the router. Changes: (1) the WASM-backend experiment must NOT be framed as "if it unifies the hash, no artifact is needed": the Cloudflare mirror builds outside GitHub Actions, so a hash unified across GitHub runner classes does not unify a build on other hardware. Run the WASM experiment as a DIAGNOSTIC (does it change the hash, the eval numbers, the build time; it also aligns the index with the browser query path), and treat the pinned artifact as the fix regardless. (2) Settle which runtime really executes during ben:index (the Skeptic says native onnxruntime-node; the lead's earlier read saw wasm file copying), because it changes what the experiment tests. (3) The owner question exists: whether the owner wants a system-design tutor to answer general software questions ("chmod 755", "center a div") is a product-surface question the ADR does not settle; do not ask now, fold it into the next batched owner message. (4) The handoff is stale: restart it.
+
+### Runtime check (council lead)
+
+@huggingface/transformers 4.3.0 declares onnxruntime-node 1.30.0 as a hard dependency and its Node entry (dist/transformers.node.mjs) imports onnxruntime-node once and onnxruntime-web twice. The wasm-file copying in scripts/ben/embedder.mjs (lines 72-123) prepares assets for the deployed browser/Workers path, not for the Node pipeline. So during `ben:index` the Node pipeline most likely runs the NATIVE onnxruntime-node CPU backend (CPU-feature dispatch, consistent with the two-variant hash). Confidence: moderate; not proven by an execution trace. The diagnostic below proves or refutes it.
+
+### Outcome (round 1 of 2)
+
+Advisor: AGREE with the changes above, adopted. Decided by council and advisor under the owner's standing instruction of 2026-11-02:
+1. #199 stays a draft; the three collisions (n-d-078, n-o-098, n-s-100) are dropped from the blind set as non-blind and the ids are recorded in ADR 0001 section 7; nothing else in the blind set changes.
+2. Step 1 (read-only diagnostic, no router or threshold change): for every miss in the 307-case run print vote intent, vote confidence, topScore and nearest exemplars, and name the cause (exemplar bank, vote, or clarify band).
+3. Index: pinned vector artifact with content-hash plus model-SHA invalidation and the tolerance-based determinism test is the FIX; the WASM-backend run is a diagnostic only (prove which runtime executes, hash and eval change, build-time cost).
+4. Owner question queued for the next batched message: should the tutor answer general software questions (current design) or redirect them? The router work on the tech group waits for the answer; the course-phrasing misses do not.
