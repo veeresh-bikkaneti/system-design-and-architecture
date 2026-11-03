@@ -35,6 +35,8 @@ jobs:
       # Fetches Ben's embedder from Hugging Face (SHA-256 pinned), builds the
       # lesson index, and gates routing quality. See docs/adr/0001-ben-semantic-routing.md.
       - run: npm run ben:index
+      - name: Ben index determinism (model required, no skip)
+        run: BEN_REQUIRE_MODEL=1 npx vitest run scripts/ben/build-index.determinism.test.ts
       - run: npm run eval:ben
 
   worker-checks:
