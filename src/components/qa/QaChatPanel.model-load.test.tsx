@@ -4,6 +4,7 @@ import { createElement, type ComponentType } from 'react';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { NO_SOURCE } from '../../ai/local/semantic/turn';
 
 /**
  * M1 / QA R-02 + R-04 phase 1: FAILING panel tests. The model is "still
@@ -27,6 +28,7 @@ vi.mock('../../ai/local/inference', () => ({
     return () => {};
   },
   cancelModelLoad,
+  retryModelLoad: vi.fn(),
   // A hung load: neither settles, like a create() that never returns.
   rewriteWithModel: () => new Promise(() => {}),
   answerParametrically: () => new Promise(() => {}),
@@ -86,6 +88,9 @@ describe('M1b the composer is never disabled by model loading alone', () => {
     await ask('what is amazon');
     await waitFor(() => expect(composer().disabled).toBe(false));
     expect(screen.getByRole('button', { name: /New topic/ }).hasAttribute('disabled')).toBe(false);
+    // Not blank: with the model not ready the bubble is the deterministic NO_SOURCE line.
+    expect(screen.getByText(NO_SOURCE)).toBeTruthy();
+    expect(screen.queryByText('Thinking')).toBeNull();
   });
 
   it('close and reopen does not resurrect a blocked composer', async () => {

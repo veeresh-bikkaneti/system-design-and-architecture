@@ -14,6 +14,8 @@ vi.mock('../../ai/local/inference', () => ({
     listener({ phase: 'failed', progress: 0, detail: FAILED_COPY });
     return () => {};
   },
+  cancelModelLoad: vi.fn(),
+  retryModelLoad: vi.fn(),
   rewriteWithModel: async () => null,
   answerParametrically: async () => null,
 }));

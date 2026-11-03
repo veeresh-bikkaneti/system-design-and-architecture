@@ -24,6 +24,8 @@ vi.mock('../../ai/local/inference', () => ({
     listener(mockState.modelStatus);
     return () => {};
   },
+  cancelModelLoad: vi.fn(),
+  retryModelLoad: vi.fn(),
   answerParametrically: vi.fn(),
   rewriteWithModel: vi.fn(),
 }));

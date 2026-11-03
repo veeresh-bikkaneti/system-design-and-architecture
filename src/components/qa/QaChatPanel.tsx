@@ -5,8 +5,10 @@ import { OKF_CARDS } from '../../ai/local/cards';
 import { GENERAL_KNOWLEDGE_CONFIDENCE, grounding, type ConfidenceLevel } from '../../ai/local/web';
 import {
   answerParametrically,
+  cancelModelLoad,
   getModelStatus,
   MODEL_LABEL,
+  retryModelLoad,
   rewriteWithModel,
   subscribeModel,
   type ModelStatus,
@@ -82,6 +84,14 @@ interface QaMessage {
   isError?: boolean;
   sources?: BubbleSource[];
   confidence?: { level: ConfidenceLevel; label: string };
+  /** A lesson answer shown before the on-device model could reword it (QA R-04). */
+  provisional?: boolean;
+}
+
+/** True while the wording model has neither arrived nor definitively failed. */
+function modelPending(): boolean {
+  const phase = getModelStatus().phase;
+  return phase !== 'ready' && phase !== 'failed';
 }
 
 function SendIcon({ className }: { className?: string }) {
@@ -394,7 +404,8 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
    * source" line -- never a half-grounded guess.
    */
   async function answerFromModelKnowledge(text: string, history: ChatTurn[], assistantId: number) {
-    const draft = await answerParametrically(text, priorTurns(history));
+    // Never wait on a model that is not ready: a hung load must not hold the turn (QA R-02).
+    const draft = getModelStatus().phase === 'ready' ? await answerParametrically(text, priorTurns(history)) : null;
     if (draft) {
       patchMessage(assistantId, { content: draft, sources: [], confidence: GENERAL_KNOWLEDGE_CONFIDENCE });
       return;
@@ -434,14 +445,48 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
     }
 
     const { answer, confidence, context } = turn;
-    patchMessage(assistantId, { content: answer, sources, confidence });
+    patchMessage(assistantId, { content: answer, sources, confidence, provisional: !!context && modelPending() });
     if (!context) return;
 
     // Qwen only rewords. A draft that wanders from the grounded answer is dropped.
-    const draft = await rewriteWithModel(text, context, priorTurns(history));
-    if (!draft) return;
-    const [draftVector, answerVector] = await Promise.all([semantic.embed(draft), semantic.embed(answer)]);
-    if (dot(draftVector, answerVector) >= THRESHOLDS.draftFit) patchMessage(assistantId, { content: draft });
+    rewriteLater(assistantId, answer, text, context, history, async (draft) => {
+      const [draftVector, answerVector] = await Promise.all([semantic.embed(draft), semantic.embed(answer)]);
+      return dot(draftVector, answerVector) >= THRESHOLDS.draftFit;
+    });
+  }
+
+  /**
+   * Fire-and-forget wording upgrade. The turn is already finished (and `streaming`
+   * cleared) by the time this runs, so a slow or hung model cannot block the
+   * composer. The model output is gated inside rewriteWithModel (sanitize.ts). A
+   * late draft touches only its own bubble, and only if that bubble still shows
+   * the answer it was written against, so it cannot overwrite a newer turn.
+   */
+  function rewriteLater(
+    assistantId: number,
+    baseline: string,
+    text: string,
+    context: string,
+    history: ChatTurn[],
+    fits: (draft: string) => Promise<boolean> = async () => true,
+  ) {
+    void (async () => {
+      let draft: string | null = null;
+      try {
+        draft = await rewriteWithModel(text, context, priorTurns(history));
+        if (draft && !(await fits(draft))) draft = null;
+      } catch {
+        draft = null;
+      }
+      const upgraded = draft;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId && m.content === baseline
+            ? { ...m, ...(upgraded ? { content: upgraded } : {}), provisional: upgraded ? false : modelPending() }
+            : m,
+        ),
+      );
+    })();
   }
 
   /** Fallback when the understanding layer cannot load: keyword routing with guard rails. */
@@ -462,15 +507,15 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
     const offCourse = !aboutMe && !turn.inScope;
     const confidence = grounding({ aboutMe, inScope: turn.inScope, offCourse });
     const content = aboutMe ? turn.answer : turn.inScope ? turn.answer : OFF_COURSE;
+    const rewritable = !aboutMe && turn.inScope;
     patchMessage(assistantId, {
       content,
       sources,
       confidence: { ...confidence, label: `${confidence.label} · keyword match` },
+      provisional: rewritable && modelPending(),
     });
 
-    if (aboutMe || !turn.inScope) return;
-    const draft = await rewriteWithModel(text, turn.context, priorTurns(history));
-    if (draft) patchMessage(assistantId, { content: draft });
+    if (rewritable) rewriteLater(assistantId, content, text, turn.context, history);
   }
 
   function handleNewTopic() {
@@ -519,6 +564,29 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
                           ? modelStatus.detail
                           : 'Runs in your browser · no API key'}
               </p>
+              {!veerActive && modelStatus.phase === 'loading' && (
+                <button
+                  type="button"
+                  onClick={() => cancelModelLoad()}
+                  className="mt-0.5 rounded text-[11px] font-medium text-amber-800 underline underline-offset-2 hover:text-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:text-amber-300"
+                >
+                  Stop loading
+                </button>
+              )}
+              {!veerActive && modelStatus.phase === 'cancelled' && (
+                <div className="mt-0.5 flex items-center gap-2">
+                  <p role="status" className="min-w-0 truncate text-[11px] text-stone-500 dark:text-stone-400">
+                    {modelStatus.detail}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => retryModelLoad()}
+                    className="shrink-0 rounded text-[11px] font-medium text-amber-800 underline underline-offset-2 hover:text-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:text-amber-300"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -687,6 +755,11 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
                         {message.confidence.label}
                       </p>
                     )
+                  )}
+                  {message.provisional && (
+                    <p className="mt-1 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                      Provisional · straight from the lessons; the on-device AI may reword it
+                    </p>
                   )}
                   {message.sources && message.sources.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5 border-t border-stone-200/70 pt-2 dark:border-stone-700">
