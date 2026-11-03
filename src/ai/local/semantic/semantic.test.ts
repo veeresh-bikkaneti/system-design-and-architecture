@@ -338,6 +338,70 @@ describe('router', () => {
   });
 });
 
+// D2a (docs/manifests/ben-router-generalization.md): the clarify band and the self vote.
+// Written first; the "decisive" tests are RED until router.ts changes. The "split" and
+// "guard" tests pass today and must keep passing: they stop the fix from over-reaching.
+describe('router: clarify band and self vote (D2a)', () => {
+  const weakCourse = normalize(Float32Array.from([1, 0, 0, 0, 0, 0, 0, 0.9]));
+
+  it('precondition: the weak vector lands inside the clarify band with a unanimous course vote', () => {
+    const decision = route({ question: 'hmm that thing with the two sides', vector: weakCourse, index });
+    expect(decision.intent).toBe('course');
+    expect(decision.intentConfidence).toBeGreaterThanOrEqual(0.7);
+    expect(decision.lessons[0]?.best).toBeGreaterThanOrEqual(THRESHOLDS.clarify);
+    expect(decision.lessons[0]?.best).toBeLessThan(THRESHOLDS.lesson);
+  });
+
+  it('answers from the closest lesson when the course vote is decisive inside the clarify band', () => {
+    const decision = route({ question: 'hmm that thing with the two sides', vector: weakCourse, index });
+    expect(decision.action).toBe('lesson');
+    expect(decision.lessons[0]?.slug).toBeDefined();
+  });
+
+  it('still clarifies inside the band when the course vote is only a plurality', () => {
+    // course 0.6 vs off_topic 0.4: a lexical false friend ("raft", "tokens"), not a course question.
+    const split = normalize(Float32Array.from([0.7, 0, 0, 0.57, 0, 0, 0, 0.43]));
+    const decision = route({ question: 'hmm that thing with the two sides', vector: split, index });
+    expect(decision.intent).toBe('course');
+    expect(decision.intentConfidence).toBeLessThan(0.7);
+    expect(decision.lessons[0]?.best).toBeGreaterThanOrEqual(THRESHOLDS.clarify);
+    expect(decision.lessons[0]?.best).toBeLessThan(THRESHOLDS.lesson);
+    expect(decision.action).toBe('clarify');
+  });
+
+  it('still redirects below the clarify gate even when the course vote is unanimous', () => {
+    const far = normalize(Float32Array.from([1, 0, 0, 0, 0, 0, 0, 6]));
+    const decision = route({ question: 'hmm that thing with the two sides', vector: far, index });
+    expect(decision.lessons[0]?.best).toBeLessThan(THRESHOLDS.clarify);
+    expect(decision.action).toBe('redirect');
+  });
+
+  it('routes a decisive self vote to Ben when the question addresses him and no lesson is close', () => {
+    const decision = route({ question: 'will you keep track of what we covered last week', vector: vec(4), index });
+    expect(decision.action).toBe('self');
+  });
+
+  it('does not route a self vote below 0.8 to Ben', () => {
+    // self 0.75 vs off_topic 0.25
+    const mixed = normalize(Float32Array.from([0, 0, 0, 0.408, 1, 0, 0, 0]));
+    const decision = route({ question: 'will you keep track of what we covered last week', vector: mixed, index });
+    expect(decision.intent).toBe('self');
+    expect(decision.intentConfidence).toBeLessThan(0.8);
+    expect(decision.action).not.toBe('self');
+  });
+
+  it('never routes a decisive self vote to Ben when the question does not address him', () => {
+    // The "who is <actor>" drift bug: same vector as the test above, no second person.
+    const decision = route({ question: 'Who is Michael Keaton', vector: vec(4), index });
+    expect(decision.action).not.toBe('self');
+  });
+
+  it('lets a named-tag pin and a blocked topic outrank both new rules', () => {
+    expect(route({ question: 'DDD', vector: weakCourse, index }).pinned).toEqual(['domain-driven-design']);
+    expect(route({ question: 'is faith compatible with caching', vector: weakCourse, index }).action).toBe('redirect');
+  });
+});
+
 describe('turn', () => {
   it('keeps a parametric turn even when no lesson ranked', () => {
     const turn = buildTurn('what is amazon', [], {

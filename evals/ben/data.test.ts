@@ -61,6 +61,39 @@ describe('eval data hygiene', () => {
     expect(leaked).toEqual([]);
   });
 
+  // D2b (docs/manifests/ben-router-generalization.md). Exemplars must be general paraphrases drafted
+  // from the lessons and the intent definitions, never copies of an eval question. The exact-match
+  // test above is the floor; this one also catches a question with one word changed.
+  it('never votes with a near-copy of a scored question', () => {
+    const tokens = (text: string) => norm(text).split(' ').filter(Boolean);
+    const near = (a: string, b: string) => {
+      const ta = tokens(a);
+      const tb = tokens(b);
+      if (ta.length >= 3 && tb.length >= 3 && (` ${norm(a)} `.includes(` ${norm(b)} `) || ` ${norm(b)} `.includes(` ${norm(a)} `))) return true;
+      const sa = new Set(ta);
+      const sb = new Set(tb);
+      const shared = [...sa].filter((word) => sb.has(word)).length;
+      return shared / (sa.size + sb.size - shared) >= 0.75;
+    };
+    const bank = read('exemplars.json').examples as { text: string }[];
+    const scored = [...read('cases.json').cases, ...read('holdout.json').cases] as { id: string; q: string }[];
+    const copies = bank.flatMap((e) => scored.filter((c) => near(e.text, c.q)).map((c) => `${c.id} ~ ${e.text}`));
+    expect(copies).toEqual([]);
+  });
+
+  // Bank shape contracts (RED before D2b, from docs/diagnostics/ben-miss-diagnosis-2026-11-03.md).
+  it('does not let "How do I..." dominate the off_topic exemplars', () => {
+    const off = (read('exemplars.json').examples as { intent: string; text: string }[]).filter((e) => e.intent === 'off_topic');
+    const howDoI = off.filter((e) => /^how do i\b/i.test(e.text)).length;
+    expect(howDoI / off.length).toBeLessThanOrEqual(0.35);
+  });
+
+  it('teaches the router that "what is the X pattern/principle" is a course question', () => {
+    const course = (read('exemplars.json').examples as { intent: string; text: string }[]).filter((e) => e.intent === 'course');
+    const named = course.filter((e) => /^what (is|does) (the |a |an )?[\w -]+ (pattern|principle)\??$/i.test(e.text));
+    expect(named.length).toBeGreaterThanOrEqual(4);
+  });
+
   it('labels every scored lesson with a real lesson slug', () => {
     // Guides count too: the router pins `tutor-loop` (a Guide, not in the lesson
     // index), so a setup case's correct answer is a Guide slug.
