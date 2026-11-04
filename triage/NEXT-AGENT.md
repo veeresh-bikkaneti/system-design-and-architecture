@@ -1,4 +1,4 @@
-Handoff 2026-11-03T05:30Z | origin/main a11c799 | open PRs #135 #199 (draft) #200 (this file, draft) | open issues #196 #198 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
+Handoff 2026-11-04T11:51Z | origin/main a11c799 | open PRs #135 #199 (draft) #200 (this file, draft) #201 (draft) | open issues #196 #198 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
 
 # Next-agent handoff (snapshot 2026-11-02, night)
 
@@ -22,6 +22,7 @@ Main is `a11c799`. Also merged since the last handoff: #193 (ask the owner domai
 | #195 | MERGED (6822094) | Ben model load never blocks the chat. Deploy green. NOT proven for real users: the live check (real WebGPU browser, throttled network, record getLoadTiming) is still required; follow-ups in #196. | Live check. |
 | #197 | MERGED (a11c799) | D1: index embeds one chunk at a time. Deploy green. Drift on the 201-case set is 2.9% against 3.0% (zero slack). Follow-ups in #198. CORRECTION: index bytes differ by runner CPU class (f9feac54... slow runners and the Windows laptop; 1837cd2f... fast runners), NOT by operating system; the Pages artifact and the Cloudflare mirror of one commit can differ. | Pinned vector artifact (council decision, see section 5). |
 | #199 | DRAFT, NOT mergeable (the 3 collisions are dropped: 103 cases, pooled 304; gates after the drop: accuracy 79.9, drift 5.8; verified miss diagnosis in `docs/diagnostics/ben-miss-diagnosis-2026-11-03.md`; D2 router manifest in progress: `docs/manifests/ben-router-generalization.md`) | New blind holdout (106 cases, 103 after dropping 3 collisions), old holdout folded into cases.json. Combined set FAILS gates: accuracy 80.1 (gate 85), drift 5.6 (gate 3.0). Blind accuracy 67.0%. Council record `docs/council/2026-11-03-ben-blind-holdout.md`. Merges only when all 7 gates are green; thresholds never change. | Read `docs/diagnostics/ben-miss-diagnosis-2026-11-03.md` (when the diagnostic lands), then the D2 router manifest. |
+| #201 | DRAFT, phase 1 (issue #198) | Pinned vector-artifact manifest and failing tests; no implementation yet. Council decision: key the committed artifact by content hash, model SHA, and embedder version; `build-index --check` detects staleness. | Continue only under the approved manifest; implementation and current eval gates remain outstanding. |
 | #194 | MERGED | Eval trade-off record. | Nothing. |
 | #193 | MERGED | Domain-only rule is in AGENTS.md section 2. | Nothing. |
 | #185 | MERGED | The previous rolling handoff; this file now lives on branch `docs/handoff-2026-11-03`. | Keep this branch current. |
@@ -61,5 +62,12 @@ Already decided by the owner: #109 decision 1 (the `session.ts` scope expansion 
 - Local machine and permission details stay out of this public file (see `docs/agent-notes.md`).
 
 ## 7. Tools
-
 Code-only graph of `src/` (derived, gitignored): `graphify update src`. The full semantic graph needs `/graphify` in an assistant session.
+
+## 8. Resume checkpoint (2026-11-04)
+
+- The owner's approved Ben policy for the local-first follow-up remains: explicit Ben/tutor referent → `tutor-loop`; own-environment signals and bare ambiguity → clarify; the exact screenshot phrasing → clarify. Reconcile this explicit policy with merged #140 rather than silently inheriting #140's earlier pin default.
+- Local branches `fix/ben-local-first-completion` (based on `6b8110f`, 21 commits behind `a11c799`) and `fix/ben-ai-env-pin` contain uncommitted work and are not pushed. Do not publish or merge either as-is. Prior test, eval, build, and E2E results are from the older base and have not been rerun on `a11c799`.
+- Local-only work includes the Firefox/Edge research note, related tutor-copy updates, and routing/chunker/index changes. It overlaps open PR #135 and current #199/#201 quality work. The latest council records and exact-head advisory eval govern what can proceed.
+- The prior implementation loop cap is exhausted. Under current `AGENTS.md`, stop before further code or publication until the Chair approves a revised T2 plan and its required Skeptic/advisor review. No new implementation or feature-branch push was made during this resume checkpoint.
+- Next action: start from current `origin/main` (`a11c799`), re-check #135/#199/#201 and their council records, then obtain the revised T2 decision before selectively porting any still-needed change.
