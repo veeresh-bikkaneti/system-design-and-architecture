@@ -86,13 +86,13 @@ Maximum **15,000 tokens** for this planning/review task and the future bounded i
 
 ## Approvals and Chair decision
 
+
 - Owner/Chair approved this exact manifest for scoped implementation at **2026-11-05 03:53:05 -06:00**; the owner then explicitly reconfirmed **no cloud AI agent or VM setup** at 03:53:51.
 - Skeptic (C), rounds 1 and 2: **SUPPORT WITH CHANGES**; all requested acceptance/scope corrections are incorporated. Both reports are preserved below.
-- Advisor: formal re-review **pending** after the complete seat reports are pushed to the remote, as required by repository process. No source code edits until that review is recorded.
+- Advisor: formal re-review after the report-first commit `f65be07` was published to PR #199: **APPROVE**, no material blockers. The review outcome must be recorded on the remote before source edits begin.
 - Chair decision: **APPROVED for the named scoped implementation only**; no merge, threshold change, cloud inference, or VM setup is authorized.
 
 ## Skeptic (C), round 1 report — verbatim
-
 > ## Verdict: SUPPORT WITH CHANGES
 >
 > The owner’s policy is stated clearly, the draft correctly limits this to planning/review, and it keeps cloud inference/VM work out of scope. But the acceptance contract, current eval case, no-hit turn behavior, sequencing, and file-limit exception need reconciliation before approval or implementation.
@@ -145,3 +145,18 @@ Maximum **15,000 tokens** for this planning/review task and the future bounded i
 > ### Advisor review
 >
 > **Yes—Advisor review may proceed now as review-only**, with this full Skeptic report included. It should not be treated as concurrence or implementation approval; resolve the blind-set gate/scoring contradiction and make pin precedence explicit before calling the manifest approval-ready. No tests or evaluations were run, consistent with the review-only constraint.
+
+
+## Advisor re-review report — 2026-11-05 — verbatim
+
+> **Verdict: APPROVE**
+>
+> No material blockers or corrections. The current manifest resolves both round-two Skeptic findings: it explicitly puts own-environment/bare-ambiguity clarification ahead of setup and named-tag pins, off-topic shortcuts, and strong lesson matches while retaining blocked-topic precedence (manifest lines 37–41); and it separates pooled-only determinism runs from the fresh-set gates and one-time frozen-holdout scoring (lines 42–45). The source confirms these are necessary, feasible changes: the blocked-topic check currently precedes setup routing (`src/ai/local/semantic/router.ts:303–305`), while a no-hit clarify currently redirects before reaching its clarify handler (`src/ai/local/semantic/turn.ts:95–116`).
+>
+> The approved sequence and boundaries are coherent: correct existing diagnosis labels as an owner-policy decision, preserve the fresh holdout during diagnosis, separate per-set metrics, then author and score a new holdout only after fixes and candidate freeze (manifest lines 36, 43–45, 52–56, 64–66). It keeps thresholds, exemplars, index, chunker, #135, and #201 unchanged; retains both CPU variants until the pinned-vector track is accepted; preserves the named acceptance checks and hard holdout freeze (lines 42–46, 56, 65–69). The explicit mixed-signal tie-break remains labeled UNVERIFIED/low confidence (lines 25 and 38), appropriately, and is slated for adversarial coverage.
+>
+> The report-first record is complete enough for this re-review: the current HEAD is `f65be0765b43edce484cd7ba26ad6957049ac3d6`, the checkout is clean, and that commit contains only the manifest and `EVIDENCE_LOG.md`. Both full Skeptic reports and the Chair’s scoped approval are present. It is not yet a closed formal approval record because the Advisor verdict is still marked pending in the record (manifest lines 89–92; `AGENTS.md`/council procedure, `docs/council/2026-11-02-council-procedure.md:60–68`).
+>
+> **Implementation may begin under the existing Chair approval once this Advisor verdict is recorded on the remote.** Until it is recorded, keep the existing source-edit pause. When recording, note the current branch head `f65be07`—the report-first-only advancement from the manifest’s earlier `24fd0458` reference—and re-fetch/recheck before implementation or any push. No new Chair approval is needed if work stays within this approved scope and sequence.
+>
+> The scope remains browser-local Prompt API, then WebLLM; the current inference source describes that client-side ladder (`src/ai/local/inference.ts:5–18, 108–18x`), with no cloud model or VM. Stronger reasoning, tool/function calling, and web scraping are not included or implied; any of those broader aspirations requires separate future authorization. Review only: no files, tests, or Git state were changed.

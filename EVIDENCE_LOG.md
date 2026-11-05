@@ -591,3 +591,8 @@ T-PWA-2 (2026-10-24, T2, Chair + C, rounds 1-2): service worker via vite-plugin-
 > ### Advisor review
 >
 > **Yes—Advisor review may proceed now as review-only**, with this full Skeptic report included. It should not be treated as concurrence or implementation approval; resolve the blind-set gate/scoring contradiction and make pin precedence explicit before calling the manifest approval-ready. No tests or evaluations were run, consistent with the review-only constraint.
+
+
+### 2026-11-05 - Ben local-first policy reconciliation - T2
+- What happened: Published the Chair-approved manifest and both complete Skeptic reports to PR #199 at `f65be07`. Independent Advisor re-review returned **APPROVE** with no material blockers. Its full report is appended to `docs/manifests/ben-local-first-policy-reconciliation-2026-11-04.md`. Existing scope remains browser-local Prompt API then WebLLM; strong reasoning upgrades, model tool/function calling, web scraping, cloud inference, and VM setup are excluded. No source code or tests were changed in this step.
+- Blocker: The Advisor verdict and this evidence entry still need to be pushed to PR #199 before source edits may begin, per the council's report-first gate. After push, re-fetch and verify the branch head before starting the approved D2-0 sequence.
