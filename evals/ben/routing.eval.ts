@@ -1,5 +1,5 @@
 /**
- * Scores Ben's routing on the held-out cases in cases.json.
+ * Scores Ben's routing on diagnosis cases and a separately reported fresh holdout.
  *
  * Runs the real embedder (scripts/ben/embedder.mjs) and a freshly built index,
  * then compares the semantic router with the legacy keyword pipeline on the
@@ -16,6 +16,8 @@ import { decodeIndex, type BenIndex, type RawBenIndex } from '../../src/ai/local
 import { queryText, route, type Action } from '../../src/ai/local/semantic/router.ts';
 import type { ChatTurn } from '../../src/ai/local/types.ts';
 
+type EvalSet = 'cases' | 'holdout';
+
 interface Case {
   id: string;
   q: string;
@@ -29,7 +31,7 @@ interface Case {
 
 interface Outcome {
   id: string;
-  set: string;
+  set: EvalSet;
   expected: Action;
   got: Action;
   lesson?: string;
@@ -39,6 +41,21 @@ interface Outcome {
   refused: boolean;
 }
 
+interface Summary {
+  name: string;
+  count: number;
+  accuracy: number | null;
+  drift: number | null;
+  offered: number | null;
+  refusal: number | null;
+}
+
+interface Ranking {
+  ranked: number;
+  top1: number;
+  top3: number;
+}
+
 /** Release gates. Raise them as the example bank grows; never lower them to pass. */
 export const GATES = {
   accuracy: 0.85,
@@ -46,16 +63,32 @@ export const GATES = {
   maxOffered: 0.1,
   maxRefusal: 0.08,
   lessonTop3: 0.9,
-};
+} as const;
 
-function load(file: string, set: string): (Case & { set: string })[] {
+function load(file: string, set: EvalSet): (Case & { set: EvalSet })[] {
   return JSON.parse(readFileSync(join(__dirname, file), 'utf8')).cases.map((c: Case) => ({ ...c, set }));
 }
 
-/** cases.json drives diagnosis; holdout.json is scored, never tuned against. */
-const cases = [...load('cases.json', 'cases'), ...load('holdout.json', 'holdout')];
+function isFreshHoldout(doc: { about: string; cases: { id: string }[] }): boolean {
+  if (doc.cases.length === 0) return false;
+  const priorBlind = /Blind holdout 2/i.test(doc.about) && doc.cases.every((c) => c.id.startsWith('n-'));
+  if (priorBlind) return false;
+  if (!/(fresh.*blind|blind.*fresh)/i.test(doc.about)) {
+    throw new Error('Refusing to score a nonempty holdout without explicit fresh-blind provenance.');
+  }
+  return true;
+}
 
-function judge(c: Case & { set: string }, got: Action, lesson?: string): Outcome {
+function loadFreshHoldout(): (Case & { set: 'holdout' })[] {
+  const doc = JSON.parse(readFileSync(join(__dirname, 'holdout.json'), 'utf8')) as { about: string; cases: Case[] };
+  if (!isFreshHoldout(doc)) return [];
+  return doc.cases.map((c) => ({ ...c, set: 'holdout' }));
+}
+
+/** The previously reported Blind Holdout 2 is not rescored; only an explicitly fresh set qualifies. */
+const cases = [...load('cases.json', 'cases'), ...loadFreshHoldout()];
+
+function judge(c: Case & { set: EvalSet }, got: Action, lesson?: string): Outcome {
   const okActions = new Set<Action>([c.action, ...(c.alsoOk ?? [])]);
   let correct = okActions.has(got);
   if (correct && got === 'lesson' && c.lessons) correct = lesson !== undefined && c.lessons.includes(lesson);
@@ -84,12 +117,14 @@ function legacy(c: Case): { action: Action; lesson?: string } {
   return { action: isGeneralTechQuestion(c.q, false) ? 'parametric_fallback' : 'redirect' };
 }
 
-function summarize(name: string, outcomes: Outcome[]) {
+function summarize(name: string, outcomes: Outcome[]): Summary {
   const n = outcomes.length;
+  if (n === 0) return { name, count: 0, accuracy: null, drift: null, offered: null, refusal: null };
   const offCourse = outcomes.filter((o) => o.expected === 'redirect' || o.expected === 'self').length;
   const course = outcomes.filter((o) => o.expected === 'lesson').length;
   return {
     name,
+    count: n,
     accuracy: outcomes.filter((o) => o.correct).length / n,
     drift: outcomes.filter((o) => o.drift).length / Math.max(1, offCourse),
     offered: outcomes.filter((o) => o.offered).length / Math.max(1, offCourse),
@@ -107,16 +142,43 @@ function confusion(outcomes: Outcome[]): string {
   return [header, `|${'---|'.repeat(actions.length + 1)}`, ...rows].join('\n');
 }
 
-const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
+const pct = (value: number | null) => (value === null ? 'N/A' : `${(value * 100).toFixed(1)}%`);
+const rate = (numerator: number, denominator: number) => (denominator === 0 ? null : numerator / denominator);
 
-describe('Ben routing (held-out cases)', () => {
+function bySet(outcomes: Outcome[], set: EvalSet): Outcome[] {
+  return outcomes.filter((outcome) => outcome.set === set);
+}
+
+describe('evaluation set summaries', () => {
+  it('marks an empty fresh holdout as not applicable, not as a passing zero-score set', () => {
+    expect(summarize('holdout', [])).toMatchObject({
+      count: 0,
+      accuracy: null,
+      drift: null,
+      offered: null,
+      refusal: null,
+    });
+  });
+
+  it('does not score the previously reported n- blind set again', () => {
+    expect(isFreshHoldout({ about: 'Blind holdout 2 (added 2026-11-03)', cases: [{ id: 'n-c-001' }] })).toBe(false);
+  });
+
+  it('requires explicit fresh-blind provenance before scoring a nonempty replacement', () => {
+    expect(() => isFreshHoldout({ about: 'Unmarked questions', cases: [{ id: 'fresh-001' }] })).toThrow(/fresh-blind provenance/);
+  });
+});
+
+describe('Ben routing by set', () => {
   let index: BenIndex;
   let embed: (texts: string[]) => Promise<number[][]>;
   const semantic: Outcome[] = [];
   const baseline: Outcome[] = [];
-  let top1 = 0;
-  let top3 = 0;
-  let ranked = 0;
+  const ranking: Record<EvalSet, Ranking> = {
+    cases: { ranked: 0, top1: 0, top3: 0 },
+    holdout: { ranked: 0, top1: 0, top3: 0 },
+  };
+  const freshCaseCount = cases.filter((c) => c.set === 'holdout').length;
 
   beforeAll(async () => {
     embed = await loadNodeEmbedder();
@@ -131,28 +193,44 @@ describe('Ben routing (held-out cases)', () => {
       const decision = route({ question: c.q, focusId: c.focus, vector, index });
       semantic.push(judge(c, decision.action, decision.lessons[0]?.slug));
       if (c.action === 'lesson' && c.lessons && !c.focus) {
-        ranked += 1;
+        const setRanking = ranking[c.set];
+        setRanking.ranked += 1;
         const slugs = decision.lessons.map((lesson) => lesson.slug);
-        if (c.lessons.includes(slugs[0] ?? '')) top1 += 1;
-        if (slugs.slice(0, 3).some((slug) => c.lessons?.includes(slug))) top3 += 1;
+        if (c.lessons.includes(slugs[0] ?? '')) setRanking.top1 += 1;
+        if (slugs.slice(0, 3).some((slug) => c.lessons?.includes(slug))) setRanking.top3 += 1;
       }
       const old = legacy(c);
       baseline.push(judge(c, old.action, old.lesson));
     });
 
     const rows = (['cases', 'holdout', 'all'] as const).flatMap((set) => {
-      const pick = (list: Outcome[]) => (set === 'all' ? list : list.filter((o) => o.set === set));
+      const pick = (list: Outcome[]) => (set === 'all' ? list : bySet(list, set));
       return [summarize(`keyword pipeline, ${set}`, pick(baseline)), summarize(`semantic router, ${set}`, pick(semantic))];
     });
-    const counts = `${cases.filter((c) => c.set === 'cases').length} diagnosis + ${cases.filter((c) => c.set === 'holdout').length} holdout`;
+    const counts = `${cases.filter((c) => c.set === 'cases').length} diagnosis + ${freshCaseCount} fresh holdout`;
+    const allRanking = (['cases', 'holdout'] as const).reduce<Ranking>(
+      (total, set) => ({
+        ranked: total.ranked + ranking[set].ranked,
+        top1: total.top1 + ranking[set].top1,
+        top3: total.top3 + ranking[set].top3,
+      }),
+      { ranked: 0, top1: 0, top3: 0 },
+    );
+    const rankingRows = (['cases', 'holdout'] as const).map((set) =>
+      `| ${set} | ${ranking[set].ranked} | ${pct(rate(ranking[set].top1, ranking[set].ranked))} | ${pct(rate(ranking[set].top3, ranking[set].ranked))} |`,
+    );
+    rankingRows.push(`| all | ${allRanking.ranked} | ${pct(rate(allRanking.top1, allRanking.ranked))} | ${pct(rate(allRanking.top3, allRanking.ranked))} |`);
     const lines = [
       `\n${counts} cases, lesson index ${index.content}. Regenerate with \`npm run eval:ben\`.`,
       '',
-      '| pipeline, set | accuracy | drift: off-course answered | off-course, lessons offered | course turned away |',
-      '|---|---|---|---|---|',
-      ...rows.map((s) => `| ${s.name} | ${pct(s.accuracy)} | ${pct(s.drift)} | ${pct(s.offered)} | ${pct(s.refusal)} |`),
+      '| pipeline, set | cases | accuracy | drift: off-course answered | off-course, lessons offered | course turned away |',
+      '|---|---:|---:|---:|---:|---:|',
+      ...rows.map((s) => `| ${s.name} | ${s.count} | ${pct(s.accuracy)} | ${pct(s.drift)} | ${pct(s.offered)} | ${pct(s.refusal)} |`),
       '',
-      `Lesson ranking: top-1 ${pct(top1 / ranked)}, top-3 ${pct(top3 / ranked)} (${ranked} course cases)`,
+      'Semantic lesson ranking on course cases:',
+      '| set | course cases ranked | top-1 | top-3 |',
+      '|---|---:|---:|---:|',
+      ...rankingRows,
       '',
       'Semantic router, expected vs got (all cases):',
       confusion(semantic),
@@ -168,31 +246,52 @@ describe('Ben routing (held-out cases)', () => {
     console.log(lines.join('\n'));
   }, 180_000);
 
-  it('beats the keyword pipeline', () => {
-    expect(summarize('', semantic).accuracy).toBeGreaterThan(summarize('', baseline).accuracy);
+  const diagnosisSemantic = () => bySet(semantic, 'cases');
+  const diagnosisBaseline = () => bySet(baseline, 'cases');
+  const diagnosisRank = () => ranking.cases;
+
+  it('beats the keyword pipeline on diagnosis cases', () => {
+    expect(summarize('semantic', diagnosisSemantic()).accuracy).toBeGreaterThan(
+      summarize('baseline', diagnosisBaseline()).accuracy,
+    );
   });
 
-  it(`keeps drift at or below ${pct(GATES.maxDrift)}`, () => {
-    expect(summarize('', semantic).drift).toBeLessThanOrEqual(GATES.maxDrift);
+  it(`keeps diagnosis drift at or below ${pct(GATES.maxDrift)}`, () => {
+    expect(summarize('diagnosis', diagnosisSemantic()).drift).toBeLessThanOrEqual(GATES.maxDrift);
   });
 
-  it(`offers lessons for at most ${pct(GATES.maxOffered)} of off-course questions`, () => {
-    expect(summarize('', semantic).offered).toBeLessThanOrEqual(GATES.maxOffered);
+  it(`offers lessons for at most ${pct(GATES.maxOffered)} of diagnosis off-course cases`, () => {
+    expect(summarize('diagnosis', diagnosisSemantic()).offered).toBeLessThanOrEqual(GATES.maxOffered);
   });
 
-  it(`routes at least ${pct(GATES.accuracy)} of cases correctly`, () => {
-    expect(summarize('', semantic).accuracy).toBeGreaterThanOrEqual(GATES.accuracy);
+  it(`routes at least ${pct(GATES.accuracy)} of diagnosis cases correctly`, () => {
+    expect(summarize('diagnosis', diagnosisSemantic()).accuracy).toBeGreaterThanOrEqual(GATES.accuracy);
   });
 
-  it(`turns away at most ${pct(GATES.maxRefusal)} of course questions`, () => {
-    expect(summarize('', semantic).refusal).toBeLessThanOrEqual(GATES.maxRefusal);
+  it(`turns away at most ${pct(GATES.maxRefusal)} of diagnosis course cases`, () => {
+    expect(summarize('diagnosis', diagnosisSemantic()).refusal).toBeLessThanOrEqual(GATES.maxRefusal);
   });
 
-  it(`ranks a correct lesson in the top 3 for ${pct(GATES.lessonTop3)} of course questions`, () => {
-    expect(top3 / ranked).toBeGreaterThanOrEqual(GATES.lessonTop3);
+  it(`ranks a correct lesson in the top 3 for ${pct(GATES.lessonTop3)} of diagnosis course cases`, () => {
+    expect(rate(diagnosisRank().top3, diagnosisRank().ranked)).toBeGreaterThanOrEqual(GATES.lessonTop3);
   });
 
-  it('never answers the screenshot question from a lesson', () => {
-    expect(semantic.find((o) => o.id === 'screenshot-catholic')?.got).toBe('redirect');
+  it.skipIf(freshCaseCount === 0)('keeps the fresh holdout separate and within every gate', () => {
+    const freshSemantic = bySet(semantic, 'holdout');
+    const freshBaseline = bySet(baseline, 'holdout');
+    const fresh = summarize('fresh holdout', freshSemantic);
+    expect(fresh.count).toBe(freshCaseCount);
+    expect(fresh.accuracy).toBeGreaterThanOrEqual(GATES.accuracy);
+    expect(fresh.drift).toBeLessThanOrEqual(GATES.maxDrift);
+    expect(fresh.offered).toBeLessThanOrEqual(GATES.maxOffered);
+    expect(fresh.refusal).toBeLessThanOrEqual(GATES.maxRefusal);
+    expect(rate(ranking.holdout.top3, ranking.holdout.ranked)).toBeGreaterThanOrEqual(GATES.lessonTop3);
+    expect(fresh.accuracy).toBeGreaterThan(summarize('keyword baseline', freshBaseline).accuracy);
+    expect(freshSemantic.some((o) => o.id === 'screenshot-catholic')).toBe(false);
+  });
+
+  it('keeps the fixed screenshot assertion on diagnosis data only', () => {
+    expect(bySet(semantic, 'cases').find((o) => o.id === 'screenshot-catholic')?.got).toBe('redirect');
+    expect(bySet(semantic, 'holdout').some((o) => o.id === 'screenshot-catholic')).toBe(false);
   });
 });

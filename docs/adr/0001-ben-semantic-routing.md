@@ -142,9 +142,25 @@ blocks on a model download.
 - `evals/ben/exemplars.json`: the labelled bank the k-NN votes with. It ships, as vectors only.
 - `evals/ben/cases.json`: the diagnosis set. Never shipped, never used for voting. Its misses
   drive changes.
-- `evals/ben/holdout.json`: written after the router was tuned and before it was ever scored.
-  Scored, never tuned against. When it starts driving changes, fold it into `cases.json` and
-  write a new holdout.
+- `evals/ben/holdout.json`: scored, never tuned against. When it starts driving changes, fold it
+  into `cases.json` and write a new holdout. **The new holdout is scored, never tuned against.**
+  - **Consumed holdout (2026-11-03):** the previous holdout (48 cases, ids starting `h-`) was
+    written before the router was tuned, but the router was then tuned while those cases existed,
+    so it no longer measures anything unseen. They were moved into `cases.json` with ids and
+    fields unchanged.
+  - **Blind holdout 2 (2026-11-03, 106 cases, ids starting `n-`):** written by a fresh agent whose
+    working directory held only a copy of `content/lessons/` (41 lesson files; input directory
+    listing sha256 `92ebea600015e56ec64ee4f11fc0ad13b74b7ec954f244737e831d4fc274b2b0`). It saw
+    no router, test or existing question set. One disclosed exception: a python interpreter path
+    shown by `which python`, no repo file read. Labels were verified by grep only, not by reading
+    each lesson in full, so some labels may be imperfect. A miss on these cases can be a label
+    error as well as a router error: inspect it before acting, and never edit a label to make a
+    case pass.
+  - **Dropped as non-blind (2026-11-03):** `n-d-078` ("who should i vote for in the next
+    election"), `n-o-098` ("what is the capital of australia") and `n-s-100` ("who are you")
+    each also exist verbatim as a voting exemplar, so they test memory, not generalisation, and
+    the hygiene test rejects them. Removed from `holdout.json`; no other case was touched. The
+    blind set is now 103 cases (304 pooled with `cases.json`).
 - A unit test asserts that no scored question is also a voting example.
 - `npm run eval:ben` scores the semantic router **and** the legacy keyword router on the same
   cases. It writes `evals/ben/REPORT.md` (committed, so a routing change shows its metric change
@@ -167,6 +183,10 @@ blocks on a model download.
 | Semantic router, all 192 cases | 87.5% | 1.4% | 2.0% |
 | Keyword pipeline, holdout only | 70.8% | 30.0% | 13.6% |
 | Semantic router, holdout only | 89.6% | 0.0% | 0.0% |
+
+**Setup-policy amendment (approved 2026-11-05):** after the hard blocked-topic filter, a clear own-environment setup request or bare/ambiguous AI-environment setup request clarifies instead of pinning to `tutor-loop` or answering from a strong lesson match. Explicit Ben/tutor setup wording still routes to `tutor-loop` when no distinct own-environment signal is present. A device mention alone does not establish an own development environment; mixed tutor-plus-distinct-environment wording conservatively clarifies (UNVERIFIED tie-break). The clarification remains source-free even when retrieval has no lesson hits and asks whether the learner means their own AI setup or Ben running locally in the browser. It must not claim access to the learner's machine.
+
+**Candidate snapshot (2026-11-06, diagnosis only):** the policy candidate scored 201 diagnosis cases and no fresh holdout cases. The semantic router scored 89.6% accuracy, 2.9% drift, 5.8% offered, 2.0% refusal, and 97.0% top-3; the keyword baseline scored 70.1% accuracy. Two consecutive diagnosis-only runs wrote byte-identical `REPORT.md`. This is pooled diagnosis evidence, not fresh blind validation or merge approval; the previously exposed 103-case blind set is intentionally not rescored.
 
 See `evals/ben/REPORT.md` for every current miss.
 
