@@ -160,3 +160,12 @@ Maximum **15,000 tokens** for this planning/review task and the future bounded i
 > **Implementation may begin under the existing Chair approval once this Advisor verdict is recorded on the remote.** Until it is recorded, keep the existing source-edit pause. When recording, note the current branch head `f65be07`—the report-first-only advancement from the manifest’s earlier `24fd0458` reference—and re-fetch/recheck before implementation or any push. No new Chair approval is needed if work stays within this approved scope and sequence.
 >
 > The scope remains browser-local Prompt API, then WebLLM; the current inference source describes that client-side ladder (`src/ai/local/inference.ts:5–18, 108–18x`), with no cloud model or VM. Stronger reasoning, tool/function calling, and web scraping are not included or implied; any of those broader aspirations requires separate future authorization. Review only: no files, tests, or Git state were changed.
+
+
+## Implementation checkpoint — 2026-11-06
+
+- The scoped policy-label, router, turn-builder, semantic-test, split-evaluator, report, ADR, and evidence changes are prepared locally on `feat/ben-blind-holdout-2`, based on `origin/main` `a11c799` and PR #199 `0e852eb`. No inference-provider, cloud, VM, threshold, exemplar-bank, index, or chunker changes were made.
+- Diagnosis-only evaluation passed for 201 cases: 89.6% semantic accuracy, 2.9% drift, 5.8% offered, 2.0% refusal, and 97.0% top-3; keyword baseline accuracy was 70.1%. Two consecutive runs produced byte-identical `evals/ben/REPORT.md`. Fresh holdout count is 0; the exposed `n-` blind set is excluded by design.
+- Verification: semantic tests passed 79/79; `npm run lint` had 0 errors (12 warnings); root and Pages-base production builds passed; snapshot budget passed; `npm run content:check` and `npm run content:validate` passed; standard Playwright E2E passed 34/34 after rebuilding at the root path.
+- Full serial unit suite remains blocked: 750/753 tests passed, with only the three D2b RED hygiene tests listed in `ben-router-generalization.md` failing in `evals/ben/data.test.ts`. These are outside this amendment's approved source/data scope and remain unfixed; no merge is authorized while this applicable gate is red.
+- The fresh-agent artifact, one-time scoring on both CPU variants, and any claimed 83.3% fresh-holdout result remain **NOT DONE / NOT VERIFIED**. The candidate must not be represented as having passed fresh-set validation.

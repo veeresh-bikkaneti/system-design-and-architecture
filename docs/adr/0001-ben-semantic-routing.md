@@ -184,6 +184,10 @@ blocks on a model download.
 | Keyword pipeline, holdout only | 70.8% | 30.0% | 13.6% |
 | Semantic router, holdout only | 89.6% | 0.0% | 0.0% |
 
+**Setup-policy amendment (approved 2026-11-05):** after the hard blocked-topic filter, a clear own-environment setup request or bare/ambiguous AI-environment setup request clarifies instead of pinning to `tutor-loop` or answering from a strong lesson match. Explicit Ben/tutor setup wording still routes to `tutor-loop` when no distinct own-environment signal is present. A device mention alone does not establish an own development environment; mixed tutor-plus-distinct-environment wording conservatively clarifies (UNVERIFIED tie-break). The clarification remains source-free even when retrieval has no lesson hits and asks whether the learner means their own AI setup or Ben running locally in the browser. It must not claim access to the learner's machine.
+
+**Candidate snapshot (2026-11-06, diagnosis only):** the policy candidate scored 201 diagnosis cases and no fresh holdout cases. The semantic router scored 89.6% accuracy, 2.9% drift, 5.8% offered, 2.0% refusal, and 97.0% top-3; the keyword baseline scored 70.1% accuracy. Two consecutive diagnosis-only runs wrote byte-identical `REPORT.md`. This is pooled diagnosis evidence, not fresh blind validation or merge approval; the previously exposed 103-case blind set is intentionally not rescored.
+
 See `evals/ben/REPORT.md` for every current miss.
 
 **A real bug in the first version of this router, found after acceptance:** `voteIntent` summed

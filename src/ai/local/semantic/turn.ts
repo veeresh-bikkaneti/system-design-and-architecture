@@ -92,6 +92,17 @@ export function buildTurn(question: string, history: ChatTurn[], decision: Decis
     };
   }
 
+  if (decision.action === 'clarify' && decision.clarification === 'setup-disambiguation') {
+    return {
+      action: 'clarify',
+      answer: 'Do you mean setting up your own AI environment, or asking how Ben runs locally in the browser?',
+      sources: [],
+      traces,
+      context: '',
+      confidence: { level: 'low', label: 'Clarification needed · setup target unclear' },
+    };
+  }
+
   if (decision.action === 'redirect' || !lead) {
     return {
       action: 'redirect',

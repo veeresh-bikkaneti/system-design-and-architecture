@@ -85,7 +85,7 @@ describe('router', () => {
   });
 
   it('offers the closest lessons instead of guessing on a weak match', () => {
-    const weak = normalize(Float32Array.from([1, 0, 0, 0, 0, 0, 0, 0.9]));
+    const weak = normalize(Float32Array.from([0.7, 0, 0, 0.57, 0, 0, 0, 0.43]));
     const decision = route({ question: 'hmm that thing with the two sides', vector: weak, index });
     expect(decision.lessons[0]?.best).toBeLessThan(THRESHOLDS.lesson);
     expect(decision.action).toBe('clarify');
@@ -131,7 +131,7 @@ describe('router', () => {
   it('treats a unique single-token tag as a named lesson, including Guides', () => {
     expect(namedTagLessons('DDD')).toContain('domain-driven-design');
     expect(namedTagLessons('tell me about local AI')).toContain('tutor-loop');
-    expect(namedTagLessons('how to setup local AI')).toContain('tutor-loop');
+    expect(namedTagLessons('how to setup local AI')).not.toContain('tutor-loop');
     expect(namedTagLessons('hmm that thing with the two sides')).toEqual([]);
     expect(namedTagLessons('backend for frontend pattern')).toEqual([]);
     expect(namedTagLessons('why does my replica show old data')).toEqual([]);
@@ -170,41 +170,37 @@ describe('router', () => {
     expect(turn.context).toBe('');
   });
 
-  it('answers how to setup local AI with the browser-neutral setup sentence', () => {
+  it('clarifies how to setup local AI when the tutor referent is not explicit', () => {
     const competing: BenIndex = {
       ...index,
       chunks: [chunk('designing-ai-systems', 5)],
     };
     const decision = route({ question: 'how to setup local AI', vector: vec(5, [0.6]), index: competing });
-    expect(decision.lessons[0]?.slug).toBe('tutor-loop');
-    expect(decision.pinned).toEqual(['tutor-loop']);
+    expect(decision.action).toBe('clarify');
+    expect(decision.pinned).toBeUndefined();
     const turn = buildTurn('how to setup local AI', [], decision);
-    expect(turn.sources.map((source) => source.id)).toEqual(['tutor-loop']);
-    expect(turn.answer).toMatch(/WebLLM|Prompt API/i);
-    expect(turn.answer).not.toMatch(/The course site is static/);
-    expect(turn.answer).not.toMatch(/Chrome's Prompt API/);
-    expect(turn.confidence.level).toBe('high');
-    expect(turn.confidence.label).toBe('High confidence · from How this tutor runs');
+    expect(turn.action).toBe('clarify');
+    expect(turn.sources).toEqual([]);
+    expect(turn.answer).toMatch(/your own AI environment/i);
+    expect(turn.answer).toMatch(/how Ben runs locally in the browser/i);
+    expect(turn.confidence.level).toBe('low');
     expect(turn.context).toBe('');
   });
 
-  it('pins the four-token set-up phrasing to tutor-loop', () => {
-    expect(namedTagLessons('how to set up local AI')).toEqual(['tutor-loop']);
+  it('does not treat bare local-AI setup as an explicit tutor pin', () => {
+    expect(namedTagLessons('how to set up local AI')).not.toContain('tutor-loop');
     const competing: BenIndex = {
       ...index,
       chunks: [chunk('designing-ai-systems', 5)],
     };
     const decision = route({ question: 'how to set up local AI', vector: vec(5, [0.6]), index: competing });
-    expect(decision.action).toBe('lesson');
-    expect(decision.lessons[0]?.slug).toBe('tutor-loop');
-    expect(decision.pinned).toEqual(['tutor-loop']);
+    expect(decision.action).toBe('clarify');
+    expect(decision.pinned).toBeUndefined();
     const turn = buildTurn('how to set up local AI', [], decision);
-    expect(turn.sources.map((source) => source.id)).toEqual(['tutor-loop']);
-    expect(turn.answer).toMatch(/WebLLM|Prompt API/i);
-    expect(turn.answer).not.toMatch(/Chrome's Prompt API/);
-    expect(turn.answer).not.toMatch(/narrow and careful/);
-    expect(turn.confidence.level).toBe('high');
-    expect(turn.confidence.label).toBe('High confidence · from How this tutor runs');
+    expect(turn.action).toBe('clarify');
+    expect(turn.sources).toEqual([]);
+    expect(turn.answer).toMatch(/your own AI environment/i);
+    expect(turn.answer).toMatch(/how Ben runs locally in the browser/i);
     expect(turn.context).toBe('');
   });
 
@@ -213,9 +209,8 @@ describe('router', () => {
     expect(namedTagLessons('how to set up local redis')).toEqual([]);
   });
 
-  // "My AI env" with no other clue is read as Ben's own setup: that is the
-  // live report. Python, venv, CUDA, conda, pip, "dev environment", "my
-  // machine" or "my project" mean the student's own box, which Ben can't see.
+  // The no-answer default: ambiguous AI setup and own-environment questions
+  // clarify; only explicit Ben/tutor setup pins to the tutor-loop guide.
   it.each([
     'I want to setup my ai env can you help',
     'help me set up my AI environment',
@@ -224,27 +219,22 @@ describe('router', () => {
     'can you help me get the ai set up',
     'I want to set up my ai env',
     'can you help me get the ai setup',
-  ])('pins "%s" to tutor-loop with the setup answer', (question) => {
-    expect(namedTagLessons(question)).toEqual(['tutor-loop']);
-    const competing: BenIndex = {
-      ...index,
-      chunks: [chunk('designing-ai-systems', 5)],
-    };
+    'how to set up local AI',
+  ])('clarifies ambiguous setup "%s" even with a competing lesson', (question) => {
+    expect(namedTagLessons(question)).not.toContain('tutor-loop');
+    const competing: BenIndex = { ...index, chunks: [chunk('designing-ai-systems', 5)] };
     const decision = route({ question, vector: vec(5, [0.6]), index: competing });
-    expect(decision.action).toBe('lesson');
-    expect(decision.lessons[0]?.slug).toBe('tutor-loop');
-    expect(decision.pinned).toEqual(['tutor-loop']);
+    expect(decision.action).toBe('clarify');
+    expect(decision.pinned).toBeUndefined();
     const turn = buildTurn(question, [], decision);
-    expect(turn.sources.map((source) => source.id)).toEqual(['tutor-loop']);
-    expect(turn.answer).toMatch(/WebLLM|Prompt API/i);
-    expect(turn.answer).not.toMatch(/narrow and careful/);
-    expect(turn.confidence.level).toBe('high');
-    expect(turn.confidence.label).toBe('High confidence · from How this tutor runs');
+    expect(turn.action).toBe('clarify');
+    expect(turn.sources).toEqual([]);
+    expect(turn.answer).toMatch(/your own AI environment/i);
+    expect(turn.answer).toMatch(/how Ben runs locally in the browser/i);
+    expect(turn.confidence.level).toBe('low');
   });
 
   it.each([
-    // Each of these says "set up ... ai env", so only the own-machine /
-    // vendor / noun checks keep them off tutor-loop.
     'set up my python ai env with venv and CUDA',
     'set up my ai env with pip',
     'set up my ai env on my machine',
@@ -254,28 +244,45 @@ describe('router', () => {
     'set up my open ai env',
     'set up azure ai environment',
     'install pipenv for my ai env',
-    'what is the ai setup netflix uses',
-    'what is the ai set up netflix uses',
-  ])('does not pin tutor-loop for own-environment "%s"', (question) => {
+    'set up conda environment for ai',
+  ])('clarifies own-environment setup "%s"', (question) => {
     expect(namedTagLessons(question)).not.toContain('tutor-loop');
     const decision = route({ question, vector: vec(1), index });
     expect(decision.pinned).toBeUndefined();
-    expect(decision.action).toBe('parametric_fallback');
+    expect(decision.action).toBe('clarify');
   });
 
-  // The embedding vote can land on off_topic for a setup phrasing. The pin
-  // must still win, or Ben shrugs at someone asking how to switch him on.
-  it.each([
-    'help me setup the tutor',
-    'how do I set up the tutor',
-    'can you help me set up Ben',
-    'help me set up local AI',
-  ])('pins "%s" to tutor-loop even when the vote is off_topic', (question) => {
-    const decision = route({ question, vector: vec(3), index });
-    expect(decision.intent).toBe('off_topic');
+  it('keeps the Netflix AI-setup noun control on the general-tech route', () => {
+    const decision = route({ question: 'what is the ai setup netflix uses', vector: vec(1), index });
+    expect(decision.action).toBe('parametric_fallback');
+    expect(decision.pinned).toBeUndefined();
+  });
+
+  it('keeps AI-pipeline setup on lesson retrieval rather than setup disambiguation', () => {
+    const decision = route({ question: 'how do I set up an AI pipeline', vector: vec(5, [0.6]), index });
+    expect(decision.action).toBe('lesson');
+    expect(decision.pinned).toBeUndefined();
+  });
+
+  it('pins explicit tutor setup despite a noisy off-topic vote', () => {
+    for (const question of ['help me setup the tutor', 'how do I set up the tutor', 'can you help me set up Ben']) {
+      const decision = route({ question, vector: vec(3), index });
+      expect(decision.intent, question).toBe('off_topic');
+      expect(decision.action, question).toBe('lesson');
+      expect(decision.pinned, question).toEqual(['tutor-loop']);
+    }
+  });
+
+  it('clarifies when explicit tutor setup also names an independent environment', () => {
+    const decision = route({ question: 'help me set up Ben with Python in Docker', vector: vec(5, [0.6]), index });
+    expect(decision.action).toBe('clarify');
+    expect(decision.pinned).toBeUndefined();
+  });
+
+  it('does not let a laptop mention alone override an explicit tutor referent', () => {
+    const decision = route({ question: 'help me set up Ben on my laptop', vector: vec(5, [0.6]), index });
     expect(decision.action).toBe('lesson');
     expect(decision.pinned).toEqual(['tutor-loop']);
-    expect(decision.lessons[0]?.slug).toBe('tutor-loop');
   });
 
   it.each([
@@ -283,7 +290,6 @@ describe('router', () => {
     'set up a tutor for math lessons near me',
     'install ben franklin biography',
     'ben setup meme',
-    'setup local ai on my gpu',
     'set up my netflix account',
     'set up my smart tv',
     'setup the tutor for my kid homework',
@@ -305,7 +311,6 @@ describe('router', () => {
     'setup the tutor at school',
     'set up the tutor for my school computer lab',
     'set up the tutor for homework help',
-    'how do I install local AI at school',
   ])(
     'pins tutor-loop for "%s" under an off_topic vote',
     (question) => {
@@ -324,13 +329,20 @@ describe('router', () => {
   );
 
   it.each(['set up my python venv with CUDA', 'set up my ai env with pip'])(
-    'leaves own-environment "%s" unpinned under an off_topic vote',
+    'clarifies own-environment "%s" under an off_topic vote',
     (question) => {
       const decision = route({ question, vector: vec(3), index });
       expect(decision.pinned).toBeUndefined();
-      expect(decision.action).toBe('redirect');
+      expect(decision.action).toBe('clarify');
     },
   );
+
+  it('clarifies own-GPU setup under an off-topic vote', () => {
+    const decision = route({ question: 'setup local AI on my GPU', vector: vec(3), index });
+    expect(decision.intent).toBe('off_topic');
+    expect(decision.action).toBe('clarify');
+    expect(decision.pinned).toBeUndefined();
+  });
 
   it('still pins a DDD question to domain-driven-design', () => {
     const decision = route({ question: 'DDD', vector: vec(0), index });
@@ -434,7 +446,7 @@ describe('turn', () => {
   });
 
   it('offers lessons on a weak match without answering from them', () => {
-    const weak = normalize(Float32Array.from([1, 0, 0, 0, 0, 0, 0, 0.9]));
+    const weak = normalize(Float32Array.from([0.7, 0, 0, 0.57, 0, 0, 0, 0.43]));
     const decision = route({ question: 'that two sides thing', vector: weak, index });
     const turn = buildTurn('that two sides thing', [], decision);
     expect(turn.action).toBe('clarify');

@@ -102,4 +102,32 @@ describe('eval data hygiene', () => {
     const scored = [...read('cases.json').cases, ...read('holdout.json').cases];
     for (const c of scored) for (const slug of c.lessons ?? []) expect(slugs.has(slug), `${c.id}: ${slug}`).toBe(true);
   });
+
+  it('labels ambiguous and own-environment setup as clarification without changing explicit tutor setup', () => {
+    const cases = read('cases.json').cases as { id: string; action: string; alsoOk?: string[]; lessons?: string[] }[];
+    const byId = new Map(cases.map((c) => [c.id, c]));
+    for (const id of ['env-setup-report', 'env-setup-2', 'env-setup-3', 'env-own-python', 'env-own-conda', 'env-own-openai']) {
+      expect(byId.get(id)?.action, id).toBe('clarify');
+      expect(byId.get(id)?.alsoOk ?? [], id).not.toContain('parametric_fallback');
+    }
+    for (const id of ['tutor-setup-1', 'tutor-setup-2']) {
+      expect(byId.get(id), id).toMatchObject({ action: 'lesson', lessons: ['tutor-loop'] });
+    }
+    expect(byId.get('env-noun-netflix')?.action).toBe('parametric_fallback');
+  });
+
+  it('keeps diagnosis and holdout disjoint without treating the prior blind set as diagnosis data', () => {
+    const diagnosis = read('cases.json').cases as { id: string }[];
+    const holdoutDoc = read('holdout.json') as { about: string; cases: { id: string }[] };
+    const holdout = holdoutDoc.cases;
+    expect(new Set([...diagnosis, ...holdout].map((c) => c.id)).size).toBe(diagnosis.length + holdout.length);
+    if (holdoutDoc.about.includes('Blind holdout 2')) {
+      expect(holdout).toHaveLength(103);
+      expect(holdout.every((c) => c.id.startsWith('n-'))).toBe(true);
+      expect(diagnosis.some((c) => c.id.startsWith('n-'))).toBe(false);
+    } else if (holdout.length > 0) {
+      expect(holdoutDoc.about.toLowerCase()).toContain('fresh');
+      expect(holdoutDoc.about.toLowerCase()).toContain('blind');
+    }
+  });
 });

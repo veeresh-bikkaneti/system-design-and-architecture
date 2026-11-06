@@ -33,6 +33,7 @@ export interface Decision {
   lessons: LessonHit[];
   reasons: string[];
   pinned?: string[];
+  clarification?: 'setup-disambiguation';
 }
 
 export const THRESHOLDS = {
@@ -134,64 +135,56 @@ const DISTINCT_TAG_PINS: Map<string, string> = (() => {
   return out;
 })();
 
-/**
- * Setup of this tutor, including the spaced verb "set up" that tokenize splits.
- *
- * "Set up my AI env" is a coin toss: Ben's own on-device AI, or the student's
- * own dev box? UNVERIFIED, low-confidence call: with no other clue we read it
- * as Ben (that's the live report). Any own-machine signal (Python, Docker,
- * "my laptop", env variables...) or a vendor prefix ("open ai env", "azure
- * ai environment") skips the pin and leaves it unpinned: normal routing
- * decides. No bare "ai" pin: "set up an AI pipeline" belongs to Designing
- * AI Systems.
- */
-function isTutorSetupQuestion(question: string): boolean {
-  const text = question.toLowerCase();
-  const setup = /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text);
-  const tutor = /\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\btutor\b|\bben\b/.test(text);
-  if (setup && tutor) return true;
-  // "the ai set up / setup" is a thing ("what is the ai setup netflix uses"),
-  // so it doesn't count as the verb... unless it follows "get": "get the ai
-  // set up" is someone asking for help. ponytail: "get" is the only request
-  // verb read here; add "have"/"need" if a real report needs it.
-  const request = /\bget\s+the\s+ai\s+set\s*up\b/.test(text);
-  const verb = request || /\bset\s*up\b|\bsetup\b|\binstall\b/.test(text.replace(/\bthe\s+ai\s+set\s*up\b/g, ''));
-  const aiEnv = /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
-  return verb && aiEnv && !OWN_BOX.test(text);
+/** A noun phrase such as "the AI setup Netflix uses" is not a setup request. */
+function isSetupRequest(text: string): boolean {
+  if (/\bwhat\s+is\s+(?:the\s+)?ai\s+set\s*up\b/.test(text)) return false;
+  return /\bset\s*up\b|\bsetup\b|\binstall\b|\bconfigure\b|\bprovision\b/.test(text);
 }
 
-const OWN_BOX =
-  /\b(python|venv|cuda|conda|pip|pipenv|docker|laptop|mac|macbook|wsl|jupyter|gpu|variables|api key)\b|\bdev(elopment)?\s+env|\bmy\s+(machine|project)\b|\b(open|azure)\s+ai\b/;
+const OWN_ENVIRONMENT =
+  /\b(python|venv|cuda|conda|pip|pipenv|docker|wsl|jupyter|gpu|environment variables|api key)\b|\bdev(elopment)?\s+env|\bmy\s+(machine|project)\b|\b(open|azure)\s+ai\b/;
+const HUMAN_TUTOR = /\b(kid|kids|child|children|son|daughter|business|hire|hiring|schedule)\b|\bnear me\b/;
 
 /**
- * The stricter test used to beat an off_topic/debate vote. An off-topic vote
- * is a decent hint that the question really is about something else, so only
- * a definite Ben ("the tutor", "local AI", WebLLM, "Ben" ending the question,
- * or "Ben" right after the verb and then ending or a polite word) or the "ai
- * env" reading may override it, and never with an own-machine or
- * human-tutoring signal. "a tutor business", "the tutor for my kid homework",
- * "ben 10", "ben's birthday" and "ben franklin biography" stay redirected.
- * ponytail: "Ben" elsewhere in the sentence ("ben setup meme") is not
- * protected; the normal pin still catches it when the vote is not off-topic.
- * "school" and "homework" are NOT human-tutoring signals: they appear in real
- * Ben setup questions ("set up the tutor at school"), and a stray pin costs
- * less than turning a student away. Trade-off: "set up the tutor program for
- * school" now pins.
+ * Explicit tutor/Ben referents can pin to the guide; a device mention alone
+ * does not change that. A separate environment marker does.
  */
-const HUMAN_TUTOR = /\b(kid|kids|child|children|son|daughter|business|hire|hiring|schedule)\b|\bnear me\b/;
+function hasExplicitTutorReferent(text: string): boolean {
+  if (HUMAN_TUTOR.test(text)) return false;
+  const tutor = /\b(the|this|your|that|my)\s+tutor\b/.test(text);
+  const benTarget =
+    /\b(set\s*up|setup|install|configure)\s+(?:the\s+)?ben(?:[?.!,]+(?:\s|$)|\s*$|\s+(?:please|pls|plz|thanks|now|again|for me|on my (?:laptop|computer|phone))\b)/.test(
+      text,
+    );
+  return tutor || benTarget;
+}
 
 function isDefiniteTutorSetup(question: string): boolean {
   const text = question.toLowerCase();
-  if (!isTutorSetupQuestion(question) || OWN_BOX.test(text) || HUMAN_TUTOR.test(text)) return false;
-  const definite =
-    /\b(the|this|your|that)\s+tutor\b|\blocal\s+ai\b|\bwebllm\b|\bprompt api\b|\bben\s*[?.!]*$|\b(set\s*up|setup|install)\s+ben(?:[?.!,]+(?:\s|$)|\s*$|\s+(?:please|pls|plz|thanks|now|again|for me)\b)/.test(text);
-  return definite || /\bai\s+env(ironment)?\b|\bthe\s+ai\s+set\s*up\b/.test(text);
+  return isSetupRequest(text) && hasExplicitTutorReferent(text) && !OWN_ENVIRONMENT.test(text);
+}
+
+/**
+ * Ambiguous AI/local-AI setup and own-environment cues require clarification,
+ * even when an embedding or named-tag pin strongly favors a lesson. The
+ * Netflix product-noun control is excluded by isSetupRequest above.
+ */
+function isSetupDisambiguation(question: string): boolean {
+  const text = question.toLowerCase();
+  if (!isSetupRequest(text)) return false;
+  const explicitTutor = hasExplicitTutorReferent(text);
+  if (OWN_ENVIRONMENT.test(text)) return true;
+  if (explicitTutor) return false;
+  return /\bai\s+env(ironment)?\b|\blocal\s+ai\b|\bai\s+(?:set\s*up|setup)\b|\bai\b.{0,35}\b(?:my\s+)?(?:machine|laptop|computer|gpu|docker)\b/.test(
+    text,
+  );
 }
 
 export function namedTagLessons(question: string): string[] {
   const tokens = tokenize(question);
   const slugs = new Set<string>();
-  if (isTutorSetupQuestion(question)) slugs.add('tutor-loop');
+  if (isSetupDisambiguation(question)) return [];
+  if (isDefiniteTutorSetup(question)) slugs.add('tutor-loop');
   if (tokens.length === 0 || tokens.length > THRESHOLDS.nameBoostMaxTokens) return [...slugs];
   for (const token of tokens) {
     const slug = DISTINCT_TAG_PINS.get(token);
@@ -304,6 +297,14 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   if (isOffCourseTopic(question)) {
     return { ...base, action: 'redirect', reasons: ['blocked topic', ...reasons] };
   }
+  if (isSetupDisambiguation(question)) {
+    return {
+      ...base,
+      action: 'clarify',
+      clarification: 'setup-disambiguation',
+      reasons: ['setup target needs disambiguation', ...reasons],
+    };
+  }
   const offCourse = vote.intent === 'debate' || vote.intent === 'off_topic';
   if (isFollowUp(question) || (isAboutTutor(question) && !(offCourse && vote.confidence >= THRESHOLDS.ruleVeto))) {
     return { ...base, action: 'self', intent: 'self', reasons: ['about Ben or a follow-up', ...reasons] };
@@ -344,10 +345,25 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   const namedTags = namedTagLessons(question);
   if (namedTags.length > 0) return pinTags(namedTags);
 
+  // D2a G9: a decisive self vote is useful only when the learner addresses
+  // Ben; the second-person guard prevents "who is <actor>" from drifting.
+  if (
+    vote.intent === 'self' &&
+    vote.confidence >= 0.8 &&
+    topScore < THRESHOLDS.lesson &&
+    /\b(you|your|yours|yourself)\b/i.test(question)
+  ) {
+    return { ...base, action: 'self', intent: 'self', reasons: ['decisive self vote addressed to Ben', ...reasons] };
+  }
+
   // Whether the course covers it is a retrieval fact, not an intent: "what is MVC"
   // reads like a general tech question, but the MVC lesson answers it.
   if (topScore >= THRESHOLDS.lesson) {
     return { ...base, action: 'lesson', reasons: ['a lesson covers this', ...reasons] };
+  }
+  // D2a G2: only a decisive course vote may answer inside the clarify band.
+  if (topScore >= THRESHOLDS.clarify && vote.intent === 'course' && vote.confidence >= 0.7) {
+    return { ...base, action: 'lesson', reasons: ['decisive course vote inside the clarify band', ...reasons] };
   }
   if (vote.intent === 'tech') {
     return { ...base, action: 'parametric_fallback', reasons: ['general tech, no lesson covers it', ...reasons] };
