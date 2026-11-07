@@ -66,3 +66,14 @@ VOTE: APPROVE WITH CONDITIONS
 ## Review status
 
 Round count: 1 of 2. This revision incorporates the Skeptic’s three conditions: the revalidation-only boundary, explicit holdout prerequisite/protocol, exact variants and gates, and no-history-rewrite retarget rule. Confirmation is still pending. Advisor reply: **not available / not consulted**. Chair decision: **pending**. The PR carrying this manifest must remain draft and plan-only. Do not update the #135 implementation branch or merge it until the formal Advisor and Chair approvals are recorded.
+
+
+## Seat table and lead status
+
+| Seat | Reviewer/model | Status |
+|---|---|---|
+| Chair | Liz, repository owner | Pending |
+| Skeptic C | Independent internal Agent subtask; exact model identifier is not exposed, **UNVERIFIED** | Round 1: `APPROVE WITH CONDITIONS`; confirmation of this revision pending |
+| Advisor | Required formal Advisor (Opus) | Not consulted; unavailable through the configured session tools |
+
+**Council lead status:** Manus lead; exact model identifier is not exposed, **UNVERIFIED**. The lead has no vote or veto. Conditional planning support only; no consensus approval for implementation or merge. No dissent was reported by the single required T2 seat. The plan remains draft until the reviewer confirms its conditions, the formal Advisor concurs, and the Chair decides.
