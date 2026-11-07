@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { chunkAllLessons, chunkLesson } from '../../scripts/ben/chunk-lessons.mjs';
+import { chunkAllLessons, chunkLesson, isFragment } from '../../scripts/ben/chunk-lessons.mjs';
 import { OKF_CARDS } from '../../src/ai/local/cards.ts';
 
 // Runs in the default `npm test` suite: no model needed.
@@ -47,6 +47,32 @@ flowchart LR
     const slugs = new Set(chunks.map((c: { slug: string }) => c.slug));
     expect(slugs.size).toBe(41);
     for (const c of chunks) expect(c.text.split(/\s+/).length).toBeLessThanOrEqual(200);
+  });
+
+  // Same predicate the build gate uses (scripts/ben/build-index.mjs), so they can't disagree.
+  it('knows a fragment when it sees one', () => {
+    expect(isFragment('narrow and careful at the bottom.')).toBe(true);
+    expect(isFragment('Watch it fan out:')).toBe(true);
+    expect(isFragment('Fine. And then 5,000 tasks')).toBe(true);
+    expect(isFragment('It guards the boundary.)')).toBe(false);
+    expect(isFragment('Fits in one budget ✅')).toBe(true);
+    expect(isFragment('Fits in one budget. ✅')).toBe(false);
+  });
+
+  it('never cuts a section mid-sentence', () => {
+    const fragments = chunkAllLessons()
+      .filter((c: { text: string }) => isFragment(c.text))
+      .map((c: { id: string }) => c.id);
+    expect(fragments).toEqual([]);
+  });
+
+  it('starts the RAG "Generate." step at a sentence boundary', () => {
+    const chunk = chunkAllLessons().find(
+      (c: { slug: string; text: string }) => c.slug === 'designing-ai-systems' && c.text.includes('Generate.'),
+    );
+    expect(chunk).toBeDefined();
+    expect(chunk!.text).toMatch(/^[A-Z"“(]/);
+    expect(isFragment(chunk!.text)).toBe(false);
   });
 });
 
