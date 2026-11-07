@@ -535,3 +535,16 @@ T-PWA-2 (2026-10-24, T2, Chair + C, rounds 1-2): service worker via vite-plugin-
 - **Item 5, tests:** AuthBar OAuth-callback 401 and PAT stage-2 401 tests (removing the two discriminators turns both red); BLD2 (no clientsClaim), BLD3 (precache limited to assets js/css + 404.html); MG2b no longer skips; UPD1c Dismiss e2e; waitForPort verifies the served sw.js bytes and fails fast on an early-exiting child (EADDRINUSE). The waitForPort change was not red-tested by mutation (UNVERIFIED beyond the green run).
 - **Item 6/7:** Privacy-page note does not fit one file (the static snapshot is in scripts/seo/prerender.mjs), so issue #192 (round-2-triage). Follow-ups: #188 stale lazy chunk, #189 storage.persist, #190 UPD3 sleep, #191 idle.ts listener and test.
 - **Gates:** see PR body.
+
+## 2026-11-04 — Ben local-first follow-up resume — T2
+- **What happened:** Rechecked the latest `origin/main` (`a11c799`), the current PR set (#135, #199, #200, #201), and the current repository instructions. The feature work remains uncommitted on local branches based on `6b8110f`; no feature code was changed, committed, or pushed during this resume checkpoint. Previous test/eval/build/E2E results are historical and were not rerun against the latest main.
+- **Blocker:** The feature work overlaps the active chunker PR #135 and the current deterministic-index/holdout/pinned-vector sequence (#197/#199/#201). The owner-approved setup-routing policy must be reconciled with merged #140. The previous implementation loop cap is exhausted; current `AGENTS.md` requires a revised T2 plan and Skeptic/advisor review before further implementation. No feature branch is ready to publish or merge.
+
+
+### 2026-11-07 — ben-pr199-d2-followthrough-plan — T2
+- **What happened:** Prepared a separate plan-only T2 manifest for PR #199 at `62a8fb0` on main `a11c799`. Independent Skeptic C review: `APPROVE WITH CONDITIONS`; the draft records the 103 examined “Blind holdout 2” cases as a required move into diagnosis, preserves the unchanged gates, stages the D2b hygiene work, and specifies isolated fresh-holdout authoring and one-shot scoring. No implementation or merge was performed. Full plan and verbatim review will be recorded in its own draft PR.
+- **Blocker:** Formal Advisor review is unavailable in this session and Chair approval is pending. The plan remains PROPOSED; no implementation is authorized. Reviewer confirmation of the amended plan remains pending.
+
+### 2026-11-07 — ben-pr135-current-main-revalidation-plan — T2
+- **What happened:** Prepared a separate plan-only T2 manifest for PR #135 at `9fdc878`, merge base `f739912`, against main `a11c799`. Independent Skeptic C review: `APPROVE WITH CONDITIONS`; the draft requires a non-force merge of current main, preservation of `BATCH=1`, current-base comparative reruns on both index variants, and explicit treatment of the 48-case holdout as historical/non-fresh. No implementation or merge was performed. Full plan and verbatim review will be recorded in its own draft PR.
+- **Blocker:** Formal Advisor review is unavailable in this session and Chair approval is pending. The plan is revalidation-only and remains PROPOSED; a distinct approved fresh set is required before any merge-readiness claim. Reviewer confirmation of the amended plan remains pending.

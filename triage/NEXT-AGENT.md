@@ -1,56 +1,33 @@
-Handoff 2026-11-03T02:10Z | origin/main b88c2e5 | open PRs #135 #185 #193 #194 #195 (verify: `git rev-parse origin/main`, `gh pr list`; a mismatch means this file is stale)
+Handoff 2026-11-07T09:23Z | origin/main a11c799 | open PRs #135 #199 #200 #201 #202 #203 #204 #205 #206 #207 #208 #209 #210 #211 #212 #213 (verified with `gh pr list`; compare `git rev-parse origin/main`, a mismatch means re-verify)
 
-# Next-agent handoff (snapshot 2026-11-02, night)
+# Next-agent handoff — Ben local-first work
 
-Read this first, then `AGENTS.md`. The remote is the record: GitHub issues #143-#193, PRs, `triage/README.md`, and the council records in `docs/council/`. Re-verify anything below with `gh pr list`, `gh issue list --label round-2-triage`, `git log origin/main`.
+Read this file, then `AGENTS.md` and `docs/agent-notes.md`. Before acting, run `git fetch origin`, `gh pr list`, and inspect current PR heads and checks. The remote is the source of truth. Do not merge a PR without its required gates, current-head independent review, and Liz’s approval.
 
-## 1. The prompt (paste this to the next agent)
+## Current repository state
 
-> You are taking over the System Design Mastery repo (veeresh-bikkaneti/system-design-and-architecture). Follow `AGENTS.md` exactly. Start with `triage/NEXT-AGENT.md`, then run `gh pr list`, `gh issue list --label round-2-triage`, and `git fetch && git log --oneline origin/main -10` to verify the state it describes before acting. Hard rules. Never merge anything that is not fixed: no unresolved blocking finding, every required check green ON THE CURRENT HEAD, and an independent Reality Checker review of the latest push; a finding the reviewer marks non-blocking is recorded in an issue. The remote is the source of truth: push after each commit, open a PR at the first push, never force-push, keep nothing only local. T1 work (`worker/`, `src/store/session.ts`, `src/lib/gist-sync.ts`, `src/components/AuthBar.tsx`) needs the full four-seat council and then the advisor. Use the council procedure in `AGENTS.md` section 3: Sonnet 5.5 is the council lead and writes the verdict, Opus is the advisor, the loop is bounded by section 9, and the seat reports and the verdict are pasted into `docs/council/` on the remote BEFORE the advisor is consulted. Reviewers and seats read the evidence with `git show origin/main:triage/ISSUES-CONSOLIDATED.md`. Ask the owner only about the domain (see section 4 and the rule in PR #193 once merged); technical questions are settled by the council and the advisor. When you must ask, send one batched message in the format in `docs/agent-notes.md` ("Owner question format"). Keep this file current at every checkpoint (a merge, a verdict, a PR opened or closed, an owner decision, an agent started or finished). Report in the ADHD shape: next action first, numbered steps, plain words, one concrete next action last.
+`main` is `a11c799`. Main retains Ben’s browser-local inference and WebGPU fallback. The owner’s constraint remains: no cloud inference, paid API, or Oracle VM.
 
-## 2. On main (verified)
+| PR | Verified state | Next action |
+|---|---|---|
+| #199 | Draft, head `62a8fb0`; report is 201 diagnosis + 0 fresh cases, accuracy 89.6%, drift 2.9%, top-3 97.0%. Three D2b hygiene contracts fail. `holdout.json` still has 103 examined “Blind holdout 2” cases; they are excluded as non-fresh. | Plan-only T2 draft is PR #212 (head `3bff716`). Skeptic C round 1: APPROVE WITH CONDITIONS. Plan requires moving the 103 examined cases into diagnosis before authoring a new set; D2-L and D2b remain gated. Formal Advisor/Chair approval and reviewer confirmation are pending. No implementation authorized. PR #199 links to #212. |
+| #135 | Open, non-draft, head `9fdc878`; merge base `f739912`, behind current main `a11c799`. All 7 existing checks are green on that stale head; it uses BATCH=32 while main pins BATCH=1. | Plan-only T2 draft is PR #213 (head `b9ac0d4`). Skeptic C round 1: APPROVE WITH CONDITIONS. Plan is revalidation-only, requires a non-force merge of current main, preservation of BATCH=1, both index variants, and treats the 48-case set as historical/non-fresh. A #135-specific approved fresh set is required before any merge-readiness claim. Formal Advisor/Chair approval and reviewer confirmation are pending. No implementation authorized. PR #135 links to #213. |
+| #212 | Open, draft, plan-only T2 record for #199; base `a11c799`; head `3bff716`. One check passed, four checks pending at last inspection. | Keep draft. Full Skeptic report is in the manifest; formal Advisor and Chair decisions are not recorded. |
+| #213 | Open, draft, plan-only T2 record for #135; base `a11c799`; head `b9ac0d4`. One check passed, four checks pending at last inspection. | Keep draft. Full Skeptic report is in the manifest; formal Advisor and Chair decisions are not recorded. |
+| #211 | Draft, docs-only browser-AI note and T3 manifest, head `3daf767`; primary sources checked 2026-11-06. | Owner review. No runtime integration or cross-browser runtime test is claimed. |
+| #200 | This rolling handoff PR, draft. | Update this same branch/PR at every checkpoint; do not open another handoff PR. |
+| #201 | Draft, pinned-vector artifact phase 1. | Keep separate from #135 and #199. |
+| #202–#210 | Open dependency-update PRs. | Recheck only if relevant. |
 
-Main is `b88c2e5`. Merged this session: #125 contact form + privacy page + worker endpoint (T1, full council, independent review), #174 Ben output gate (3 independent review rounds), #186 stripTags fix (2 rounds), #175 TTS extractor, #170 PR gates CI, #182/#183 handoff and checkpoint rule, #140, #141, #142, #169, #171, #172, #173 and others. #177 lesson content (merged 647b1c7; its deploy and Ben eval gate passed). #109 PWA (merged b88c2e5; deploy green; live check posted on the PR: service worker registers at the Pages scope, sitemap/robots/feed/llms.txt are real files, home page renders). All `main` deploys are green through `b88c2e5`. Ruleset `Protect main branch` requires `PR Frontend gates` and `PR Worker gates`, thread resolution, last-push approval and one approval; admin bypass stays.
+## Decisions and evidence
 
-## 3. In flight
+- Approved setup policy: explicit Ben/tutor setup wording routes to `tutor-loop` only when no distinct own-environment signal is present; own-environment cues, bare “AI env” ambiguity, and the exact screenshot phrasing clarify.
+- PR #199’s 83.3% figure is **not current**. That number belongs to an earlier candidate with 165 diagnosis + 48 holdout cases and a different index. Do not present it as either current PR’s result.
+- The current #199 report has zero fresh cases. The 103-case “Blind holdout 2” set is examined and cannot be presented as fresh. PR #212 requires moving it into diagnosis, then freezing the candidate before a separate new blind set is authored and scored once per required variant.
+- PR #135’s old zero-fragment and routing figures were measured on an older base and BATCH=32. They are not acceptance evidence for current main. Its historical 48-case set is not fresh; PR #213 is explicitly revalidation-only and blocks any merge-readiness claim without a distinct approved fresh set.
+- Two independent Skeptic reports are recorded verbatim in PR #212 and #213. Both voted APPROVE WITH CONDITIONS. The configured session tools do not expose the formal Advisor (Opus); therefore both plans remain PROPOSED, with reviewer confirmation and Chair approval pending. No code changes or merges were made. Plan-document `git diff --check` passed; the new draft PR checks were pending at last inspection.
+- The browser note distinguishes site-callable APIs from browser UI features: Chrome’s desktop Prompt API is listed as shipping at Chrome 148 with model/hardware gates; Edge’s Prompt API is an experimental Canary/Dev API; the reviewed Mozilla pages describe selected Firefox on-device features but do not document a general website-callable Prompt API. Ben’s retrieval, citations, confidence, guardrails, and tool orchestration remain application responsibilities.
 
-| PR | What | State | Next action |
-|---|---|---|---|
-| #109 | MERGED (b88c2e5) | Owner decision 3 closed ("ignore what Dinesh said; merge if the PWA goal is met and nothing broke"). Independent review verified with concerns, no blocking finding; live check passed. Follow-ups #188-#192. | Nothing. |
-| #177 | MERGED (647b1c7) | Council + advisor decided the eval trade-off (record: `docs/council/2026-11-02-eval-tradeoff.md`, PR #194). Narration for caching-strategies, designing-ai-systems, agentic-ai-patterns is stale until audio regeneration (#178). | Nothing. |
-| #135 | Chunker (fragments 189 to 0) | Parked until the batching fix (trigger: draft PR within one working session of #109 merging, queued after M1; if M1 is not merged by the end of the next working session, ask the owner a scheduling question). | Batching fix, then re-measure. |
-| #195 | Slice M1: Ben model load never blocks the chat (QA R-02, T2, draft) | Council + advisor AGREE (record `docs/council/2026-11-03-m1-ben-model-load.md`). M1a (inference.ts: two-stage bound 120 s/60 s as UNVERIFIED defaults, cancel, retry only from cancelled, getLoadTiming) and M1b (QaChatPanel.tsx: composer never locked by model loading, provisional label, Stop loading, Try again) implemented; 734/734 tests, e2e 34/34. Independent review running on head 1e48ee7. M1c (R-27 version stamp) deferred. | Read the review; fix BLOCKING; add the manifest judgment call (idle counts as not ready, so a first model-only question gets the deterministic answer and starts no load). Then merge. NOBODY may claim the Ben fix until a fresh-profile throttled-network run records getLoadTiming() (needs a real WebGPU browser; the owner or /browse). |
-| #194 | Eval trade-off record (draft) | Advisor AGREE. | Merge (docs only). |
-| #193 | Rule: ask the owner domain questions only (draft) | Skeptic voted support with changes; all changes applied; record `docs/council/2026-11-02-escalation-domain-only.md` on branch `docs/escalation-domain-only`. | Consult the advisor, record the reply, mark ready, merge when checks are green and the owner has seen it. |
-| #185 | This rolling handoff (draft) | Updated at each checkpoint by pushing to branch `docs/handoff-2026-11-02-late`. | Merge when green. |
+## Next-agent prompt
 
-Not started: L4 docs pass (#151), L5 site counts (#152), W2 Veer corpus refresh (#164, T1), P1a panel focus (#155), W1/W3/W4/S1/S2 (T1, need DEC-1..6 in #147), L1, L2, C3, Q1. Held: `fix/ben-index-batch-1` (66a3ef0), `experiment/drift-m3`, `experiment/drift-m4` (evidence).
-
-## 4. Owner (domain) items, nothing else needs the owner
-
-1. Decision 3 on #109: CLOSED by the owner (see the table). Nothing is waiting here.
-2. `REPORT-round2.md` (coursework-integrity): 38 findings have no titles (issue #167). The owner says it came from their own e2e QA session earlier on 2026-11-02. A message was sent to their cloud session asking it to push the files to a branch `docs/round2-reports` (check `git ls-remote origin docs/round2-reports`); it cannot reply. If the files appear, build the 38 titles from them.
-3. #125 setup: Discord channel + webhook, Cloudflare Turnstile site for the two hosts, secrets `DISCORD_FEEDBACK_WEBHOOK_URL` and `TURNSTILE_SECRET_KEY`, variable `VITE_TURNSTILE_SITE_KEY`, a Cloudflare WAF rate rule on `/api/feedback`, run Deploy Worker, test a real submission. Until then the form shows "spam check is not set up yet" and Send is disabled.
-4. #178: DEFERRED by the owner (no chapter lacks audio; the extractor bug only dropped trailing sections from the recordings; re-recording is optional polish at about 313 MB). Do not re-record.
-5. DEC-1..6 in #147 (product and security policy choices).
-Already decided by the owner: #109 decision 1 (the `session.ts` scope expansion is signed off) and decision 2 (the broken-deploy residual risk is accepted, no watchdog in the PR).
-
-## 5. Decisions already made by the council (do not re-ask the owner)
-
-- Eval trade-off (#180, #177, #135) DECIDED by council and advisor under the owner's standing instruction (record `docs/council/2026-11-02-eval-tradeoff.md`, PR #194): #177 merged; NEXT Ben task = the batching fix (BATCH=1 or fixed deterministic batching, determinism test, the council-4 conditions, current holdout folded into `cases.json`, a new blind holdout of about 100 cases written by a FRESH agent whose brief names only `content/lessons/` and forbids `evals/`, REPORT.md, router code and scratch files, with the paths it was given recorded); trigger: open it as a draft PR within one working session of #109 merging, otherwise ask the owner a scheduling question; then re-measure #135 on that base (merge only if fragments are 0, drift at most 2.9% with one case of slack or a recorded case review, accuracy at least 85%, top-3 at least 90%, and the off-course case `h-d-ai-art` explained by mechanism); make `eval:ben` a required check only after about 10 clean runs.
-- Council cap per task: T3 none, T2 about 40-60k tokens, T1 about 100-150k; stop with `BUDGET EXCEEDED` rather than overspend.
-
-## 6. Lessons that cost time
-
-- A PR opened BEFORE a gate existed does not run it; check `gh pr checks` on the current head. A pushed commit moves the head, so gates and reviews are re-confirmed on the new head.
-- An agent that keeps pushing after its PR merged orphans commits; check `git merge-base --is-ancestor <sha> origin/main` before calling work done.
-- A security fix that adds a sanitizer can itself raise a CodeQL alert; run the code-scanning check before calling it done.
-- Council seats that read the owner's main checkout cannot see `triage/`; use `git show origin/main:triage/...`.
-- The advisor tool forwards the whole transcript: put seat reports in the repo record first, consult in the same session.
-- Git Bash: avoid multi-line `node -e` or heredoc edits (quoting breaks, CRLF makes edits miss); use the file tools and confirm each edit landed.
-- Agents die on network errors, rate limits and session ends; check the branch and PR state first, then resume or relaunch with a self-contained brief. A stopped agent cannot be resumed after the session ends.
-- Local machine and permission details stay out of this public file (see `docs/agent-notes.md`).
-
-## 7. Tools
-
-Code-only graph of `src/` (derived, gitignored): `graphify update src`. The full semantic graph needs `/graphify` in an assistant session.
+> Continue Ben’s local-first work from current `origin/main`. First reread `AGENTS.md` and verify main and open PRs. Do not merge. Review the separate plan drafts #212 (PR #199 D2 follow-through) and #213 (PR #135 current-main revalidation). Keep #199’s three data-hygiene failures and the 103 examined “Blind holdout 2” cases visible; do not reuse the historical 83.3% figure. Keep #135’s BATCH=32 result distinct from BATCH=1 main and do not treat its 48-case set as fresh. Both Skeptics approved with conditions; formal Advisor concurrence and Chair approval are pending, so do not implement. Preserve browser-local inference, the WebGPU fallback, and the no-cloud/no-VM decision. Update this same handoff PR after the next checkpoint.
