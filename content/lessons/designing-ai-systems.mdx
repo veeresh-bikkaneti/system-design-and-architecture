@@ -503,7 +503,7 @@ you fix it. Dashboards watch the restaurant. Mystery diners taste the food.
       question:
         "You switch your vector index to check fewer candidates per query. What moves on the recall–latency–cost triangle, and what do you accept?",
       options: [
-        "Recall goes up, because the index spends more care on each candidate it does check",
+        "Recall goes up, because the index spends more care on each candidate it does check, ranking the survivors more precisely than a wide scan could",
         "Nothing changes — approximate search returns the same results at any candidate count",
         "Latency and cost fall, but recall falls too — the best chunk might never get checked",
         "Cost goes up, because the index must shard the smaller query across more partitions",
@@ -514,7 +514,7 @@ you fix it. Dashboards watch the restaurant. Mystery diners taste the food.
       question:
         "A 128k-token conversation on a real 8B-class model holds roughly 16 GB of KV cache per request — grouped-query attention shrinks the naive 64 GB estimate about 4×. What serving conclusion does the lesson draw?",
       options: [
-        "The cache is now small enough that model weights, not the KV cache, cap concurrency instead",
+        "The cache is now small enough that model weights, not the KV cache, cap concurrency instead — weights dominate the memory budget at every batch size",
         "The KV cache — not the weights — still caps concurrency, which is why PagedAttention exists",
         "Prefill becomes the bottleneck, so continuous batching stops helping throughput at all",
         "Quantization can no longer reduce memory, since GQA already shrank the cache away",

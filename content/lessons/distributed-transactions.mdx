@@ -205,9 +205,9 @@ spans services. Reserve 2PC for single-cluster cases where the database does it 
     {
       question: "In two-phase commit, what does it mean for participants to be 'blocked'?",
       options: [
-        "Two transactions are deadlocking on the same row",
+        "Two transactions are deadlocking on the same row, each waiting for a lock the other one holds",
         "The coordinator crashed after YES votes but before the decision, so participants hold locks indefinitely, unable to commit or abort",
-        "They are waiting for more participants to join",
+        "They are waiting for more participants to join before the coordinator may collect votes and announce any decision, however long that takes",
         "The network is too slow for the prepare phase",
       ],
       correctIndex: 1,
@@ -216,8 +216,8 @@ spans services. Reserve 2PC for single-cluster cases where the database does it 
       question: "What does a saga use instead of rollback?",
       options: [
         "Compensating actions that semantically undo each completed step, run in reverse order",
-        "Automatic retries until the step succeeds",
-        "A global lock held for the saga's duration",
+        "Automatic retries until the step succeeds, no matter how many times it has already failed",
+        "A global lock held for the saga's duration, blocking every other transaction it touches",
         "Database savepoints",
       ],
       correctIndex: 0,
@@ -225,19 +225,19 @@ spans services. Reserve 2PC for single-cluster cases where the database does it 
     {
       question: "What bug does the transactional outbox pattern fix?",
       options: [
-        "Slow queries blocking the event loop",
+        "Slow queries blocking the event loop so event publishing falls further and further behind",
         "Cache stampedes on hot keys",
         "The dual-write problem: crashing between a database update and publishing its event",
-        "Deadlocks between concurrent transactions",
+        "Deadlocks between concurrent transactions competing for the same rows in opposite order",
       ],
       correctIndex: 2,
     },
     {
       question: "What consistency does a saga provide compared to ACID?",
       options: [
-        "No consistency at all — steps are independent",
+        "No consistency at all — steps are independent and no step ever learns what the others did",
         "Full ACID atomicity and isolation",
-        "Stronger than ACID, with causal ordering",
+        "Stronger than ACID, with causal ordering guaranteed across every participating service",
         "Eventual atomicity — all-or-nothing eventually, but intermediate states are visible",
       ],
       correctIndex: 3,

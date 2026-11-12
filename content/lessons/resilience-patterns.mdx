@@ -333,7 +333,7 @@ you'll never know whether the pattern is working or merely installed.
     {
       question: "Fifty clients all fail at once and retry after exactly 100 ms, then 200 ms, then 400 ms — in lockstep. What is this synchronized wave called, and what does jitter do about it?",
       options: [
-        "A bulkhead breach; jitter isolates each client's connection pool",
+        "A bulkhead breach; jitter isolates each client's connection pool so one client's retries cannot starve the others",
         "A retry budget; jitter caps total retries at 10% of traffic",
         "A cascade; jitter replaces the failing dependency with a cached one",
         "The thundering herd; jitter randomizes retry timing so retries spread out instead of arriving as a wall",
@@ -346,7 +346,7 @@ you'll never know whether the pattern is working or merely installed.
         "It is queued until the cool-down expires",
         "It is sent through as a half-open probe",
         "It fails immediately without touching the network, typically falling back to a degraded response",
-        "It waits for the full timeout, then fails if the dependency is still down",
+        "It waits for the full timeout, then fails if the dependency is still down, logging the attempt as a probe",
       ],
       correctIndex: 2,
     },
@@ -354,7 +354,7 @@ you'll never know whether the pattern is working or merely installed.
       question: "Your payments dependency is slow but healthy search traffic is failing too. All outbound calls share one 200-connection pool, now exhausted by waiting payments calls. Which pattern was missing?",
       options: [
         "Bulkheads — each dependency needed its own isolated pool",
-        "Timeouts — the calls should have been retried instead",
+        "Timeouts — the calls should have been retried instead of being left to wait for the slow dependency",
         "Exponential backoff — the retries were too aggressive",
         "PKCE — the calls weren't authenticated properly",
       ],
@@ -365,7 +365,7 @@ you'll never know whether the pattern is working or merely installed.
       options: [
         "Use the library default (usually 30–60 seconds) for every dependency",
         "Set a per-dependency timeout from real latency data (around p99 plus headroom) and propagate deadlines down the call chain",
-        "Avoid timeouts on internal calls — only time out calls to third parties",
+        "Avoid timeouts on internal calls — only time out calls to third parties, because internal services are under your control and will answer eventually",
         "Set one global 5-second timeout for all outbound calls",
       ],
       correctIndex: 1,

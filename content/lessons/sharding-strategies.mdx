@@ -189,7 +189,7 @@ there is. Spend the design meeting. Future you, paged at 3 AM because shard 7 of
       question: "What is the main problem with naive hash(key) mod N sharding when adding a shard?",
       options: [
         "The hash function gets slower as N grows",
-        "Keys can no longer be looked up without a directory",
+        "Keys can no longer be looked up without a directory, and the directory must be rebuilt from scratch",
         "Almost all data must move because the modulus changed",
         "Range queries become impossible forever",
       ],
@@ -219,7 +219,7 @@ there is. Spend the design meeting. Future you, paged at 3 AM because shard 7 of
       question: "Why do production consistent-hashing systems use virtual nodes?",
       options: [
         "To encrypt the keys sitting on the ring",
-        "To reduce the number of hash computations per lookup",
+        "To reduce the number of hash computations per lookup, since each virtual node caches its neighbours",
         "To eliminate the need for replication entirely",
         "To smooth uneven distribution with few shards and support heterogeneous hardware",
       ],

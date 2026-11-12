@@ -295,16 +295,16 @@ cache hits — then pick the kitchen whose bill you can afford.
         "Over-fetching; it costs wasted bytes, battery, and time on every request",
         "Schema drift; it costs a version bump of the API",
         "The N+1 problem; it costs one extra database query per field",
-        "Under-fetching; it costs extra round trips to assemble the screen",
+        "Under-fetching; it costs extra round trips to assemble the screen from many small responses",
       ],
       correctIndex: 0,
     },
     {
       question: "A GraphQL query asks for 100 orders and each order's customer name. The naive server runs 101 database queries. What fixes this?",
       options: [
-        "Splitting the query into 100 smaller queries",
+        "Splitting the query into 100 smaller queries, so each one stays cheap for the database to plan",
         "Switching the query from POST to GET",
-        "Adding @deprecated to the customer field",
+        "Adding @deprecated to the customer field so clients stop asking for it in list views",
         "Batching the customer lookups (e.g. DataLoader) so all 100 resolve in one query",
       ],
       correctIndex: 3,
@@ -312,7 +312,7 @@ cache hits — then pick the kitchen whose bill you can afford.
     {
       question: "Why does GraphQL largely lose REST's free HTTP caching?",
       options: [
-        "GraphQL responses are always too large to cache",
+        "GraphQL responses are always too large to cache, since every client asks for different fields and shapes",
         "Queries travel as unique POST bodies to a single endpoint, so caches see no repeatable URLs",
         "The GraphQL spec forbids caching responses",
         "GraphQL requires WebSockets, which CDNs cannot proxy",
@@ -325,15 +325,15 @@ cache hits — then pick the kitchen whose bill you can afford.
         "They force every client to re-fetch the full schema daily",
         "They evolve additively — new fields are added, old ones are marked @deprecated and removed only after usage drops",
         "They never change the schema after launch",
-        "They publish /v1, /v2, /v3 endpoints exactly like REST",
+        "They publish /v1, /v2, /v3 endpoints exactly like REST, migrating clients version by version on a published schedule",
       ],
       correctIndex: 1,
     },
     {
       question: "How does GitHub's public GraphQL API defend against expensive nested queries?",
       options: [
-        "It runs every query twice and bills the client for both",
-        "It disables nested queries for all third-party applications",
+        "It runs every query twice and bills the client for both runs, discouraging expensive shapes",
+        "It disables nested queries for all third-party applications, allowing them only for GitHub's own clients",
         "It scores each query in points before execution and rejects queries that exceed the caller's budget",
         "It only allows queries three levels deep, with no exceptions",
       ],

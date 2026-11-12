@@ -230,8 +230,8 @@ maintain two.
     {
       question: "What is an anti-corruption layer?",
       options: [
-        "A firewall rule that blocks legacy traffic",
-        "A database migration tool for old schemas",
+        "A firewall rule that blocks legacy traffic from reaching the new services at the network edge",
+        "A database migration tool that converts old schemas to the new model during a one-time cutover",
         "A second cache in front of a slow API",
         "A translation boundary that keeps another system's model from leaking into yours",
       ],
@@ -241,10 +241,10 @@ maintain two.
       question:
         "Your React app consumes a partner API that returns snake_case, inconsistent error shapes, and XML on one endpoint. Where does the lesson put the normalization?",
       options: [
-        "Nowhere — components should adapt to each API's native shape",
+        "Nowhere — components should adapt to each API's native shape, quirks and all, as the data arrives",
         "In each component, right where the data is used",
         "In an adapters layer at the boundary, so components only see clean domain types",
-        "In the CSS, via naming conventions",
+        "In the CSS layer, via naming conventions that rename fields as they are rendered",
       ],
       correctIndex: 2,
     },
@@ -252,8 +252,8 @@ maintain two.
       question: "In a strangler-fig migration, what goes in front of the legacy system first?",
       options: [
         "A facade/proxy that routes requests, so new services can take over seam by seam",
-        "A complete rewrite, deployed in one cutover",
-        "A second copy of the legacy system for load",
+        "A complete rewrite of the legacy system, deployed in one big-bang cutover over a single weekend",
+        "A second full copy of the legacy system, kept running in parallel purely to share the load",
         "A firewall that blocks all legacy traffic",
       ],
       correctIndex: 0,
@@ -263,7 +263,7 @@ maintain two.
       options: [
         "It gets too fast and starves the backend of work",
         "One adapter per external system collapses into a god object nobody owns and everyone fears changing",
-        "It automatically rewrites the legacy system",
+        "It automatically rewrites the legacy system behind the facade until the domain model matches the legacy one",
         "It encrypts data the domain can no longer read",
       ],
       correctIndex: 1,
@@ -271,8 +271,8 @@ maintain two.
     {
       question: "Gerald the billing server finally retires. What happens to the ACL?",
       options: [
-        "It must be kept forever as a monument",
-        "It gets promoted to handle all frontend state",
+        "It must be kept forever as a monument, with every translation preserved unchanged for historical audits",
+        "It gets promoted to handle all frontend state, routing, and session management for the whole app",
         "It shrinks: the translation code for Gerald is deleted and the facade thins into a normal API layer",
         "It is merged into the database schema",
       ],

@@ -292,7 +292,7 @@ availability; it gives you two primaries and a data integrity incident.
       question:
         "Your nightly backup runs at 2 a.m. and a full restore takes 4 hours. The region dies at 6 p.m. Roughly what are your RPO and RTO?",
       options: [
-        "RPO of about 4 hours and RTO of about 16 hours",
+        "RPO of about 4 hours and RTO of about 16 hours, since restore speed sets the data-loss window",
         "RPO of zero and RTO of zero — backups are magic",
         "RPO of about 16 hours (everything since the 2 a.m. backup) and RTO of about 4 hours",
         "RPO of about 2 hours and RTO of about 2 hours",
@@ -305,8 +305,8 @@ availability; it gives you two primaries and a data integrity incident.
       options: [
         "Both regions accept writes at once, so replication lag and conflicting writes become your daily problem",
         "Health checks are unnecessary when both regions are live",
-        "DNS failover becomes instant, which confuses the health checker",
-        "It doubles your servers but halves your latency everywhere",
+        "DNS failover becomes instant, which confuses the health checker into flapping between regions",
+        "It doubles your servers but halves your latency everywhere, all the time, for every user — the cost is worth it for the speed alone",
       ],
       correctIndex: 0,
     },
@@ -316,7 +316,7 @@ availability; it gives you two primaries and a data integrity incident.
       options: [
         "The system pages you to decide, then waits for your answer",
         "Whichever write carries the later timestamp keeps the table; the other booking silently disappears",
-        "Both bookings are kept and the restaurant seats 24 people at a table for 12",
+        "Both bookings are kept and the restaurant seats 24 people at a table for 12, apologising to one party",
         "The older write wins, because seniority",
       ],
       correctIndex: 1,
@@ -326,7 +326,7 @@ availability; it gives you two primaries and a data integrity incident.
         "You flip DNS to the healthy region with a 60-second TTL. Why might some customers still reach the dead region minutes later?",
       options: [
         "DNS changes require a human to approve each one",
-        "A 60-second TTL guarantees every client switches within 60 seconds",
+        "A 60-second TTL guarantees every client switches within 60 seconds, so stragglers must have a different bug",
         "Anycast blocks DNS updates while an outage is in progress",
         "Resolvers and apps cache DNS answers longer than your TTL — the phone book reprints on its own schedule",
       ],
@@ -337,7 +337,7 @@ availability; it gives you two primaries and a data integrity incident.
         "Your team has a written failover runbook but has never actually run it. According to this lesson, what do you have?",
       options: [
         "A hope, not a plan — untested failover is how you discover the runbook is fiction at 2 a.m.",
-        "An active-passive architecture",
+        "An active-passive architecture, since an untested runbook counts as passive until it is proven live in a drill",
         "A guaranteed zero RTO",
         "A plan that works, because it was reviewed carefully",
       ],

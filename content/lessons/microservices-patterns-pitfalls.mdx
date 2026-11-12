@@ -320,7 +320,7 @@ into a network boundary. Brenda will be disappointed. That's fine.
         "Your team 'has microservices': 12 deployables. A one-line fix in orders requires the full regression suite, and all 12 services deploy together on Friday. What does the independent-deployability test say?",
       options: [
         "You have a distributed monolith: it looks distributed, but nothing deploys independently",
-        "You have microservices — 12 deployables is the definition",
+        "You have microservices — 12 deployables is the definition, and deploy trains are just a scheduling choice",
         "The test doesn't apply until you have at least 20 services",
         "You have a modular monolith, which was the goal anyway",
       ],
@@ -331,8 +331,8 @@ into a network boundary. Brenda will be disappointed. That's fine.
         "Checkout calls inventory once per line item: 40 items × 25ms ≈ 1,000ms against a 300ms p99 budget. What fix does the lesson recommend?",
       options: [
         "Batch it: one call carrying all 40 items (~40ms)",
-        "Cache inventory responses for a week",
-        "Add more inventory service replicas",
+        "Cache inventory responses for a week, refreshing them only when a warehouse audit runs",
+        "Add more inventory service replicas until the per-item calls stop queueing",
         "Raise the latency budget to 1,500ms",
       ],
       correctIndex: 0,
@@ -340,7 +340,7 @@ into a network boundary. Brenda will be disappointed. That's fine.
     {
       question: "Why does the lesson call a shared database the cardinal sin?",
       options: [
-        "Databases can't handle connections from multiple services",
+        "Databases can't handle connections from multiple services, so the shared pool exhausts within hours",
         "It makes backups technically impossible",
         "Joins across services become too fast to measure",
         "Every service couples to one schema: one team's migration becomes everyone's deployment event",
@@ -352,7 +352,7 @@ into a network boundary. Brenda will be disappointed. That's fine.
       options: [
         "Two services deployed at the same time of day",
         "A cache whose TTL is set too short",
-        "Two databases sharing the same system clock",
+        "Two databases sharing the same system clock, so their timestamps can be compared directly across services",
         "Service A can only answer while service B is up and reachable — availability becomes contagious",
       ],
       correctIndex: 3,
@@ -361,7 +361,7 @@ into a network boundary. Brenda will be disappointed. That's fine.
       question:
         "The lesson says to decompose services along what boundary — and where is the full treatment?",
       options: [
-        "Network zones — one service per availability zone",
+        "Network zones — one service per availability zone, so a zone failure takes exactly one service",
         "Team size — one service per developer",
         "Bounded contexts and subdomains — see the domain-driven-design lesson",
         "Database tables — one service per table",
@@ -371,7 +371,7 @@ into a network boundary. Brenda will be disappointed. That's fine.
     {
       question: "A three-person startup is choosing an architecture. The lesson's advice?",
       options: [
-        "Microservices from day one — it's the modern default",
+        "Microservices from day one — it's the modern default, and small teams feel the overhead least",
         "Start with a modular monolith; extract along seams that prove painful",
         "Skip architecture entirely and rewrite everything later",
         "Build a distributed monolith first, then add independence later",

@@ -363,7 +363,7 @@ The cheat sheet, if you want it on one slide:
       options: [
         "Declare a cut-off time up to which events are assumed seen, so windows can close without waiting forever",
         "Pause the event log until every straggler has arrived",
-        "Retroactively rewrite the results of closed windows for free",
+        "Retroactively rewrite the results of closed windows for free, correcting every late event as if it had arrived on time",
         "Guarantee that no event will ever arrive late",
       ],
       correctIndex: 0,
@@ -373,15 +373,15 @@ The cheat sheet, if you want it on one slide:
       options: [
         "Delete the serving layer and query the event log directly",
         "Update and re-run both the batch job and the streaming job, so the two layers keep agreeing",
-        "Only update the batch layer — the serving layer backfills the speed layer",
-        "Only update the speed layer — the batch layer recomputes itself automatically",
+        "Only update the batch layer — the serving layer backfills the speed layer with corrected values at the next merge",
+        "Only update the speed layer — the batch layer recomputes itself automatically on its nightly schedule",
       ],
       correctIndex: 1,
     },
     {
       question: "Kappa architecture can fully replace a batch layer only when...",
       options: [
-        "The stream processor runs on more machines than the batch cluster had",
+        "The stream processor runs on more machines than the batch cluster had, so replay finishes overnight",
         "Events arrive in perfect timestamp order, so watermarks are unnecessary",
         "The serving layer caches every historical query result",
         "The immutable event log is retained long enough to replay the full history through new logic",
