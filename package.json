@@ -10,7 +10,7 @@
     "qa:index": "node scripts/qa/build-index.mjs",
     "build": "tsc -b && vite build && node scripts/seo/prerender.mjs && node scripts/seo/check-snapshot-budget.mjs",
     "seo:budget": "node scripts/seo/check-snapshot-budget.mjs",
-    "content:check": "python3 scripts/check_mdx_h1.py",
+    "content:check": "python3 scripts/check_mdx_h1.py && python3 scripts/check_video_card_notes.py",
     "content:validate": "python3 scripts/validate_lessons.py",
     "narration:index": "python3 scripts/tts/generate_narration_index.py",
     "test": "vitest run",
