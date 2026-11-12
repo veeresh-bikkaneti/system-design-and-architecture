@@ -44,12 +44,13 @@ tsc -b && vite build && node scripts/seo/prerender.mjs
   produces domain-root URLs that 404 on Pages — the throwaway e2e build
   skips it deliberately (it serves the build at a domain root locally,
   where the subpath doesn't exist); the real build never does.
-- **Prerendering** (`scripts/seo/prerender.mjs`) renders the 39
+- **Prerendering** (`scripts/seo/prerender.mjs`) renders the
   indexable routes to static `index.html` at build time — home, roadmap,
-  badges, and the 36 lessons — each with its own title, description,
+  badges, and the lessons (currently 41, derived from
+  `scripts/seo/lesson-meta.mjs`) — each with its own title, description,
   canonical URL, OG/Twitter tags, and JSON-LD (schema.org structured data
-  for search engines). This is what makes 36 lessons' worth of content
-  visible to crawlers despite client-side routing.
+  for search engines). This is what makes the lessons' content visible
+  to crawlers despite client-side routing.
 - **SEO artifacts** (`scripts/seo/`): per-lesson OG share images
   (`generate-og-images.mjs`), `sitemap.xml` (`generate-sitemap.mjs`),
   RSS feed (`generate-feed.mjs`), and `llms.txt` with lesson summaries
@@ -127,7 +128,7 @@ public/audio/<slug>/<accent>/narration.json    # word-level timestamps
 - The manifest records its `accent` and `voice`; the player validates
   the manifest schema (including `accent`) before trusting it.
 - Audio is Opus — small enough to ship the full corpus statically:
-  36 lessons × 2 accents = 72 packages. (A lesson added later with no
+  41 lessons × 2 accents = 82 packages. (A lesson added later with no
   recorded package for the chosen accent falls back to Web Speech for
   that accent.)
 
