@@ -217,7 +217,7 @@ monitoring getting 429'd during the outage it's trying to report.
       options: [
         "In-memory local counters are too slow for the request hot path",
         "Load balancers strip the client-identifying headers counting needs",
-        "Local memory is wiped on every request, so counters never accumulate",
+        "Local memory is wiped on every request, so counters never accumulate beyond a single request's lifetime",
         "Each server sees a fraction of traffic, so each allows the full limit",
       ],
       correctIndex: 3,

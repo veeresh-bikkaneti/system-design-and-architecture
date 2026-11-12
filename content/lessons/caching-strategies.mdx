@@ -211,7 +211,7 @@ slow," walk the stack top-down: the fix is usually a missing layer, not a faster
     {
       question: "In the cache-aside pattern, what happens on a cache miss?",
       options: [
-        "The request is dropped and the client retries with a cache-bypass header",
+        "The request is dropped and the client retries with a cache-bypass header until the cache warms up on its own",
         "The cache serves a placeholder while a background job loads the row",
         "The application loads the row from the database, SETs it into the cache, then serves it",
         "The cache itself fetches the row from the database and returns it",
@@ -232,7 +232,7 @@ slow," walk the stack top-down: the fix is usually a missing layer, not a faster
       question: "A 'thundering herd' (cache stampede) happens when...",
       options: [
         "Too many cache nodes join the cluster in the same minute",
-        "Eviction deletes keys faster than the application can rewrite them",
+        "Eviction deletes keys faster than the application can rewrite them, so the cache stays permanently near-empty",
         "Two regional caches disagree and clients see conflicting values",
         "A popular key expires and hundreds of requests hit the database with the same query at once",
       ],
@@ -241,7 +241,7 @@ slow," walk the stack top-down: the fix is usually a missing layer, not a faster
     {
       question: "Which of these is a defense against the thundering herd, as described in the lesson?",
       options: [
-        "Raising every TTL to the maximum the cache allows",
+        "Raising every TTL to the maximum the cache allows, so hot keys effectively never expire at all",
         "Coalescing requests: only the first request queries the database while the others wait",
         "Turning the cache off entirely during traffic spikes",
         "Switching the eviction policy from LRU to LFU",

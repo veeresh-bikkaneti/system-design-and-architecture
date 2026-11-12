@@ -207,7 +207,7 @@ collide. Strategies:
       options: [
         "A leader crash can lose recently acknowledged writes",
         "Writes become much slower",
-        "Reads can never be served from followers",
+        "Reads can never be served from followers, only from the leader that took the write",
         "The system cannot scale past three nodes",
       ],
       correctIndex: 0,
@@ -215,7 +215,7 @@ collide. Strategies:
     {
       question: "In a leaderless system with N=3 replicas, which tuning gives strong consistency?",
       options: [
-        "W=1, R=1",
+        "W=1, R=1 — a single replica's answer is treated as authoritative",
         "W=2, R=1",
         "W=2, R=2 (because R + W > N)",
         "W=1, R=2",
@@ -226,7 +226,7 @@ collide. Strategies:
       question: "'Read-your-writes' consistency guarantees that...",
       options: [
         "All users worldwide immediately see your write",
-        "Writes are applied in the same order on every replica",
+        "Writes are applied in the same order on every replica, so all readers converge on identical histories",
         "No two users can write concurrently",
         "After you write, your own subsequent reads reflect that write",
       ],

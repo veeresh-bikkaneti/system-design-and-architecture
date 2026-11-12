@@ -340,8 +340,8 @@ sequenceDiagram
       question: "Why does the production design store a precomputed top-10 list at every trie node instead of ranking matches when a request arrives?",
       options: [
         "Ranking at request time would blow the tens-of-milliseconds budget when repeated a million times a second; the node list turns serving into a walk and a read",
-        "Tries cannot store ranked data, so the list has to live outside the tree",
-        "It makes the index smaller, because top-10 lists compress better than queries",
+        "Tries cannot store ranked data, so the ranked list has to live outside the tree in a separate service that the serving tier queries on every single keystroke it receives",
+        "It makes the index smaller, because top-10 lists compress better than the full query log they replace",
         "Interviewers expect it, even though it is slower in practice",
       ],
       correctIndex: 0,
@@ -349,7 +349,7 @@ sequenceDiagram
     {
       question: "A user types fast and the network delivers the answer for 'des' after the answer for 'desi'. What keeps the UI correct?",
       options: [
-        "The server processes prefixes strictly in the order typed",
+        "The server processes prefixes strictly in the order typed, queueing later keystrokes behind earlier ones at the load balancer",
         "Each request carries a sequence tag and the client paints only the newest response, discarding stale ones",
         "The debounce guarantees responses can never arrive out of order",
         "The trie returns the same list for both prefixes, so order doesn't matter",
@@ -361,7 +361,7 @@ sequenceDiagram
       options: [
         "Caching the top prefixes' lists at the edge",
         "Replicating hot trie shards read-only",
-        "Sharding by two characters instead of one for finer grain",
+        "Sharding by two characters instead of one for finer grain, splitting the hottest prefixes across more shards",
         "Ranking matches at request time so hot prefixes get fresher ordering",
       ],
       correctIndex: 3,
