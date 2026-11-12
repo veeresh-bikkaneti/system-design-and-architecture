@@ -92,6 +92,31 @@ export function buildTurn(question: string, history: ChatTurn[], decision: Decis
     };
   }
 
+  if (decision.action === 'howto') {
+    // ADR 0001 §4 amendment: never silently assume an OS — ask exactly one
+    // clarifying question. With an OS named, no grounded install steps exist
+    // yet (the tool loop is branch 16), so the honest no-source line stands
+    // instead of a lesson dressed up as instructions.
+    if (decision.osUnspecified) {
+      return {
+        action: 'howto',
+        answer: 'Which operating system are you on — Windows, macOS, or Linux? The install steps differ by OS, and I will not guess yours.',
+        sources: [],
+        traces,
+        context: '',
+        confidence: { level: 'low', label: 'Not sure · need your OS first' },
+      };
+    }
+    return {
+      action: 'howto',
+      answer: NO_SOURCE,
+      sources: [],
+      traces,
+      context: '',
+      confidence: GENERAL_KNOWLEDGE_CONFIDENCE,
+    };
+  }
+
   if (decision.action === 'redirect' || !lead) {
     return {
       action: 'redirect',

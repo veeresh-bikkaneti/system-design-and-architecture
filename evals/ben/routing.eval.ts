@@ -98,7 +98,7 @@ function summarize(name: string, outcomes: Outcome[]) {
 }
 
 function confusion(outcomes: Outcome[]): string {
-  const actions: Action[] = ['lesson', 'clarify', 'parametric_fallback', 'redirect', 'self'];
+  const actions: Action[] = ['lesson', 'clarify', 'parametric_fallback', 'redirect', 'self', 'howto'];
   const header = `| expected \\ got | ${actions.join(' | ')} |`;
   const rows = actions.map((expected) => {
     const cells = actions.map((got) => outcomes.filter((o) => o.expected === expected && o.got === got).length);
