@@ -124,7 +124,7 @@ seven services and one missing trace span.
     {
       question: "According to Conway's law, what shapes a system's architecture?",
       options: [
-        "The cloud provider's service catalog",
+        "The cloud provider's service catalog, which steers teams toward the services it sells",
         "The CAP theorem trade-offs",
         "The organization's own communication structure",
         "The programming languages chosen",
@@ -134,8 +134,8 @@ seven services and one missing trace span.
     {
       question: "What is a 'distributed monolith'?",
       options: [
-        "A monolith deployed across multiple regions",
-        "A monolith that uses a distributed database",
+        "A monolith deployed across multiple regions for redundancy, with its database actively replicated into every region and automated failover between regional copies",
+        "A monolith that uses a distributed database shared by all of its internal modules",
         "Microservices that share a single database",
         "Many separately-deployed services that are still tightly coupled — requiring lockstep deployments with none of the autonomy benefits",
       ],
@@ -146,7 +146,7 @@ seven services and one missing trace span.
       options: [
         "Modules can be written in different languages",
         "Strict internal boundaries keep the operational simplicity of one deployable while making future extraction mechanical",
-        "It deploys faster because modules deploy independently",
+        "It deploys faster because modules deploy independently, each on its own release cadence, pipeline, and rollback schedule",
         "It eliminates the need for automated tests",
       ],
       correctIndex: 1,
@@ -155,7 +155,7 @@ seven services and one missing trace span.
       question: "When is starting with microservices most defensible?",
       options: [
         "When multiple teams need to ship and scale independently and domain boundaries are well understood",
-        "When the domain boundaries are still unclear",
+        "When the domain boundaries are still unclear and the product is young enough that they will keep shifting for years",
         "When the team is small and wants to move fast",
         "Always — it's the modern default",
       ],

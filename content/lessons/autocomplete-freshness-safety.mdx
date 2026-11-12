@@ -245,7 +245,7 @@ and what they're allowed to refuse to reflect.
       question: "Why does the counting pipeline apply decay to query counts instead of ranking by all-time frequency?",
       options: [
         "All-time counts would embalm the past — decay weights recent days more, so the lists track what the world asks now",
-        "Decay makes the counts small enough to fit in the trie",
+        "Decay makes the counts small enough to fit in the trie, whose per-node memory ceiling would overflow within a week on raw all-time counts",
         "All-time frequency is impossible to compute from logs",
         "Decay is required for the count-min sketch to work",
       ],
@@ -254,7 +254,7 @@ and what they're allowed to refuse to reflect.
     {
       question: "A query jumps from 10 searches a day to 10,000 in an hour. Which mechanism promotes it into suggestion lists, and by what signal?",
       options: [
-        "The next nightly rebuild; signal: its new all-time count",
+        "The next nightly rebuild; signal: its new all-time count crossing the global top-k threshold",
         "The edge cache; signal: raw request volume at one node",
         "The freshness overlay; signal: this hour's rate versus the query's own baseline",
         "The policy gate; signal: newsworthiness classification",
@@ -266,7 +266,7 @@ and what they're allowed to refuse to reflect.
       options: [
         "The trie returned prefixes in the wrong order",
         "The cache served a stale list from the previous year",
-        "The aggregation job was down, so the system improvised suggestions",
+        "The aggregation job was down, so the system improvised suggestions from raw unfiltered search-box text typed that same morning",
         "Ranking was pure popularity over real searches, with no policy screening or gate between the counts and the user",
       ],
       correctIndex: 3,
@@ -275,7 +275,7 @@ and what they're allowed to refuse to reflect.
       question: "A buggy aggregation job ships a snapshot with corrupted top-k lists. What limits the blast radius?",
       options: [
         "Snapshots are versioned and swapped atomically — canary shards first, and rollback to the previous version is a pointer flip",
-        "The client debounce hides corrupted lists from most users",
+        "The client debounce hides corrupted lists from most users, because most users never pause typing long enough for a corrupted list to render",
         "The policy gate recomputes any list it finds suspicious",
         "Nothing — a bad build is why the pipeline is rebuilt nightly",
       ],
@@ -284,9 +284,9 @@ and what they're allowed to refuse to reflect.
     {
       question: "Where does personalization plug into this design?",
       options: [
-        "Into the trie itself, as per-user branches on every node",
+        "Into the trie itself, as per-user branches on every node, so each signed-in user's trie carries their own history at every prefix, refreshed incrementally as they type",
         "As a small per-user list, built by the same pipeline at user scope, merged ahead of the global top-10 at read time within a fixed slot budget",
-        "Into the count-min sketch, which tracks individual users",
+        "Into the count-min sketch, which tracks individual users alongside the global query counts",
         "It can't — personalization contradicts the snapshot model",
       ],
       correctIndex: 1,

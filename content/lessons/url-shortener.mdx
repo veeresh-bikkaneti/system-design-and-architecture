@@ -360,7 +360,7 @@ sequenceDiagram
     {
       question: "Why is a plain auto-increment counter a poor key generator for a public shortener?",
       options: [
-        "The keys collide with hashed keys issued by other shorteners",
+        "The keys collide with hashed keys issued by other shorteners sharing the same key space, alphabet, and length",
         "Base62 can't encode sequential numbers — you'd need a wider alphabet",
         "A counter needs a cache in front of it, and caches are forbidden in interviews",
         "Sequential keys let anyone enumerate every shortened link, and the counter is a single bottleneck",
@@ -371,7 +371,7 @@ sequenceDiagram
       question: "In the key-generation-service (KGS) design, what does an app server do when it needs a new short key?",
       options: [
         "It hashes the long URL and checks the database for collisions",
-        "It asks the KGS fleet to mint one key synchronously, waiting for the reply",
+        "It asks the KGS fleet to mint one key synchronously, waiting for the reply before it can answer the user at all",
         "It takes one from its locally held batch of pre-minted keys, fetching a new batch only when empty",
         "It increments a counter stored in Redis",
       ],
@@ -383,7 +383,7 @@ sequenceDiagram
         "Rate limiting the shorten endpoint per user/IP",
         "Making the short keys longer",
         "Adding more database shards",
-        "Switching redirects from 301 to 302",
+        "Switching redirects from 301 to 302, which forces every click back through your servers",
       ],
       correctIndex: 0,
     },

@@ -339,7 +339,7 @@ Watch one request travel through everything you've just learned:
         "A flood takes out one availability zone in your region, but your service stays up. What did you most likely do right?",
       options: [
         "You ran copies of your app across at least two AZs, so the surviving wing kept serving traffic",
-        "You used serverless functions, which are immune to datacenter failures",
+        "You used serverless functions, which are immune to datacenter failures because the provider hides all placement",
         "You deployed to multiple regions on different continents",
         "You kept all your servers in the cheapest AZ to save money",
       ],
@@ -350,8 +350,8 @@ Watch one request travel through everything you've just learned:
         "Your five-person startup needs a database. Following this lesson's rule of thumb, what should you choose?",
       options: [
         "Skip the database entirely and keep state in the app processes",
-        "Run the database on the same machine as the app to avoid network latency",
-        "Self-host Postgres on VMs — it's cheaper per unit and you keep full control",
+        "Run the database on the same machine as the app to avoid network latency, backups, and a second bill",
+        "Self-host Postgres on VMs — it's cheaper per unit, you keep full control, and your five-person team has the spare hours to patch and back it up nightly",
         "A managed database service — your scarcest resource is attention, and the landlord handles patching, backups, and failover",
       ],
       correctIndex: 3,
@@ -360,7 +360,7 @@ Watch one request travel through everything you've just learned:
       question: "In the Kubernetes mental model from this lesson, what is a Service?",
       options: [
         "One of the landlord's machines that the trays sit on",
-        "A tray carrying one or more containers that must be served together",
+        "A tray carrying one or more containers that must be served together and replaced as a single unit",
         "The fixed counter number — a stable address in front of disposable pods",
         "The shift manager's standing order to keep N trays on the counter",
       ],
@@ -370,7 +370,7 @@ Watch one request travel through everything you've just learned:
       question:
         "Your API serves steady, latency-sensitive traffic 24/7. Why is serverless likely a misfit here?",
       options: [
-        "Serverless only works for batch jobs that run once a night",
+        "Serverless only works for batch jobs that run once a night, never for request-driven user traffic with steady load around the clock",
         "Serverless functions can't talk to databases at all",
         "You'd pay per-portion prices for all-you-can-eat traffic, and cold starts would hit your most latency-sensitive requests",
         "Serverless functions can't scale past ten concurrent requests",
@@ -394,7 +394,7 @@ Watch one request travel through everything you've just learned:
       options: [
         "Prepaying for reserved capacity equal to your peak traffic",
         "Tagging resources by owner with budget alerts, so the forgotten test environment pages someone before the 1st",
-        "Moving everything to the most expensive region for better latency",
+        "Moving everything to the most expensive region for better latency, since price tracks performance tier for tier",
         "Turning off autoscaling so capacity never changes",
       ],
       correctIndex: 1,

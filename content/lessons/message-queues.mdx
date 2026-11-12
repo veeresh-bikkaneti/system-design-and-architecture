@@ -200,14 +200,14 @@ zero shame about it.
         "Limited to one message per second",
         "Idempotent — safe to process the same message twice",
         "Synchronous",
-        "Written in the same language as the producer",
+        "Written in the same language as the producer, so messages never cross a language boundary",
       ],
       correctIndex: 1,
     },
     {
       question: "In Kafka, what limits how many consumers in a group can work in parallel?",
       options: [
-        "The number of brokers in the cluster",
+        "The number of brokers in the cluster, since each broker hosts exactly one active consumer",
         "The retention period of the log",
         "The size of each message",
         "The number of partitions in the topic",
@@ -219,7 +219,7 @@ zero shame about it.
       options: [
         "Shunting aside messages that repeatedly fail processing so they don't clog the main queue",
         "Holding messages during a planned broker upgrade",
-        "Storing messages that were successfully processed, for auditing",
+        "Storing messages that were successfully processed, for auditing and replay months later if needed",
         "Encrypting messages that contain sensitive data",
       ],
       correctIndex: 0,

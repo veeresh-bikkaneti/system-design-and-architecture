@@ -177,15 +177,15 @@ directory surgery for hot tenants, and the resharding cost math.
       options: [
         "The directory becomes a critical dependency — it must itself be replicated, or its failure takes down all routing",
         "Range queries become impossible to run",
-        "Data can never be rebalanced between shards",
-        "It only works for alphabetical or numeric keys",
+        "Data can never be rebalanced between shards once the directory has assigned it",
+        "It only works for alphabetical or numeric keys, because the catalog is a sorted index that cannot look up anything else",
       ],
       correctIndex: 0,
     },
     {
       question: "What makes a partition key a *good* choice, according to the lesson?",
       options: [
-        "It has low cardinality so the cluster needs fewer shards",
+        "It has low cardinality so the cluster needs fewer shards and the routing table stays small enough to cache",
         "It is the database's auto-incrementing primary key",
         "It matches the query pattern, has high cardinality, and avoids monotonically increasing hot keys",
         "It is a raw timestamp, keeping every write neatly ordered",
@@ -205,7 +205,7 @@ directory surgery for hot tenants, and the resharding cost math.
     {
       question: "Why does a viral post create a 'hot shard' even when hashing is even on average?",
       options: [
-        "Hashing silently breaks down once traffic passes a threshold",
+        "Hashing silently breaks down once traffic passes a threshold, scattering one key's data across shards",
         "One key gets a wildly disproportionate share of traffic, overloading whichever shard owns it",
         "The shard router stops forwarding to healthy shards",
         "Two-phase commit locks the shard for the duration",

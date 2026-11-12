@@ -295,7 +295,7 @@ sign that says "admins this way."
       options: [
         "Authentication — it verifies they are who they claim to be",
         "Auditing — it records their visit for later review",
-        "Authorization — it decides which stage they may visit",
+        "Authorization — it decides which stage they may visit and how close to the stage they may stand",
         "Encryption — it scrambles their identity for privacy",
       ],
       correctIndex: 0,
@@ -303,7 +303,7 @@ sign that says "admins this way."
     {
       question: "Why is revoking access harder with JWTs than with server-side sessions?",
       options: [
-        "JWTs are stored in the database, which is slower to update",
+        "JWTs are stored in the database, which is slower to update than an in-memory session cache would be",
         "JWT signatures cannot be recomputed after login",
         "There is no central record to delete — a signed token stays valid until it expires",
         "Session cookies are encrypted but JWTs are not",
@@ -313,7 +313,7 @@ sign that says "admins this way."
     {
       question: "In the OAuth2 authorization code flow, what does the third-party app exchange — server-to-server, with its client secret — to get the access token?",
       options: [
-        "A refresh token it generated itself",
+        "A refresh token it generated itself at sign-up, before the user ever signed in",
         "The ID token from OpenID Connect",
         "The user's password",
         "The short-lived, single-use authorization code",
@@ -325,7 +325,7 @@ sign that says "admins this way."
       options: [
         "Password salting — it protects the report at rest",
         "ABAC — the decision depends on attributes of the user, device, and environment",
-        "OAuth2 scopes — they already cover time-of-day restrictions",
+        "OAuth2 scopes — they already cover time-of-day and device restrictions, since scopes encode conditions",
         "RBAC — assign everyone a finance role and be done",
       ],
       correctIndex: 1,
