@@ -69,4 +69,48 @@ describe('eval data hygiene', () => {
     const scored = [...read('cases.json').cases, ...read('holdout.json').cases];
     for (const c of scored) for (const slug of c.lessons ?? []) expect(slugs.has(slug), `${c.id}: ${slug}`).toBe(true);
   });
+
+  // Branch 2 (test/ben-howto-heldout) fixture hygiene for the F2 how-to cases.
+  const branch2 = (c: { id: string }) => /^h-(howto|ctrl|guard)-/.test(c.id);
+
+  it('does not duplicate a scored question across sets, except the pinned partition-key control', () => {
+    // Anti-leak, extended across the two scored sets: a question scored in
+    // cases.json must not be re-scored in holdout.json. Sole recorded exception:
+    // "how do i pick a partition key" is pinned in holdout as the §7 control
+    // (h-ctrl-partition-key) with its HEAD-actual `clarify` expectation, while
+    // cases.json c-part-2 carries a `lesson` expectation HEAD does not meet.
+    const inCases = new Map(read('cases.json').cases.map((c: { q: string; id: string }) => [norm(c.q), c.id]));
+    const dupes = read('holdout.json').cases
+      .filter((c: { q: string }) => inCases.has(norm(c.q)))
+      .map((c: { id: string }) => c.id);
+    expect(dupes).toEqual(['h-ctrl-partition-key']);
+  });
+
+  it('gives every tool-route (howto) case a source URL or a confidence mark', () => {
+    const scored = [...read('cases.json').cases, ...read('holdout.json').cases];
+    const toolRoute = scored.filter((c: { action: string }) => c.action === 'howto');
+    expect(toolRoute.length).toBeGreaterThan(0);
+    for (const c of toolRoute) {
+      const sourced = typeof c.source === 'string' && /^https:\/\//.test(c.source);
+      const marked = ['verified', 'likely', 'guess'].includes(c.confidence);
+      expect(sourced || marked, `${c.id}: needs a source URL or confidence mark`).toBe(true);
+    }
+  });
+
+  it('gives every branch-2 fixture a source URL or a confidence mark, and no lesson slug to how-to cases', () => {
+    const fresh = read('holdout.json').cases.filter(branch2);
+    expect(fresh.length).toBe(12);
+    for (const c of fresh) {
+      const sourced = typeof c.source === 'string' && /^https:\/\//.test(c.source);
+      const marked = ['verified', 'likely', 'guess'].includes(c.confidence);
+      expect(sourced || marked, `${c.id}: needs a source URL or confidence mark`).toBe(true);
+      // A how-to expectation must not pretend a lesson covers it (slug hygiene).
+      if (c.action === 'howto') expect(c.lessons, `${c.id}: howto cases name no lesson`).toBeUndefined();
+    }
+  });
+
+  it('keeps case ids unique across both scored sets', () => {
+    const ids = [...read('cases.json').cases, ...read('holdout.json').cases].map((c: { id: string }) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
 });

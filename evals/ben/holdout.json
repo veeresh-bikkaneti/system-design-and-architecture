@@ -53,6 +53,21 @@
     { "id": "h-trap-cap-graduation", "q": "Where do I buy a graduation cap and gown?", "intent": "off_topic", "action": "redirect" },
 
     { "id": "h-s-name", "q": "what should I call you", "intent": "self", "action": "self" },
-    { "id": "h-s-morning", "q": "good morning", "intent": "self", "action": "self" }
+    { "id": "h-s-morning", "q": "good morning", "intent": "self", "action": "self" },
+
+    { "id": "h-howto-install-docker", "q": "install docker", "intent": "tech", "action": "howto", "source": "https://docs.docker.com/get-docker/", "confidence": "verified" },
+    { "id": "h-howto-install-docker-how", "q": "how do I install docker", "intent": "tech", "action": "howto", "source": "https://docs.docker.com/get-docker/", "confidence": "verified" },
+    { "id": "h-howto-install-docker-ubuntu", "q": "how to install docker on ubuntu", "intent": "tech", "action": "howto", "source": "https://docs.docker.com/get-docker/", "confidence": "verified" },
+    { "id": "h-howto-install-kubernetes", "q": "install kubernetes", "intent": "tech", "action": "howto", "source": "https://kubernetes.io/docs/tasks/tools/", "confidence": "verified" },
+    { "id": "h-howto-kafka-local", "q": "set up kafka locally", "intent": "tech", "action": "howto", "source": "https://kafka.apache.org/quickstart", "confidence": "verified" },
+
+    { "id": "h-ctrl-docker-image", "q": "what is a docker image", "intent": "tech", "action": "parametric_fallback", "confidence": "verified" },
+    { "id": "h-ctrl-partition-key", "q": "how do i pick a partition key", "intent": "course", "action": "clarify", "confidence": "verified" },
+
+    { "id": "h-guard-rate-limiter", "q": "how do I design a rate limiter", "intent": "course", "action": "lesson", "lessons": ["rate-limiting"], "confidence": "verified" },
+    { "id": "h-guard-url-shortener", "q": "how do I design a URL shortener", "intent": "course", "action": "lesson", "lessons": ["url-shortener"], "confidence": "verified" },
+    { "id": "h-guard-caching-strategy", "q": "how do I pick a caching strategy", "intent": "course", "action": "lesson", "lessons": ["caching-strategies"], "confidence": "verified" },
+    { "id": "h-guard-idempotent-api", "q": "how do I make an API idempotent", "intent": "course", "action": "lesson", "lessons": ["idempotency"], "confidence": "verified" },
+    { "id": "h-guard-scale-web", "q": "how do I scale a web service", "intent": "course", "action": "lesson", "lessons": ["scaling-web-service"], "confidence": "verified" }
   ]
 }
