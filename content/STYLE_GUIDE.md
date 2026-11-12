@@ -58,12 +58,31 @@ writing or rewriting a lesson; apply all of it, not just the parts you remember.
 2. **`## Why this matters` hook.** Every lesson opens with a hook that answers: *why should
    I care?* Use a real-world trigger — an outage postmortem, an interview question, a scale
    problem the reader will hit. The hook promises the payoff; the lesson delivers it.
+   It must be the lesson's first `##` heading, directly after the `meta` export — no
+   narrative or scene-setting heading comes before it, and no lesson omits it.
 3. **Body sections** build in this order: analogy-first intuition, precise definition,
    mechanisms/trade-offs, failure modes and real systems.
 4. **`## Takeaways`.** Numbered, skimmable, self-contained. A reader who reads only the
    takeaways should walk away with the gist.
 5. **`<Quiz>`.** See §7.
 6. **`## Sources & further reading`.** See §8.
+
+### Variant: interview-canon lessons
+
+Five lessons from the interview-canon expansion (approved 2026-09-29) follow a sanctioned
+variant of the structure above: `interview-framework` (order 7),
+`back-of-envelope-estimation` (8), `estimation-reference-numbers` (9),
+`search-autocomplete` (12), and `autocomplete-freshness-safety` (13). In these lessons:
+
+- **`## Go deeper` links point inside the course only** — they link to other lessons,
+  never to external pages. (Every other lesson's Go deeper section links externally.)
+- **VideoCards are sparse: 0–3 per lesson**, against 4–15 in every other lesson. These
+  lessons teach a worked method or carry a reference card; video is garnish there,
+  not the meal.
+
+Everything else in this section still applies to them — the same closing frame
+(Takeaways → Quiz → Go deeper → Sources), and the `## Why this matters` hook rule
+above is *not* waived for this variant.
 
 ## 5. Progressive complexity tiers
 
@@ -82,8 +101,11 @@ lesson:
 
 ## 6. Diagram guidance
 
-- **At least two mermaid diagrams per lesson**, fenced as ` ```mermaid ` blocks. They must
-  render — verify with a real build.
+- **At least one mermaid diagram per lesson; two or more is the norm**, fenced as
+  ` ```mermaid ` blocks. They must render — verify with a real build. (Amended
+  2026-11-12: the hard floor was "at least two"; the measured corpus minimum is one —
+  4 of 41 lessons carry exactly one, the other 37 carry two or more. One is the floor,
+  two remains the target to aim for.)
 - **One diagram per major mechanism or section.** If a section describes a flow (routing,
   failover, fan-out), it earns a diagram. If the diagram just repeats the paragraph,
   delete one of them.
@@ -94,7 +116,10 @@ lesson:
 
 ## 7. Quiz-writing rules
 
-- **3+ questions per lesson** (beginner: 3–4; intermediate+: 4–5).
+- **3+ questions per lesson** (beginner: 3–5; intermediate: 4–6; advanced: 4–6).
+  (Caps amended 2026-11-12 from beginner 3–4 / intermediate+ 4–5 to the measured
+  corpus: all 41 lessons carry 4–6 questions, and every lesson over the old caps was
+  over by exactly one question.)
 - **Every question must be answerable from the lesson text alone.** No outside knowledge
   required, no trick questions. Quiz semantics must be preserved across rewrites — you may
   improve wording, but the correct answer stays derivable from the text.
@@ -115,8 +140,19 @@ lesson:
   (NGINX, HAProxy). No blog rehashes, no listicles.
 - One line per source: author(s), title, venue/year — plus the specific contribution when
   it's not obvious ("the formal proof," "introduces the PACELC extension").
+- **New lessons must link every source.** A lesson added after 2026-11-12 links each
+  Sources entry to its canonical publisher page or DOI, preferred over any other copy.
+  A source with no canonical URL (some print editions) stays an unlinked citation line;
+  never substitute a bookseller or aggregator link.
 - Every substantive technical claim the lesson teaches should trace to something in the
   sources section or be common engineering knowledge the sources would corroborate.
+
+> **Amendment, 2026-11-12:** this section previously did not require links at all —
+> unlinked citation lines were fully compliant, and 180 of 184 Sources entries in the
+> corpus are unlinked on exactly that basis. The link requirement above is a convention
+> *change* from this date, not a restatement of a rule that was always there. It applies
+> to new lessons only; existing lessons are not retroactively non-compliant. Recorded in
+> `EVIDENCE_LOG.md` (2026-11-12 entry).
 
 ## 9. MDX safety checklist
 
