@@ -51,6 +51,12 @@ public/og/
 # <lastBuildDate> uses wall-clock time, so a committed copy would churn every build.
 public/feed.xml
 
+# Sitemap + llms.txt: generated at build time (see scripts/seo/generate-sitemap.mjs
+# and scripts/seo/generate-llms-txt.mjs). Never commit locally generated copies —
+# the deploy workflow regenerates them with the correct base path (AGENTS.md §11).
+public/sitemap.xml
+public/llms.txt
+
 # TTS synthesis scratch: per-block WAVs, self-cleaned on success; a killed
 # run can orphan them, so they must never be committed.
 public/audio/*-blocks-*/
