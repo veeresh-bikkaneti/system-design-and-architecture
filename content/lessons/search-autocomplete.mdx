@@ -10,6 +10,27 @@ export const meta = {
   topics: ['system design', 'interview', 'search'],
 };
 
+## Why this matters
+
+"Design search autocomplete" (interviewers also call it *typeahead*) is the second
+great interview classic, the natural sequel to the [URL shortener](/lesson/url-shortener/).
+The shortener tested whether you can mint and look up keys. Autocomplete tests
+everything else at once:
+
+- **A data structure under a latency gun.** You will reach for a trie — a tree where
+  each step down adds one character, so every path spells a prefix — and then
+  discover the trie is the easy part.
+- **A read path that out-traffics the product it serves.** Every search becomes roughly
+  ten suggestion requests. The tail wags the dog: your lookup tier absorbs ~10× the
+  search engine's own query rate. 🔢 (The math is below; check it.)
+- **A serving tier that may never improvise.** At this request rate and this latency
+  budget, there is no time to *compute* an answer per keystroke. The answers must
+  already exist. Almost every design decision in this lesson is that sentence,
+  applied.
+
+If the URL shortener was a coat-check counter, autocomplete is the friend who finishes
+your sentences. Let's meet the friend properly.
+
 ## The day search started answering before the question
 
 September 8, 2010. Marissa Mayer is on stage typing into a search box — slowly,
@@ -34,27 +55,6 @@ answers with is a ranked summary of what billions of people have asked before yo
 This lesson designs the serving half: how the answer is ready before the question.
 The next lesson designs the learning half: where the answers come from, and how the
 system keeps them fresh — and keeps them from embarrassing you.
-
-## Why this matters
-
-"Design search autocomplete" (interviewers also call it *typeahead*) is the second
-great interview classic, the natural sequel to the [URL shortener](/lesson/url-shortener/).
-The shortener tested whether you can mint and look up keys. Autocomplete tests
-everything else at once:
-
-- **A data structure under a latency gun.** You will reach for a trie — a tree where
-  each step down adds one character, so every path spells a prefix — and then
-  discover the trie is the easy part.
-- **A read path that out-traffics the product it serves.** Every search becomes roughly
-  ten suggestion requests. The tail wags the dog: your lookup tier absorbs ~10× the
-  search engine's own query rate. 🔢 (The math is below; check it.)
-- **A serving tier that may never improvise.** At this request rate and this latency
-  budget, there is no time to *compute* an answer per keystroke. The answers must
-  already exist. Almost every design decision in this lesson is that sentence,
-  applied.
-
-If the URL shortener was a coat-check counter, autocomplete is the friend who finishes
-your sentences. Let's meet the friend properly.
 
 ## First, clarify the problem
 

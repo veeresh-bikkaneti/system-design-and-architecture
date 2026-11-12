@@ -10,6 +10,30 @@ export const meta = {
   topics: ['system design', 'interview', 'estimation'],
 };
 
+## Why this matters
+
+Picture the interview moment this whole topic is building toward. The
+interviewer asks: "How much storage will a year of photos take?" You know
+the method from the previous lesson — state your assumptions, round,
+multiply, sanity-check. Then you reach for the numbers the method runs
+on — how long a memory read takes, how big a photo is, what five nines
+actually costs in downtime — and your mind goes blank. A method without
+reference numbers is a scale with no weights: the motion looks right, and
+the answer is still a guess.
+
+That is why these numbers are worth learning in their own right. Every
+estimate you will make in this course — and in an interview room — stands
+on the same small set of facts: the latency ladder, the powers-of-two
+size ladder, and the availability nines. Get those roughly right and your
+designs land in the right universe. Get one wrong by a factor of ten and
+you design for the wrong universe, confidently.
+
+This lesson is where those reference numbers live: three tables, each
+with its sources and confidence marks. You do not need to memorise every
+row before moving on. Learn what each table is for, keep this page
+reachable, and let repeated use in the lessons ahead do the memorising
+for you.
+
 ## Why this page exists
 
 The previous lesson, [Back-of-the-Envelope Estimation](/lesson/back-of-envelope-estimation/),

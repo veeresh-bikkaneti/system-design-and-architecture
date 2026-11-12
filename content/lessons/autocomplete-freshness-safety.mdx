@@ -10,6 +10,27 @@ export const meta = {
   topics: ['system design', 'interview', 'search'],
 };
 
+## Why this matters
+
+The previous lesson made autocomplete look easy: build a trie, precompute the
+answers, serve them in milliseconds. That system has a quiet flaw — it only
+knows the world as of the moment it was built. Searches are not a fixed
+library. A final is drawn, a storm makes landfall, a name nobody searched
+yesterday is the only name anyone searches today, and a dropdown frozen at
+last night's snapshot answers confidently from a world that no longer exists.
+
+Worse, a pipeline that simply repeats what people search will eventually
+repeat the worst of it, out loud, to everyone. That is not a hypothetical:
+it happened in December 2016, and it is the reason this lesson exists as
+its own lesson.
+
+So this lesson is the other half of the design: how autocomplete learns
+what the world is asking, hears this morning's spike in minutes instead of
+at tomorrow's rebuild, and keeps a policy gate between raw popularity and
+your screen. Build only the serving half and you have a fast system that
+goes stale and can embarrass you. Build this half too and it stays
+current — and decent.
+
 ## 9:02 a.m.: the dropdown meets a world it has never seen
 
 Picture a Tuesday morning. At 9:02, something happens — an earthquake, a cup final
