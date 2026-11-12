@@ -75,7 +75,11 @@
          real, verifiable facts — no invented ratings, prices, or dates.
          JSON-LD is data, not executable script: the meta CSP does not block
          it. Per-lesson LearningResource nodes are injected per route by
-         scripts/seo/prerender.mjs. -->
+         scripts/seo/prerender.mjs. The Course node below deliberately
+         omits numberOfLessons: this static template has no lesson
+         enumerator, and a typed numeral fossilised here before.
+         Prerender strips this block on every route and injects its own
+         JSON-LD with numberOfLessons derived from the lesson metas. -->
     <script type="application/ld+json">
       [
         {
@@ -104,7 +108,6 @@
           "provider": {
             "@id": "https://veeresh-bikkaneti.github.io/system-design-and-architecture/#organization"
           },
-          "numberOfLessons": 36,
           "isAccessibleForFree": true
         }
       ]

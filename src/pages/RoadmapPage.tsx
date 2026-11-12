@@ -128,6 +128,9 @@ export function RoadmapPage() {
   const fillRef = useRef<HTMLDivElement>(null);
 
   const totalMinutes = lessons.reduce((sum, lesson) => sum + lesson.meta.estimatedMinutes, 0);
+  // Derived from the lesson data itself — never a typed numeral (a typed
+  // count fossilised while the course grew; see RoadmapPage.test.tsx).
+  const tierCount = new Set(lessons.map((lesson) => lesson.meta.tier)).size;
   const nextLesson = lessons.find(
     (lesson) =>
       !completedLessons.includes(lesson.meta.slug) &&
@@ -171,7 +174,7 @@ export function RoadmapPage() {
     <div className="mx-auto max-w-5xl">
       <Seo
         title="Roadmap | System Design Mastery"
-        description="The complete system design learning path: 41 lessons from beginner to advanced, in syllabus order."
+        description={`The complete system design learning path: ${lessons.length} lessons from beginner to advanced, in syllabus order.`}
         path="/roadmap"
         image="roadmap"
       />
@@ -184,7 +187,7 @@ export function RoadmapPage() {
           The journey from first principles to interview-ready.
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-stone-600 dark:text-stone-400">
-          Thirty-six lessons in three tiers. Each tier unlocks the next — here is exactly what
+          {lessons.length} lessons in {tierCount} tiers. Each tier unlocks the next — here is exactly what
           you will cover, and what you will be able to do when each chapter closes. Scroll,
           and watch the path draw itself.
         </p>

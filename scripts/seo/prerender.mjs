@@ -38,6 +38,8 @@ if (!/<script type="module"[^>]*src="[^"]*\/assets\//.test(template)) {
 const rootMountHtml = '<div id="root"></div>';
 
 const metas = loadLessonMetas();
+// Derived from the metas — never a typed numeral (see RoadmapPage.test.tsx).
+const tierCount = new Set(metas.map((m) => m.tier)).size;
 
 /* ------------------------------------------------------------------ */
 /* small HTML helpers                                                  */
@@ -341,7 +343,7 @@ function lessonLinkList(lessons, headingLevel = 2) {
 async function buildHome() {
   const canonical = siteUrl;
   const body = `<h1>${esc(SITE_NAME)}</h1>
-<p>${esc(SITE_DESCRIPTION)} Thirty-six lessons across three tiers — beginner, intermediate, advanced — each with an interactive quiz and an AI tutor that sketches the architecture with you.</p>
+<p>${esc(SITE_DESCRIPTION)} ${metas.length} lessons across ${tierCount} tiers — beginner, intermediate, advanced — each with an interactive quiz and an AI tutor that sketches the architecture with you.</p>
 <nav aria-label="All lessons">
 ${lessonLinkList(metas)}
 </nav>`;
@@ -368,8 +370,7 @@ ${lessonLinkList(metas)}`;
     out: 'roadmap/index.html',
     head: headTags({
       title: `Roadmap | ${SITE_NAME}`,
-      description:
-        'The complete system design learning path: 41 lessons from beginner to advanced, in syllabus order.',
+      description: `The complete system design learning path: ${metas.length} lessons from beginner to advanced, in syllabus order.`,
       canonical,
       ogImage: `${siteUrl}og/roadmap.png`,
     }),
