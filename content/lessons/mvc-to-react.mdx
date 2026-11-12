@@ -236,7 +236,7 @@ Compare the two eras directly:
         "In the diner analogy, which role is the Controller — and why?",
       options: [
         "The kitchen, because the kitchen does all the real work",
-        "The menu board, because it displays every option available",
+        "The menu board, because it displays every option available and decides what each customer ends up getting",
         "The waiter, because it's the only one that takes your input to the kitchen",
         "The customer, because every order starts with them",
       ],
@@ -246,7 +246,7 @@ Compare the two eras directly:
       question: "In classic MVC, what does the Model know about the View?",
       options: [
         "Nothing — the model is unaware of the UI; the view observes the model",
-        "Everything — the model renders each view directly on every change",
+        "Everything — the model renders each view directly on every change and owns the pixels the user sees",
         "Only the view's address, so the model can push updates to it",
         "It builds the view's HTML itself whenever its state changes",
       ],
@@ -256,7 +256,7 @@ Compare the two eras directly:
       question: "What distinguishes MVP from classic MVC?",
       options: [
         "The model and the view merge into a single object that does both",
-        "The presenter is removed, and the view talks straight to the database",
+        "The presenter is removed, and the view talks straight to the database for every read and write it needs",
         "MVP requires a relational database underneath to work",
         "The view becomes passive — the presenter carries every message both ways",
       ],
@@ -266,7 +266,7 @@ Compare the two eras directly:
       question:
         "In React's unidirectional data flow, how does a click on a deeply nested button update what the user sees?",
       options: [
-        "The button edits its sibling components directly, in place",
+        "The button edits its sibling components directly, in place, reaching across the tree to change their output",
         "It calls a handler that updates state; new state flows down as props and re-renders the UI",
         "The click travels straight to the database and back again",
         "The view observes the model and redraws itself on change",
@@ -277,7 +277,7 @@ Compare the two eras directly:
       question:
         'The lesson says React favors "LEGO, not woodcarving." What does that mean?',
       options: [
-        "React apps must be prototyped with physical toys first",
+        "React apps must be prototyped with physical toys first, then rebuilt in code once the pieces fit together",
         "React is slower to build with than plain JavaScript",
         "Compose small components instead of inheriting from big ones",
         "Every React component is required to use inheritance",

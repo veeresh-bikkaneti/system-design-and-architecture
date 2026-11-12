@@ -287,7 +287,7 @@ grown-up architecture.
         "The bins are physically larger than the cabinet's drawers",
         "The cabinet forces every folder to match one fixed form, while each bin holds whatever shows up",
         "The bins are slower but cheaper than the cabinet per gigabyte",
-        "The cabinet stores numbers while the bins store free-form text",
+        "The cabinet stores numbers while the bins store free-form text, and the two can never hold the same kind of record",
       ],
       correctIndex: 1,
     },
@@ -295,7 +295,7 @@ grown-up architecture.
       question:
         "You need to store millions of user sessions, always looked up by session ID, as fast as possible. Which shelf do you walk to?",
       options: [
-        "Document store, because session payloads are JSON documents",
+        "Document store, because session payloads are JSON documents and sessions are always read back as whole documents",
         "Graph store, because sessions are connected to their users",
         "Key-value store — lookup by a single label is exactly what it's built for",
         "Wide-column store, because millions of rows is its specialty",
@@ -307,7 +307,7 @@ grown-up architecture.
         "Why is a graph store (the corkboard) better than a relational table for 'friends of friends of friends' queries?",
       options: [
         "Graph stores keep connections as first-class citizens, so hopping stays fast at any depth",
-        "Relational databases cannot store friendship data in any form",
+        "Relational databases cannot store friendship data in any form, so the data has to move before the query can run at all",
         "Graph stores automatically delete friendships that go inactive",
         "The corkboard uses less disk space for every type of query",
       ],
@@ -318,7 +318,7 @@ grown-up architecture.
         "According to the lesson's decision guide, which workload should stay in the relational 'filing cabinet'?",
       options: [
         "Clickstream event logs, written by the millions",
-        "A social network's friend graph and its connections",
+        "A social network's friend graph and its connections, traversed several hops deep on nearly every page load",
         "Product catalog with wildly varying attributes",
         "Bank ledgers — where ACID transactions guarantee money is never wrong",
       ],

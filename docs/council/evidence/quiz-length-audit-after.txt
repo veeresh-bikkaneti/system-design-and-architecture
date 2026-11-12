@@ -1,0 +1,49 @@
+CORPUS: questions=190 options=760 strict=118 tied=3 inclusive=121
+CORPUS %: strict=62.1 inclusive=63.7
+CORPUS means: correct=86.2 distractor=57.3
+POSITIONS: [45, 45, 51, 49]
+LESSONS 100% strict (>=4q): 17: ['anti-corruption-layer', 'api-gateways', 'authn-authz', 'autocomplete-freshness-safety', 'bff-backend-for-frontend', 'cdns', 'consensus-raft', 'designing-chat-at-scale', 'distributed-transactions', 'domain-driven-design', 'event-sourcing-cqrs', 'graphql-vs-rest', 'microservices-patterns-pitfalls', 'microservices-vs-monolith', 'multi-region-active-active', 'resilience-patterns', 'zero-trust-security']
+TIER beginner: lessons=9 questions=41 strict=0 (0.0%) inclusive=1 (2.4%) correct_mean=74.4 distractor_mean=67.2
+  back-of-envelope-estimation: q=5 strict=0 tied=0 correct_mean=75.4 distractor_mean=76.9
+  cap-theorem: q=4 strict=0 tied=1 correct_mean=55.5 distractor_mean=50.2
+  estimation-reference-numbers: q=5 strict=0 tied=0 correct_mean=62.2 distractor_mean=63.5
+  interview-framework: q=5 strict=0 tied=0 correct_mean=92.4 distractor_mean=76.3
+  load-balancers: q=4 strict=0 tied=0 correct_mean=71.2 distractor_mean=50.9
+  mvc-to-react: q=5 strict=0 tied=0 correct_mean=73.0 distractor_mean=71.7
+  nosql-databases: q=4 strict=0 tied=0 correct_mean=81.5 distractor_mean=74.9
+  scaling-web-service: q=4 strict=0 tied=0 correct_mean=81.5 distractor_mean=62.7
+  solid-principles: q=5 strict=0 tied=0 correct_mean=75.4 distractor_mean=71.8
+TIER intermediate: lessons=15 questions=66 strict=54 (81.8%) inclusive=54 (81.8%) correct_mean=81.4 distractor_mean=49.2
+  api-gateways: q=4 strict=4 tied=0 correct_mean=106.8 distractor_mean=42.2
+  authn-authz: q=4 strict=4 tied=0 correct_mean=66.0 distractor_mean=45.8
+  autocomplete-freshness-safety: q=5 strict=5 tied=0 correct_mean=114.0 distractor_mean=55.0
+  bff-backend-for-frontend: q=5 strict=5 tied=0 correct_mean=112.2 distractor_mean=51.8
+  caching-strategies: q=4 strict=3 tied=0 correct_mean=84.8 distractor_mean=64.2
+  cdns: q=4 strict=4 tied=0 correct_mean=73.8 distractor_mean=42.9
+  cloud-native-architecture: q=6 strict=5 tied=0 correct_mean=94.5 distractor_mean=59.4
+  data-partitioning: q=5 strict=3 tied=0 correct_mean=65.8 distractor_mean=42.1
+  idempotency: q=5 strict=4 tied=0 correct_mean=67.0 distractor_mean=54.1
+  message-queues: q=4 strict=3 tied=0 correct_mean=56.8 distractor_mean=37.2
+  microservices-vs-monolith: q=4 strict=4 tied=0 correct_mean=98.5 distractor_mean=40.3
+  rate-limiting: q=4 strict=1 tied=0 correct_mean=69.5 distractor_mean=66.6
+  replication-consistency-models: q=4 strict=3 tied=0 correct_mean=44.5 distractor_mean=33.0
+  search-autocomplete: q=4 strict=3 tied=0 correct_mean=89.0 distractor_mean=53.6
+  url-shortener: q=4 strict=3 tied=0 correct_mean=63.2 distractor_mean=43.2
+TIER advanced: lessons=17 questions=83 strict=64 (77.1%) inclusive=66 (79.5%) correct_mean=95.8 distractor_mean=58.8
+  agentic-ai-patterns: q=6 strict=0 tied=0 correct_mean=93.7 distractor_mean=92.1
+  anti-corruption-layer: q=5 strict=5 tied=0 correct_mean=87.2 distractor_mean=42.9
+  consensus-raft: q=4 strict=4 tied=0 correct_mean=84.8 distractor_mean=45.2
+  design-instagram: q=4 strict=2 tied=0 correct_mean=98.8 distractor_mean=89.4
+  designing-ai-systems: q=6 strict=0 tied=2 correct_mean=93.8 distractor_mean=88.8
+  designing-chat-at-scale: q=5 strict=5 tied=0 correct_mean=194.4 distractor_mean=83.5
+  distributed-transactions: q=4 strict=4 tied=0 correct_mean=95.5 distractor_mean=38.6
+  domain-driven-design: q=6 strict=6 tied=0 correct_mean=100.8 distractor_mean=54.2
+  event-sourcing-cqrs: q=5 strict=5 tied=0 correct_mean=102.8 distractor_mean=55.7
+  graphql-vs-rest: q=5 strict=5 tied=0 correct_mean=90.8 distractor_mean=50.7
+  microservices-patterns-pitfalls: q=6 strict=6 tied=0 correct_mean=77.0 distractor_mean=46.4
+  multi-region-active-active: q=5 strict=5 tied=0 correct_mean=95.6 distractor_mean=50.7
+  observability: q=5 strict=3 tied=0 correct_mean=70.2 distractor_mean=33.3
+  resilience-patterns: q=4 strict=4 tied=0 correct_mean=94.2 distractor_mean=57.3
+  sharding-strategies: q=4 strict=2 tied=0 correct_mean=49.5 distractor_mean=40.3
+  stream-vs-batch: q=4 strict=3 tied=0 correct_mean=81.8 distractor_mean=57.7
+  zero-trust-security: q=5 strict=5 tied=0 correct_mean=107.0 distractor_mean=58.6
