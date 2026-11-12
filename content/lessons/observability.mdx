@@ -195,7 +195,7 @@ eats 20% in an hour is.
       question: "Why are latency percentiles (p99) preferred over averages?",
       options: [
         "Averages hide tail latency — a good average can conceal a terrible experience for 1% of users",
-        "Averages are harder to compute",
+        "Averages are harder to compute, requiring a full sort of every latency sample the service records",
         "Percentiles require less storage",
         "Averages cannot be graphed over time",
       ],
@@ -204,7 +204,7 @@ eats 20% in an hour is.
     {
       question: "What is the key advantage of tail-based over head-based trace sampling?",
       options: [
-        "It uses less memory in the collector",
+        "It uses less memory in the collector, because traces are discarded before anyone can inspect what went wrong",
         "It requires no collector infrastructure",
         "It keeps 100% of errors and slow requests instead of a random subset, so the traces you actually need exist",
         "It samples before the request starts, reducing overhead",
@@ -214,7 +214,7 @@ eats 20% in an hour is.
     {
       question: "What is a 'cardinality explosion' in metrics?",
       options: [
-        "Too many dashboards being created",
+        "Too many dashboards being created, each one spawning its own set of stored series for every service it charts",
         "A high-cardinality label (like user_id) creates one time series per value, exploding memory and storage",
         "Metrics being sampled too aggressively",
         "Alerts firing in a cascading pattern",

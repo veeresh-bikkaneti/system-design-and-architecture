@@ -350,7 +350,7 @@ middle. That's a passing answer.
       question: "Why does the design store photo metadata in a sharded database instead of alongside the photo bytes in object storage?",
       options: [
         "Object storage caps out at a few terabytes, so the metadata needs a database of its own simply to fit the billions of rows",
-        "Databases are always faster than object storage for every kind of read, so moving metadata into a database speeds up the whole system",
+        "Databases are always faster than object storage for every kind of read, so moving metadata into a database speeds up the whole system, reads and writes alike",
         "Metadata is small, structured, and queried by owner and time; photo bytes are big blobs fetched by ID — each gets storage shaped for its own pattern",
         "A sharded database automatically generates the thumbnail variants from the photo bytes, a job object storage was never designed to handle",
       ],
@@ -380,7 +380,7 @@ middle. That's a passing answer.
       question: "Why are thumbnails generated asynchronously, after the upload API has already responded?",
       options: [
         "Thumbnail workers only run during off-peak hours, so they process the queue while the user is already gone",
-        "The object store only keeps one size per photo, so variants are generated just-in-time instead of at upload",
+        "The object store only keeps one size per photo, so variants are generated just-in-time instead of at upload, whenever a viewer asks for them",
         "The metadata database has to commit the ledger row before any image processing is allowed to begin",
         "So uploads feel instant instead of blocking on CPU-heavy image processing — and a failed thumbnail job just retries invisibly",
       ],

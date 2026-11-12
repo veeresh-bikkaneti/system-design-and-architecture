@@ -240,16 +240,16 @@ Raft yourself for production unless implementing Raft *is* your product.
       options: [
         "Once a majority of cluster nodes have replicated it",
         "After the election timeout elapses",
-        "As soon as the leader appends it to its own log",
-        "Once all nodes have acknowledged it",
+        "As soon as the leader appends it to its own log and immediately reports success to the client",
+        "Once all nodes, including lagging followers, have acknowledged it in writing",
       ],
       correctIndex: 0,
     },
     {
       question: "Why are Raft election timeouts randomized (150–300 ms) rather than fixed?",
       options: [
-        "To make the algorithm harder for attackers to predict",
-        "Randomization is required for the log replication step",
+        "To make the algorithm harder for attackers to predict, since election timing becomes a shared secret",
+        "Randomization is required for the log replication step, which stalls whenever entries arrive in lockstep",
         "To reduce network bandwidth usage",
         "To prevent split votes from livelocking when multiple candidates start elections simultaneously",
       ],
@@ -258,9 +258,9 @@ Raft yourself for production unless implementing Raft *is* your product.
     {
       question: "A 5-node Raft cluster splits 3/2 in a network partition. What happens?",
       options: [
-        "Both sides elect leaders and continue accepting writes, diverging",
+        "Both sides elect leaders and continue accepting writes, diverging until the partition heals and one side wins",
         "The 3-node side keeps working; the 2-node side cannot reach majority and stops committing writes",
-        "The cluster shuts down entirely until the partition heals",
+        "The cluster shuts down entirely until the partition heals, then replays both logs from scratch",
         "The 2-node side takes over because it has less contention",
       ],
       correctIndex: 1,
@@ -269,9 +269,9 @@ Raft yourself for production unless implementing Raft *is* your product.
       question: "Why is running Raft with 4 nodes worse than 3?",
       options: [
         "4 nodes cannot form a quorum at all",
-        "4 nodes double the election timeout",
+        "4 nodes double the election timeout, and the doubled timeout doubles the latency of every commit too",
         "Both tolerate 1 failure, but 4 needs 3 acks per commit instead of 2 — slower with no extra safety",
-        "Raft requires a prime number of nodes",
+        "Raft requires a prime number of nodes, and 4 fails the primality check at startup",
       ],
       correctIndex: 2,
     },
