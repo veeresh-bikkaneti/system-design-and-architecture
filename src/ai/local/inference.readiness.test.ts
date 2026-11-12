@@ -264,6 +264,74 @@ describe('M1a late settles and retry', () => {
   });
 });
 
+describe('Branch 1 generation stall bound (F1: guards on both generate() calls)', () => {
+  // Mirrors GENERATION_STALL_TIMEOUT_MS in inference.ts. Generation reports
+  // no progress events (generate() returns one Promise<string>), so a single
+  // stall-style bound applies; the value is an UNVERIFIED default.
+  const GEN_MS = 60_000;
+  const GOOD = 'A cache keeps recent results close so repeated reads are fast.';
+
+  it('a Prompt API prompt() that never settles settles null at the stall bound', async () => {
+    let resolvePrompt: (value: string) => void = () => {};
+    const session = {
+      destroy: vi.fn(),
+      prompt: () =>
+        new Promise<string>((resolve) => {
+          resolvePrompt = resolve;
+        }),
+    };
+    const create = vi.fn(async () => session);
+    vi.stubGlobal('LanguageModel', { availability: () => Promise.resolve('available'), create });
+    const mod = await load();
+    const answer = mod.answerParametrically('q', '');
+    await vi.advanceTimersByTimeAsync(GEN_MS - 1);
+    expect(await state(answer)).toBe('pending');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await state(answer)).toBe('settled');
+    expect(await answer).toBeNull();
+    // The late resolve is discarded: it cannot write a result after the bound.
+    resolvePrompt(GOOD);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await answer).toBeNull();
+    expect(mod.getModelStatus().phase).toBe('ready');
+  });
+
+  it('a WebLLM chat.completions.create() that never settles settles null at the stall bound', async () => {
+    createEngine.mockResolvedValue({
+      chat: { completions: { create: () => new Promise(() => {}) } },
+    });
+    const mod = await load();
+    const answer = mod.answerParametrically('q', '');
+    await vi.advanceTimersByTimeAsync(0); // let the load reach ready + generate start
+    expect(mod.getModelStatus().phase).toBe('ready');
+    await vi.advanceTimersByTimeAsync(GEN_MS - 1);
+    expect(await state(answer)).toBe('pending');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await state(answer)).toBe('settled');
+    expect(await answer).toBeNull();
+  });
+
+  it('rewriteWithModel is bounded the same way (the lesson-rewrite generate() call)', async () => {
+    createEngine.mockResolvedValue({
+      chat: { completions: { create: () => new Promise(() => {}) } },
+    });
+    const mod = await load();
+    const draft = mod.rewriteWithModel('q', 'A cache keeps recent results close.', '');
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(GEN_MS);
+    expect(await state(draft)).toBe('settled');
+    expect(await draft).toBeNull();
+  });
+
+  it('a generation that settles before the bound still returns its draft', async () => {
+    createEngine.mockResolvedValue(readyEngine);
+    const mod = await load();
+    const answer = mod.answerParametrically('q', '');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await answer).toContain('cache');
+  });
+});
+
 describe('M1a Prompt API create()', () => {
   type Opts = { monitor?: (m: EventTarget) => void; signal?: AbortSignal };
   const hangingPrompt = () => {

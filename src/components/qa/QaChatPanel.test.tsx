@@ -99,4 +99,11 @@ describe('QaChatPanel header status line', () => {
     expect(screen.getByText('Built-in browser AI')).toBeTruthy();
     expect(screen.queryByText(FAILED_LINE)).toBeNull();
   });
+
+  it('BF6: semantic failed with model idle leaves "Getting ready" for the generic line (Branch 1)', () => {
+    setPhases({ phase: 'idle', progress: 0, detail: 'Not loaded' }, 'failed');
+    renderPanel();
+    expect(screen.getByText(GENERIC_LINE)).toBeTruthy();
+    expect(screen.queryByText('Getting ready · reading the lessons')).toBeNull();
+  });
 });

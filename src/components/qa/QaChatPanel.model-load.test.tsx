@@ -17,6 +17,7 @@ import { NO_SOURCE } from '../../ai/local/semantic/turn';
 const model = vi.hoisted(() => ({
   status: { phase: 'loading', progress: 4, detail: 'Fetching param cache' },
   cancel: undefined as unknown,
+  semanticPhase: 'idle' as string,
 }));
 const cancelModelLoad = vi.hoisted(() => vi.fn());
 
@@ -37,7 +38,10 @@ vi.mock('../../ai/local/inference', () => ({
 vi.mock('../../ai/local/semantic/embedder', () => ({
   loadSemantic: async () => {},
   semanticWithin: async () => null, // keyword path, as after SEMANTIC_WAIT_MS
-  subscribeSemantic: () => () => {},
+  subscribeSemantic: (listener: (next: string) => void) => {
+    listener(model.semanticPhase);
+    return () => {};
+  },
 }));
 
 type PanelComponent = ComponentType<{ open: boolean; onClose: () => void }>;
@@ -62,6 +66,7 @@ beforeEach(() => {
   localStorage.clear();
   cancelModelLoad.mockReset();
   model.status = { phase: 'loading', progress: 4, detail: 'Fetching param cache' };
+  model.semanticPhase = 'idle';
   vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('no fetch expected'); }));
 });
 
@@ -110,6 +115,25 @@ describe('M1b R-04: answers given without the model are labelled provisional', (
     await ask('What is the CAP theorem?');
     await waitFor(() => expect(screen.getAllByText(/CAP/).length).toBeGreaterThan(0));
     expect(screen.getByText(/provisional/i)).toBeTruthy();
+  });
+});
+
+describe('Branch 1: semantic phase failed leaves the "Getting ready" header', () => {
+  it('phase failed with the model still loading shows the model line, not "Getting ready"', async () => {
+    model.semanticPhase = 'failed';
+    const Panel = await loadPanel();
+    render(panel(Panel));
+    expect(screen.queryByText('Getting ready · reading the lessons')).toBeNull();
+    expect(screen.getByText(/Loading On-device AI/)).toBeTruthy();
+  });
+
+  it('phase failed with the model idle shows the generic line, not "Getting ready"', async () => {
+    model.semanticPhase = 'failed';
+    model.status = { phase: 'idle', progress: 0, detail: 'Not loaded' };
+    const Panel = await loadPanel();
+    render(panel(Panel));
+    expect(screen.queryByText('Getting ready · reading the lessons')).toBeNull();
+    expect(screen.getByText('Runs in your browser · no API key')).toBeTruthy();
   });
 });
 
