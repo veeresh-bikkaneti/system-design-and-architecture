@@ -78,15 +78,41 @@ export function loadRuntime(): Promise<TransformersRuntime> {
 }
 
 /**
+ * Bounded wait for one pipeline load (Branch 1, F1 — the R-02 pattern from
+ * `inference.ts`'s load contract, PR #195, applied to the embedder's load
+ * path; Consensus Manifest §II.2 Branch 1, verified).
+ *
+ * The value is NOT R-02's 120 s / 60 s: those were tuned for the generator's
+ * ~750 MB remote download (`inference.ts`, FIRST_PROGRESS_TIMEOUT_MS /
+ * STALL_TIMEOUT_MS at HEAD). The only caller today loads the embedder —
+ * ~23 MB served same-origin (Phase 1 §4, verified; embedder header in
+ * `semantic/embedder.ts`) plus the ONNX WASM pair. 30 s gives a slow phone
+ * several times the size-scaled R-02 bound while still unwedging the queue
+ * inside one chat session. UNVERIFIED default: no live throttled-network
+ * run has measured a real embedder load (cf. the UNVERIFIED note on the
+ * R-02 constants in `inference.ts`).
+ */
+export const PIPELINE_LOAD_TIMEOUT_MS = 30_000;
+
+/**
  * Build a pipeline with its files read from `source`, never both.
  * `site` models are addressed by a same-origin path (not a Hub id), so they are
  * fetched from the course itself; `hub` models by their Hub id.
+ *
+ * The wait is bounded (PIPELINE_LOAD_TIMEOUT_MS): pipeline creation has no
+ * abort API in the Transformers.js call used here (verified at HEAD: the
+ * call takes task/model/options only), so timing out abandons the wait —
+ * the underlying creation may still finish in the background and its result
+ * is discarded, exactly as R-02 abandons a WebLLM load (`inference.ts`
+ * CreateMLCEngine note, verified). The queue advances on the bounded
+ * promise, so a stalled load cannot wedge the next one.
  */
 export function loadPipeline<T>(
   source: ModelSource,
   task: string,
   model: string,
   options: Record<string, unknown>,
+  timeoutMs: number = PIPELINE_LOAD_TIMEOUT_MS,
 ): Promise<T> {
   const run = queue.then(async () => {
     const runtime = await loadRuntime();
@@ -94,7 +120,24 @@ export function loadPipeline<T>(
     runtime.env.allowRemoteModels = source === 'hub';
     return (await runtime.pipeline(task, model, options)) as T;
   });
-  // A failed load must not wedge the queue for the next one.
-  queue = run.catch(() => undefined);
-  return run;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timed = new Promise<T>((resolve, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`Model pipeline load timed out after ${timeoutMs / 1000} s.`)),
+      timeoutMs,
+    );
+    run.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
+  });
+  // A failed or timed-out load must not wedge the queue for the next one.
+  queue = timed.catch(() => undefined);
+  return timed;
 }

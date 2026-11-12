@@ -103,3 +103,56 @@ describe('loadRuntime wasmPaths', () => {
     expect(env.useWasmCache).toBe(false);
   });
 });
+
+describe('loadPipeline bounded wait (Branch 1, F1)', () => {
+  // Mirrors PIPELINE_LOAD_TIMEOUT_MS in runtime.ts.
+  const PIPELINE_MS = 30_000;
+
+  /** Import runtime.ts fresh with the Transformers.js pipeline stubbed. */
+  async function loadPipelineWith(pipeline: unknown) {
+    vi.useFakeTimers();
+    try {
+      const transformers = fakeTransformers();
+      transformers.pipeline = pipeline as typeof transformers.pipeline;
+      vi.resetModules();
+      vi.doMock('@huggingface/transformers', () => transformers);
+      const { loadPipeline } = await import('./runtime.ts');
+      return loadPipeline;
+    } finally {
+      // Timers stay fake for the test body; afterEach in this file does not
+      // reset them, so each test below restores them itself.
+    }
+  }
+
+  it('a pipeline() that never settles rejects at 30 s instead of wedging the queue', async () => {
+    const pipeline = vi.fn(() => new Promise(() => {}));
+    const loadPipeline = await loadPipelineWith(pipeline);
+    const first = loadPipeline('site', 'feature-extraction', 'model', {});
+    const watched = first.then(
+      () => 'resolved',
+      () => 'rejected',
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    expect(pipeline).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(PIPELINE_MS - 1);
+    let settled = false;
+    void watched.then(() => (settled = true));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await watched).toBe('rejected');
+    // The queue unwedged: a second load reaches pipeline(), not stuck behind the first.
+    const second = loadPipeline('site', 'feature-extraction', 'model', {});
+    void second.catch(() => {});
+    await vi.advanceTimersByTimeAsync(0);
+    expect(pipeline).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it('a pipeline() that settles before the bound resolves with its value', async () => {
+    const fake = { id: 'extractor' };
+    const loadPipeline = await loadPipelineWith(vi.fn(async () => fake));
+    await expect(loadPipeline('site', 'feature-extraction', 'model', {})).resolves.toBe(fake);
+    vi.useRealTimers();
+  });
+});

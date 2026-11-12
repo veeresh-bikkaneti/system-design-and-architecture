@@ -432,7 +432,17 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
 
   /** The understanding layer decides; tools run only when the decision needs them. */
   async function answerByMeaning(semantic: Semantic, text: string, history: ChatTurn[], assistantId: number) {
-    const vector = await semantic.embed(queryText(text, history));
+    let vector: Float32Array;
+    try {
+      vector = await semantic.embed(queryText(text, history));
+    } catch {
+      // The embed is bounded in embedder.ts (EMBED_TIMEOUT_MS, Branch 1 /
+      // F1): a rejection here means the understanding layer stalled for
+      // this turn, so the keyword pipeline answers instead of the turn
+      // dead-ending (Consensus Manifest §II.2 Branch 1, verified).
+      await answerByKeywords(text, history, assistantId);
+      return;
+    }
     const decision = route({ question: text, focusId, vector, index: semantic.index });
     const turn = buildTurn(text, history, decision);
     const sources: BubbleSource[] = turn.sources
