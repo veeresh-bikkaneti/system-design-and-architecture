@@ -10,6 +10,27 @@ export const meta = {
   topics: ['system design', 'interview', 'estimation'],
 };
 
+## Why this matters
+
+In [the framework lesson](/lesson/interview-framework/), Step 2 — sketch the route —
+asks for "the back-of-envelope math": two minutes of arithmetic against the scope from
+Step 1 that tells you which boxes need to be distributed and which are fine as a single
+instance. This lesson is that math, taught properly.
+
+Here's why it decides designs. Every architecture question is secretly a size question
+in disguise. "Do we need a cache?" depends on how many reads per second are coming.
+"Can one database hold this?" depends on how many bytes a year you're adding. "Is
+fan-out going to kill us?" depends on one multiplication. Candidates who estimate look
+like engineers; candidates who skip it are drawing pictures. Interviewers know the
+difference, which is why the framework lesson lists "skipping the math" as a Step 2
+anti-pattern with its own name.
+
+The good news: estimation math is not real math. There are no integrals. There is
+rounding, multiplying round numbers, and checking that the answer isn't absurd. If you
+can estimate what a suitcase weighs before the airline scale proves you wrong, you
+already have the core skill — this lesson just gives you reference weights and a
+routine.
+
 ## A bomb, some confetti, and sixty seconds
 
 July 16, 1945, New Mexico desert, just before dawn. Enrico Fermi — one of the great
@@ -34,27 +55,6 @@ This lesson is about that skill. Not the physics — the *estimation*: getting a
 number, fast, from almost nothing, and knowing how much to trust it. Fermi didn't have
 a gift. He had a method, and the method is learnable. By the end of this lesson you'll
 have it.
-
-## Why this matters
-
-In [the framework lesson](/lesson/interview-framework/), Step 2 — sketch the route —
-asks for "the back-of-envelope math": two minutes of arithmetic against the scope from
-Step 1 that tells you which boxes need to be distributed and which are fine as a single
-instance. This lesson is that math, taught properly.
-
-Here's why it decides designs. Every architecture question is secretly a size question
-in disguise. "Do we need a cache?" depends on how many reads per second are coming.
-"Can one database hold this?" depends on how many bytes a year you're adding. "Is
-fan-out going to kill us?" depends on one multiplication. Candidates who estimate look
-like engineers; candidates who skip it are drawing pictures. Interviewers know the
-difference, which is why the framework lesson lists "skipping the math" as a Step 2
-anti-pattern with its own name.
-
-The good news: estimation math is not real math. There are no integrals. There is
-rounding, multiplying round numbers, and checking that the answer isn't absurd. If you
-can estimate what a suitcase weighs before the airline scale proves you wrong, you
-already have the core skill — this lesson just gives you reference weights and a
-routine.
 
 ## The suitcase scale
 
