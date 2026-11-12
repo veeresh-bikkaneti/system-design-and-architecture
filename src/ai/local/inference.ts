@@ -54,6 +54,51 @@ export const MODEL_CANCELLED = 'On-device model load stopped · answering from t
 export const FIRST_PROGRESS_TIMEOUT_MS = 120_000;
 export const STALL_TIMEOUT_MS = 60_000;
 
+/**
+ * Stall bound for ONE generation call (Branch 1, F1; Consensus Manifest
+ * §II.2 Branch 1, verified). Unlike the load above, `generate()` reports
+ * no progress events — both legs return a single Promise<string> (the
+ * Prompt API `session.prompt()` and WebLLM `chat.completions.create()`
+ * below, verified at HEAD) — so there is nothing to re-arm: one
+ * stall-style bound, set to the load's STALL_TIMEOUT_MS. Output is
+ * capped small (WebLLM `max_tokens: 220` below, verified; SYSTEM_PROMPT
+ * asks for two to five sentences), so a healthy on-device generation is
+ * seconds, not a minute (likely — no live slow-device timing was
+ * measured for this change; UNVERIFIED default, same status as the
+ * load constants above).
+ */
+export const GENERATION_STALL_TIMEOUT_MS = 60_000;
+
+/**
+ * Run one `engine.generate()` under GENERATION_STALL_TIMEOUT_MS, guarded
+ * by a generation token: when the bound fires the token goes stale and
+ * the call settles as a stall error (callers turn that into null).
+ * Neither leg can be aborted — `session.prompt()` and
+ * `chat.completions.create()` take no abort signal in the calls below
+ * (verified at HEAD; the WebLLM load comment in `loadWebLlm` records the
+ * same limit for loading) — so a late result is DISCARDED via the stale
+ * token, never written to the UI. Cancelling the turn is the deliverable;
+ * no UI copy may promise an abort that does not exist (Seat A condition,
+ * Consensus Manifest §II.2 Branch 1, verified).
+ */
+async function generateBounded(engine: Engine, system: string, user: string): Promise<string> {
+  const token = { stale: false };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      token.stale = true;
+      reject(new Error(`Generation stalled for ${GENERATION_STALL_TIMEOUT_MS / 1000} s.`));
+    }, GENERATION_STALL_TIMEOUT_MS);
+  });
+  try {
+    const output = await Promise.race([engine.generate(system, user), timeout]);
+    if (token.stale) throw new Error('Generation settled after its stall bound; result discarded.');
+    return output;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 let status: ModelStatus = { phase: 'idle', progress: 0, detail: 'Not loaded' };
 const listeners = new Set<(next: ModelStatus) => void>();
 
@@ -343,7 +388,8 @@ export async function rewriteWithModel(
     const material = context.trim()
       ? context
       : 'None. This question is not covered by a lesson.';
-    const output = await engine.generate(
+    const output = await generateBounded(
+      engine,
       SYSTEM_PROMPT,
       `${history}Lesson material:\n${material}\n\nStudent: ${question}`,
     );
@@ -377,7 +423,7 @@ export async function answerParametrically(question: string, prior: string): Pro
   try {
     const engine = await loadEngine();
     const history = prior ? `What you already said:\n${prior}\n\n` : '';
-    const output = await engine.generate(PARAMETRIC_SYSTEM_PROMPT, `${history}Student: ${question}`);
+    const output = await generateBounded(engine, PARAMETRIC_SYSTEM_PROMPT, `${history}Student: ${question}`);
     const draft = output.trim();
     if (gated(draft) === null || !acceptDraft(draft, question)) return null;
     return draft;

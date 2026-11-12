@@ -69,6 +69,10 @@ afterEach(() => {
 });
 
 describe('QaChatPanel embed-timeout fallback (Branch 1)', () => {
+  // Explicit 20 s budget: the dynamic panel import + user-event typing
+  // exceeds vitest's 5 s default on a slow CI box (the pre-existing M1b
+  // tests in QaChatPanel.model-load.test.tsx hit the same wall at HEAD).
+  // The assertions are unchanged; only the wall-clock budget differs.
   it('a timed-out embed() answers from the keyword pipeline, not the error line', async () => {
     const Panel = await loadPanel();
     render(createElement(MemoryRouter, null, createElement(Panel, { open: true, onClose: () => {} })));
@@ -76,5 +80,5 @@ describe('QaChatPanel embed-timeout fallback (Branch 1)', () => {
     await waitFor(() => expect(screen.getAllByText(/CAP/).length).toBeGreaterThan(0));
     expect(screen.queryByText(/could not reach a source/i)).toBeNull();
     expect((screen.getByLabelText('Ask about the course') as HTMLTextAreaElement).disabled).toBe(false);
-  });
+  }, 20_000);
 });
