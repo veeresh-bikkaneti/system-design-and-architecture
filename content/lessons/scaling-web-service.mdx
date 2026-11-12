@@ -414,7 +414,7 @@ the truck actually grew:
         "Vertical means hiring more cooks; horizontal means opening longer hours",
         "They're two names for the same thing",
         "Vertical means a bigger, more powerful truck; horizontal means more trucks side by side",
-        "Vertical means adding more trucks; horizontal means getting a bigger grill",
+        "Vertical means adding more trucks; horizontal means getting a bigger grill and a second oven for the one truck you have",
       ],
       correctIndex: 2,
     },
@@ -424,7 +424,7 @@ the truck actually grew:
       options: [
         "Stateless servers use less electricity",
         "The load balancer can route any customer's next request to a different server, so a server can't rely on remembering that customer",
-        "Databases refuse connections from servers that keep local state",
+        "Databases refuse connections from servers that keep local state, and they drop any session that arrives carrying memory of an earlier customer request",
         "Stateless servers never need to be restarted",
       ],
       correctIndex: 1,
@@ -443,7 +443,7 @@ the truck actually grew:
       question:
         "Read replicas help you scale, but they do NOT help with which problem?",
       options: [
-        "Serving reads from a database copy close to the app servers",
+        "Serving reads from database copies placed close to the app servers, with more copies added as read traffic keeps growing",
         "Reducing load on the primary database from reads",
         "Serving a huge volume of read queries",
         "Handling a huge volume of writes — writes still funnel through the single primary",

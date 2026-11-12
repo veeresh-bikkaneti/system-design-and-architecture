@@ -206,7 +206,7 @@ Three moves, one per table:
       question: "A service promises 99.99% availability. How much downtime is it allowed per year?",
       options: [
         "About 52.6 minutes — under an hour a year",
-        "About 8.76 hours — one bad workday",
+        "About 8.76 hours — one bad workday, which is the downtime budget for three nines, not four",
         "About 5.26 minutes — barely one alert",
         "About 3.65 days — a long weekend",
       ],
@@ -227,7 +227,7 @@ Three moves, one per table:
       options: [
         "The classic 150 µs, because the published table is the standard",
         "Tens of microseconds on modern NVMe — the classic figure is SATA-era",
-        "About 10 ms, since flash and disk have converged in modern hardware",
+        "About 10 ms, since flash and disk have converged in modern hardware and now perform at about the same speed",
         "About 250 µs, to be safely conservative for new designs",
       ],
       correctIndex: 1,
@@ -238,7 +238,7 @@ Three moves, one per table:
         "Regulators charge per nine, so the bill is mostly compliance fees and audit costs",
         "Downtime only shrinks linearly while hardware costs grow with traffic and headcount",
         "Each nine divides the downtime budget by ten — four nines leaves ~4.4 minutes a month, no room for maintenance or manual fixes",
-        "Cloud providers stop offering discounts, credits, and support tiers once a service passes three nines",
+        "Cloud providers stop offering discounts, credits, and support tiers once a service passes three nines, so each further nine is bought at full list price",
       ],
       correctIndex: 2,
     },

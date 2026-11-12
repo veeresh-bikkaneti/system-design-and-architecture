@@ -350,7 +350,7 @@ build.
         "In the stand-mixer analogy, what does the mixer's attachment socket represent?",
       options: [
         "The stable interface that new behavior plugs into without modifying existing code",
-        "A base class that every new attachment is forced to inherit from",
+        "A base class that every new attachment is forced to inherit from, whether or not it fits the attachment's job",
         "The database where the mixer stores the recipes it knows",
         "A performance trick for making the motor run faster",
       ],
@@ -371,7 +371,7 @@ build.
       question:
         "A Robot class is forced to implement eat() even though robots don't eat. What's the interface-segregation fix?",
       options: [
-        "Make eat() throw an error — at least that's honest about it",
+        "Make eat() throw an error — at least that's honest about it, and every caller learns to catch the exception",
         "Delete the Robot class entirely and only build for humans",
         "Split the fat interface into smaller ones, so Robot only implements what it uses",
         "Merge eat() and work() into one doEverything() method",
@@ -384,7 +384,7 @@ build.
       options: [
         "Interfaces execute faster than concrete classes ever could",
         "So the app can swap in a cloud bucket or a test fake without changing its own code",
-        "Because the compiler requires every class to declare an interface",
+        "Because the compiler requires every class to declare an interface before it may call any storage code at all",
         "To make the class diagram symmetrical, which impresses reviewers",
       ],
       correctIndex: 1,
