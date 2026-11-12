@@ -19,10 +19,13 @@ Two bugs these pin down, both reproduced on the real lessons:
    title containing an apostrophe is cut at the apostrophe.
 """
 
+import json
 import re
+import tempfile
 import unittest
 from pathlib import Path
 
+import synthesize
 from extract_narration import LESSONS_DIR, extract_blocks
 
 # Real tail of content/lessons/anti-corruption-layer.mdx (trimmed): the Quiz,
@@ -195,6 +198,67 @@ class RealLessonTests(unittest.TestCase):
             if extract_blocks(src)[0]["text"] != want:
                 bad.append(path.stem)
         self.assertEqual(bad, [])
+
+
+class CorpusTailTests(unittest.TestCase):
+    """Branch 8 (F7a) corpus test: the tail sections the shipped audio is
+    missing must be present in what the (fixed) extractor emits today, for
+    every real lesson — otherwise the F7b re-synthesis would re-ship the
+    same omission. Asserts extractor behaviour only, never shipped audio."""
+
+    def test_every_lesson_emits_go_deeper_and_sources_blocks(self):
+        bad = []
+        for path in sorted(LESSONS_DIR.glob("*.mdx")):
+            spoken = texts(path.read_text(encoding="utf-8"))
+            if "Go deeper" not in spoken or "Sources and further reading" not in spoken:
+                bad.append(path.stem)
+        self.assertEqual(bad, [], f"{len(bad)} lessons emit no Go deeper / Sources block")
+
+    def test_cloud_native_title_is_untruncated_at_the_apostrophe(self):
+        src = (LESSONS_DIR / "cloud-native-architecture.mdx").read_text(encoding="utf-8")
+        self.assertEqual(
+            extract_blocks(src)[0]["text"],
+            "Cloud-Native Architecture: Building for Someone Else's Computer",
+        )
+
+
+class OnlyMissingGuardTests(unittest.TestCase):
+    """The --only-missing trap (Branch 8, Seat C): every shipped package
+    exists, so --only-missing filters the work list to nothing and the run
+    used to exit 0 having synthesized nothing. The guard must refuse."""
+
+    def _package(self, root: Path, slug: str, accent: str = "us",
+                 opus: bool = True, manifest: bool = True) -> None:
+        d = root / slug / accent
+        d.mkdir(parents=True, exist_ok=True)
+        if opus:
+            (d / "narration.opus").write_bytes(b"x")
+        if manifest:
+            (d / "narration.json").write_text("{}", encoding="utf-8")
+
+    def test_filter_drops_only_complete_packages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._package(root, "complete")
+            self._package(root, "json-only", opus=False)
+            kept = synthesize.apply_only_missing(
+                ["complete", "json-only", "absent"], "us", root
+            )
+        self.assertEqual(kept, ["json-only", "absent"])
+
+    def test_main_refuses_when_only_missing_would_synthesize_nothing(self):
+        slugs = [p.stem for p in sorted(LESSONS_DIR.glob("*.mdx"))]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for slug in slugs:
+                self._package(root, slug)
+            old = synthesize.AUDIO_OUT
+            synthesize.AUDIO_OUT = root
+            try:
+                rc = synthesize.main(["--only-missing", "--voice", "af_heart"])
+            finally:
+                synthesize.AUDIO_OUT = old
+        self.assertEqual(rc, 2)
 
 
 if __name__ == "__main__":

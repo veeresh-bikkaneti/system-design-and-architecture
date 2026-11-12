@@ -492,6 +492,21 @@ def list_slugs() -> list[str]:
     return sorted(p.stem for p in content_dir.glob("*.mdx"))
 
 
+def apply_only_missing(
+    slugs: list[str], accent: str, audio_out: Path | None = None
+) -> list[str]:
+    """Drop slugs that already have a complete package (opus + manifest)."""
+    root = AUDIO_OUT if audio_out is None else audio_out
+    return [
+        s
+        for s in slugs
+        if not (
+            (root / s / accent / "narration.opus").exists()
+            and (root / s / accent / "narration.json").exists()
+        )
+    ]
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Synthesize Kokoro narration for lessons.")
     p.add_argument("--slugs", default="", help="Comma-separated lesson slugs (default: all)")
@@ -513,14 +528,26 @@ def main(argv: list[str]) -> int:
     slugs = [s for s in args.slugs.split(",") if s] or list_slugs()
     _, accent = VOICES[args.voice]
     if args.only_missing:
-        slugs = [
-            s
-            for s in slugs
-            if not (
-                (AUDIO_OUT / s / accent / "narration.opus").exists()
-                and (AUDIO_OUT / s / accent / "narration.json").exists()
+        before = len(slugs)
+        slugs = apply_only_missing(slugs, accent)
+        skipped = before - len(slugs)
+        if skipped:
+            print(
+                f"--only-missing: skipped {skipped} of {before} lesson(s) "
+                "that already have narration.opus + narration.json."
             )
-        ]
+        if before and not slugs:
+            # Trap (F7a preflight, Seat C): every shipped package exists, so
+            # a full re-synthesis run with --only-missing would synthesize
+            # nothing yet exit 0. Refuse loudly instead. A full re-synthesis
+            # must omit --only-missing (docs/audio-resynthesis-runbook.md).
+            print(
+                "ERROR: --only-missing skipped every requested lesson; "
+                "nothing would be synthesized. For a full re-synthesis omit "
+                "--only-missing (see docs/audio-resynthesis-runbook.md).",
+                file=sys.stderr,
+            )
+            return 2
     if not slugs:
         print("Nothing to synthesize.")
         return 0
