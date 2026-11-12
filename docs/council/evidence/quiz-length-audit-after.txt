@@ -3,7 +3,7 @@ CORPUS %: strict=62.1 inclusive=63.7
 CORPUS means: correct=86.2 distractor=57.3
 POSITIONS: [45, 45, 51, 49]
 LESSONS 100% strict (>=4q): 17: ['anti-corruption-layer', 'api-gateways', 'authn-authz', 'autocomplete-freshness-safety', 'bff-backend-for-frontend', 'cdns', 'consensus-raft', 'designing-chat-at-scale', 'distributed-transactions', 'domain-driven-design', 'event-sourcing-cqrs', 'graphql-vs-rest', 'microservices-patterns-pitfalls', 'microservices-vs-monolith', 'multi-region-active-active', 'resilience-patterns', 'zero-trust-security']
-TIER beginner: lessons=9 questions=41 strict=0 (0.0%) inclusive=1 (2.4%) correct_mean=74.4 distractor_mean=67.2
+TIER beginner: lessons=9 questions=41 strict=0 (0.0%) inclusive=1 (2.4%) correct_mean=74.4 distractor_mean=67.3
   back-of-envelope-estimation: q=5 strict=0 tied=0 correct_mean=75.4 distractor_mean=76.9
   cap-theorem: q=4 strict=0 tied=1 correct_mean=55.5 distractor_mean=50.2
   estimation-reference-numbers: q=5 strict=0 tied=0 correct_mean=62.2 distractor_mean=63.5
@@ -11,7 +11,7 @@ TIER beginner: lessons=9 questions=41 strict=0 (0.0%) inclusive=1 (2.4%) correct
   load-balancers: q=4 strict=0 tied=0 correct_mean=71.2 distractor_mean=50.9
   mvc-to-react: q=5 strict=0 tied=0 correct_mean=73.0 distractor_mean=71.7
   nosql-databases: q=4 strict=0 tied=0 correct_mean=81.5 distractor_mean=74.9
-  scaling-web-service: q=4 strict=0 tied=0 correct_mean=81.5 distractor_mean=62.7
+  scaling-web-service: q=4 strict=0 tied=0 correct_mean=81.5 distractor_mean=63.0
   solid-principles: q=5 strict=0 tied=0 correct_mean=75.4 distractor_mean=71.8
 TIER intermediate: lessons=15 questions=66 strict=54 (81.8%) inclusive=54 (81.8%) correct_mean=81.4 distractor_mean=49.2
   api-gateways: q=4 strict=4 tied=0 correct_mean=106.8 distractor_mean=42.2
