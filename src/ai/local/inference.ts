@@ -151,6 +151,39 @@ async function tryPromptApi(ctx: LoadContext): Promise<Engine | null> {
   }
 }
 
+/**
+ * The WebLLM ladder pins (ADR 0001, Ben increment). Exact IDs — a lookup
+ * that finds neither pin fails loudly; the old `startsWith('Qwen2.5-0.5B…')`
+ * prefix match was a silent-disable fragility (F9) and is retired.
+ *
+ * DEFERRED TIER (Seat C trigger): Qwen3's output hygiene under WebLLM
+ * cannot be verified in-branch, so these pins are implemented and
+ * unit-tested but NOT loaded in production yet — `loadWebLlm` keeps
+ * CURRENT_WEBLLM_MODEL_ID until a real-device pass verifies the tier.
+ */
+export const WEBLLM_MODEL_IDS = {
+  normal: 'Qwen3-1.7B-q4f16_1-MLC',
+  weak: 'Qwen3-0.6B-q4f16_1-MLC',
+} as const;
+
+/** The model the production WebLLM load still runs (see the deferral note above). */
+export const CURRENT_WEBLLM_MODEL_ID = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+
+/** Pick the ladder rung's exact model ID from a WebLLM config list. Throws on a miss. */
+export function pickWebLlmModelId(modelList: readonly { model_id: string }[], weakDevice: boolean): string {
+  const wanted = weakDevice ? WEBLLM_MODEL_IDS.weak : WEBLLM_MODEL_IDS.normal;
+  if (!modelList.some((entry) => entry.model_id === wanted)) {
+    throw new Error(`WebLLM model ${wanted} is not registered in the app config.`);
+  }
+  return wanted;
+}
+
+/** Weak-device rung from hardware signals (never the user agent). Unknown signals ⇒ normal rung. */
+export function isWeakDevice(caps: { deviceMemory?: number; hardwareConcurrency?: number }): boolean {
+  return (caps.deviceMemory !== undefined && caps.deviceMemory <= 4) ||
+    (caps.hardwareConcurrency !== undefined && caps.hardwareConcurrency <= 4);
+}
+
 async function loadWebLlm(ctx: LoadContext): Promise<Engine> {
   // No GPU, no point: skip the big import and the weights download and fail now
   // instead of after a long wait. We only ask for an adapter (fallback ones are
@@ -166,10 +199,10 @@ async function loadWebLlm(ctx: LoadContext): Promise<Engine> {
   ctx.note({ phase: 'loading', progress: 0, detail: 'Fetching WebLLM' });
   const webllm = await import('@mlc-ai/web-llm');
   if (!ctx.alive()) throw new LoadAbandoned();
-  const candidate = webllm.prebuiltAppConfig.model_list.find((entry) =>
-    entry.model_id.startsWith('Qwen2.5-0.5B-Instruct'),
+  const candidate = webllm.prebuiltAppConfig.model_list.find(
+    (entry) => entry.model_id === CURRENT_WEBLLM_MODEL_ID,
   );
-  if (!candidate) throw new Error('No small WebLLM model is registered.');
+  if (!candidate) throw new Error(`WebLLM model ${CURRENT_WEBLLM_MODEL_ID} is not registered.`);
 
   // CreateMLCEngine has no abort option and only hands back the engine once it
   // has finished loading. Abandoning the wait therefore cannot stop the download
@@ -357,6 +390,35 @@ export async function rewriteWithModel(
       if (shared > 0.82) return null;
     }
     return draft;
+  } catch {
+    return null;
+  }
+}
+
+export const LOOP_SYNTHESIS_PROMPT =
+  'You are Ben, a patient tutor talking with a beginner. The material below was retrieved for this question from the course lessons and, where named, Wikipedia. Explain it in your own warm, short sentences. Use only the material. Name the source when you state a step or a fact from it. Do not invent steps, commands, or sources that are not in the material.';
+
+/**
+ * The tool loop's synthesis entry (ADR 0001, Ben increment): the browser's
+ * built-in model only, found by feature detection. Returns null when the
+ * API is absent, unavailable, or merely downloadable — the loop NEVER
+ * triggers a browser-model download; consent for downloads lives in the
+ * model-load flow the header already owns. The WebLLM tier is deferred
+ * (see WEBLLM_MODEL_IDS), so it is not a synthesis path here.
+ */
+export async function synthesizeWithPromptApi(system: string, user: string): Promise<string | null> {
+  if (typeof LanguageModel === 'undefined') return null;
+  try {
+    if ((await LanguageModel.availability()) !== 'available') return null;
+    const session = await LanguageModel.create({
+      initialPrompts: [{ role: 'system', content: system }],
+    });
+    try {
+      const draft = (await session.prompt(user)).trim();
+      return draft && gated(draft) !== null ? draft : null;
+    } finally {
+      session.destroy();
+    }
   } catch {
     return null;
   }
