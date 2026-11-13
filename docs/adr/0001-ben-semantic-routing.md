@@ -115,6 +115,8 @@ does no I/O, so it is unit-tested with synthetic vectors and evaluated with real
 | how-to intercept (amendment below, dual trigger) | below override-grade | `howto` |
 | course | below the bar, above the clarify bar | offer the two closest lessons |
 | tech | below the bar | Wikipedia lookup, then fit check |
+| tech / course, no lesson at any bar (`parametric_fallback`) | below the clarify bar | tool loop (amendment below, branch 16) |
+| how-to intercept (amendment below, dual trigger) | below override-grade | `howto` → tool loop once the OS is known (branch 16) |
 | anything else | low | redirect |
 
 An exact lesson name ("MVC", "RPO", "Raft") adds a fixed boost, but only in short questions
@@ -179,10 +181,83 @@ this fix is gated on them — and the regex here only arms a decision the embedd
 must confirm. Any further regex-shaped routing change is outside this exception and needs
 its own ADR amendment and council record.
 
+#### Amendment (2026-11-12, Ben increment): the code-driven tool loop (Shape C as amended)
+
+Added by branch `feat/ben-agent-loop` under the Consensus Manifest of 2026-11-12 (Part I §I.6,
+Part II branch 16; council record `docs/council/2026-11-12-ben-agent-loop.md`). This is the
+increment the F2 amendment above anticipates: the loop that consumes the `howto` action and
+the `parametric_fallback` route. (The arena record's stray "branch 15" references to this
+placement mean branch 16 under the final numbering — erratum recorded in the council records.)
+
+**Shape.** The router stays sovereign. A code-driven loop serves **only** the
+`parametric_fallback` route and the `howto` route (once the OS question is answered). Lesson,
+clarify, self, and redirect turns are untouched, and the grounded-first invariant holds: the
+loop never blocks or replaces a grounded answer — it runs only where no grounded answer
+exists. The deterministic steps are: lesson **re-retrieval** (the existing embed/rank over the
+lesson index) → **Wikipedia lookup** (below) → **synthesis** by a model over the retrieved
+sources, or an **extractive** answer assembled from those sources when no model is available.
+Code decides every tool call; the model synthesises only — it never chooses tools, never
+emits a citation, and never sets the confidence vote. Native model function-calling is not
+used (WebLLM's is documented work-in-progress).
+
+**The Wikipedia exception — a declared posture reversal.** `docs/ben-history.md` §6 records
+that Wikipedia was deliberately removed as "the last network dependency… not compatible with
+the client-side mandate", and this ADR's fixed constraints say nothing the student types goes
+to a model API. This amendment names the single exception: on the tech/parametric path only
+(the two loop routes), Ben may call the **Wikipedia API** — the only keyless, CORS-clean,
+full-text-searchable source available to a browser page; no other external service is
+authorised, and DuckDuckGo is banned in any role (not search; CORS-inconsistent;
+terms-encumbered). The exception ships only with its conditions, which are part of the
+decision, not implementation detail:
+
+- **Query minimisation by construction.** Code derives a canonical topic term from the
+  question's content tokens (for the how-to class, the tool named after the install
+  phrasing). The student's sentence is never sent, so nothing personal in it can leave.
+- **First-use disclosure + remembered opt-out.** The first answer that uses Wikipedia says
+  so in the chat and says only the topic word was sent; a student's no-web request is
+  remembered and degrades the loop to re-retrieval + extractive answers.
+- **Fit check.** The §5 web-fit check applies (0.25 bar + title relevance, above).
+
+**Citations and confidence are code's, on both paths.** Citations are assigned by code from
+the sources actually retrieved this turn — a citation for an unretrieved source is a defect
+of the highest order here. Confidence is computed by code under one shared post-condition,
+applied identically to the synthesis and extractive paths so they cannot diverge: **sources
+empty ⇒ forced low, with the no-source wording**; the model may propose wording, never a
+higher vote. UI copy names the step actually running ("Checking the lesson first…",
+"Looking that up on Wikipedia…"); "thinking"/"reasoning" claims are banned — the loop is a
+pipeline, not a deliberation.
+
+**Model ladder, pinned — with the WebLLM tier DEFERRED.** Synthesis prefers the browser's
+built-in model, found by feature detection (`LanguageModel.availability()`), never by
+user-agent sniffing; a state change mid-session requires consent before any browser-model
+download. The WebLLM fallback is pinned by exact model ID — `Qwen3-1.7B-q4f16_1-MLC`
+(normal) / `Qwen3-0.6B-q4f16_1-MLC` (weak-device rung) — with sizes disclosed and consent
+taken before any download (sizes carry the **likely** confidence mark: secondary sources
+only, Part I fact #2 of the arena record). A config lookup that finds neither pin fails
+loudly; the previous `startsWith('Qwen2.5-0.5B-Instruct')` lookup is retired as a
+silent-disable fragility. **Deferral (Seat C trigger):** Qwen3's output hygiene under WebLLM
+(no leaked think traces, token budget) cannot be verified in-branch — the existing output
+gate has no think-trace handling and the engine's thinking-mode control is undocumented — so
+the WebLLM synthesis tier **does not ship in this branch**: the ladder and pins are
+implemented and unit-tested, but the production WebLLM load keeps the current model (now
+selected by exact ID) until a real-device pass verifies the Qwen3 tier. The branch ships
+Prompt-API synthesis + extractive answers.
+
+**§7 reproducibility note.** The 2026-10-25 record that sandbox regenerations of
+`evals/ben/REPORT.md` "do not reproduce" predates the deterministic-embeddings fix (#180).
+On branch 3 (2026-11-12) a fresh `npm run eval:ben` at the branch head left the regenerated
+REPORT.md byte-identical, so regeneration is treated as reproducible and rides any branch
+that runs the eval, generated by the command and never hand-edited, with the holdout-only
+line quoted wherever the combined numbers appear.
+
 ### 5. Tools are checked after they run
 
 - **Web fit:** the Wikipedia extract is embedded and must clear a similarity bar against the
   question, or it is dropped. That stops "Doctor Who" answers to "who hired you".
+  The tool loop (branch 16 amendment below) revives this check for its Wikipedia step: the
+  extract must clear 0.25 cosine against the question **and** the result title must share a
+  content token with the canonical query term; a disambiguation page fails the title check by
+  construction. Either failure discards the result — it is never synthesised from.
 - **Draft fit:** Qwen's rewrite is embedded and must stay close to the material it was given,
   or the grounded reply stays on screen.
 
