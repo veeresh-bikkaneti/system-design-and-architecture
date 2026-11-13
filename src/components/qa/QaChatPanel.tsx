@@ -7,15 +7,26 @@ import {
   answerParametrically,
   cancelModelLoad,
   getModelStatus,
+  LOOP_SYNTHESIS_PROMPT,
   MODEL_LABEL,
   retryModelLoad,
   rewriteWithModel,
   subscribeModel,
+  synthesizeWithPromptApi,
   type ModelStatus,
 } from '../../ai/local/inference';
+import {
+  fetchWikipedia,
+  isWikiOptOut,
+  loopApplies,
+  runAgentLoop,
+  WIKI_DISCLOSURE,
+  wikiConsent,
+  type LoopSource,
+} from '../../ai/local/agentLoop';
 import { loadSemantic, semanticWithin, subscribeSemantic, type Semantic, type SemanticPhase } from '../../ai/local/semantic/embedder';
 import { dot } from '../../ai/local/semantic/codec';
-import { queryText, route, THRESHOLDS } from '../../ai/local/semantic/router';
+import { queryText, rankLessons, route, THRESHOLDS } from '../../ai/local/semantic/router';
 import { buildTurn, NO_SOURCE } from '../../ai/local/semantic/turn';
 import type { ChatTurn } from '../../ai/local/types';
 import { ChatMarkdown } from '../ChatMarkdown';
@@ -430,14 +441,76 @@ export function QaChatPanel({ open, onClose }: QaChatPanelProps) {
     });
   }
 
+  /**
+   * The tool loop (ADR 0001, Ben increment): serves only the
+   * parametric_fallback and howto routes. Returns false when the loop
+   * found no source on a parametric turn, so the caller keeps today's
+   * model-knowledge fallback; a howto turn always resolves here (the
+   * loop's no-source line is the honest answer for it).
+   */
+  async function answerViaLoop(
+    semantic: Semantic,
+    vector: Float32Array,
+    text: string,
+    decision: ReturnType<typeof route>,
+    assistantId: number,
+  ): Promise<boolean> {
+    const consent = wikiConsent();
+    const result = await runAgentLoop(text, decision.action as 'parametric_fallback' | 'howto', {
+      retrieve: async () => {
+        const hits = rankLessons(vector, semantic.index);
+        return hits.slice(0, 2).flatMap((hit) =>
+          hit.chunks.slice(0, 2).map(
+            (chunk): LoopSource => ({
+              kind: 'lesson',
+              id: hit.slug,
+              title: OKF_CARDS.find((card) => card.id === hit.slug)?.title ?? hit.slug,
+              text: chunk.text,
+            }),
+          ),
+        );
+      },
+      searchWikipedia: fetchWikipedia,
+      fitScore: async (extract) => dot(await semantic.embed(extract.slice(0, 1500)), vector),
+      synthesize: (question, sources) =>
+        synthesizeWithPromptApi(
+          LOOP_SYNTHESIS_PROMPT,
+          `${sources.map((source) => `From "${source.title}"${source.url ? ` (${source.url})` : ''}:\n${source.text}`).join('\n\n')}\n\nStudent: ${question}`,
+        ),
+      wikiEnabled: consent.wikiEnabled,
+      markWikiUsed: consent.markWikiUsed,
+    });
+    if (result.citations.length === 0 && decision.action === 'parametric_fallback') return false;
+    const sources: BubbleSource[] = result.citations.flatMap((citation) =>
+      citation.kind === 'lesson'
+        ? citation.id && LESSON_IDS.has(citation.id)
+          ? [{ title: citation.title, href: lessonHref(citation.id) }]
+          : []
+        : citation.url
+          ? [{ title: citation.title, href: citation.url }]
+          : [],
+    );
+    patchMessage(assistantId, {
+      content: result.wikiFirstUse ? `${WIKI_DISCLOSURE}\n\n${result.answer}` : result.answer,
+      sources,
+      confidence: result.confidence,
+    });
+    return true;
+  }
+
   /** The understanding layer decides; tools run only when the decision needs them. */
   async function answerByMeaning(semantic: Semantic, text: string, history: ChatTurn[], assistantId: number) {
+    if (isWikiOptOut(text)) wikiConsent().optOut();
     const vector = await semantic.embed(queryText(text, history));
     const decision = route({ question: text, focusId, vector, index: semantic.index });
     const turn = buildTurn(text, history, decision);
     const sources: BubbleSource[] = turn.sources
       .filter((source) => LESSON_IDS.has(source.id))
       .map((source) => ({ title: source.title, href: lessonHref(source.id) }));
+
+    if (loopApplies(turn.action) && !(turn.action === 'howto' && decision.osUnspecified)) {
+      if (await answerViaLoop(semantic, vector, text, decision, assistantId)) return;
+    }
 
     if (turn.action === 'parametric_fallback') {
       await answerFromModelKnowledge(text, history, assistantId);
