@@ -12,7 +12,7 @@ import { nameTokens, tokenize } from '../retrieve.ts';
 import type { ChatTurn } from '../types.ts';
 import { dot, INTENTS, type BenIndex, type Intent, type LessonChunk } from './codec.ts';
 
-export type Action = 'self' | 'lesson' | 'clarify' | 'parametric_fallback' | 'redirect';
+export type Action = 'self' | 'lesson' | 'clarify' | 'parametric_fallback' | 'redirect' | 'howto';
 
 export interface LessonHit {
   slug: string;
@@ -33,6 +33,8 @@ export interface Decision {
   lessons: LessonHit[];
   reasons: string[];
   pinned?: string[];
+  /** `howto` only: the question named no operating system, so Ben asks which OS (ADR 0001 §4 amendment). */
+  osUnspecified?: boolean;
 }
 
 export const THRESHOLDS = {
@@ -59,6 +61,13 @@ export const THRESHOLDS = {
   nameBoostMaxTokens: 3,
   /** Qwen's draft must stay this close to the material it was given. */
   draftFit: 0.45,
+  /**
+   * How-to intercept proximity floor (ADR 0001 §4 amendment, 2026-11-12): an
+   * armed imperative whose unboosted best section is at least this close is
+   * measurably inside Ben's technical neighbourhood. Far below the clarify
+   * bar on purpose — it evidences proximity, never coverage.
+   */
+  howtoProximity: 0.15,
 } as const;
 
 const LESSON_SLUGS = new Set(OKF_CARDS.filter((card) => card.type === 'Lesson').map((card) => card.id));
@@ -300,6 +309,46 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
     };
   };
 
+  // How-to intercept (ADR 0001 §4 amendment, 2026-11-12): the one recorded
+  // exception to the ADR's "never a new regex" rule. DUAL TRIGGER — the
+  // imperative pattern only ARMS the intercept; an embedding-derived signal
+  // must also fire, so the regex alone never routes (the ADR's Alternatives
+  // rejected "more regexes and stopwords", where the regex verdict is final).
+  // Lesson override survives: at override-grade strength the intercept does
+  // not fire. Override-grade is UNBOOSTED best >= THRESHOLDS.override (0.62):
+  // the +0.08 name boost is a lexical pin, and counting it would exempt the
+  // measured worst case ("install kubernetes", 0.639 boosted / 0.559
+  // unboosted — Phase 1 interrogation §7 probe, verified).
+  const tryHowto = (): Decision | null => {
+    const text = question.toLowerCase();
+    const armed =
+      /^\s*(?:please\s+)?(?:install|set\s+up|setup)\b/.test(text) ||
+      /\bhow\s+(?:do\s+i|to|can\s+i)\s+(?:install|set\s+up|setup)\b/.test(text) ||
+      /\bcan\s+you\s+(?:help\s+me\s+)?(?:install|set\s+up|setup)\b/.test(text);
+    if (!armed) return null;
+    // Existing classes keep their routes: tutor set-up (incl. the
+    // AI-environment family, which owns its pin / parametric outcomes in the
+    // tutor-setup block above) is never intercepted.
+    if (isTutorSetupQuestion(question)) return null;
+    if (/\bai\b/.test(text) && /\benv(?:ironment)?\b/.test(text)) return null;
+    const unboosted = topScore - (top && named.includes(top.slug) ? THRESHOLDS.nameBoost : 0);
+    if (unboosted >= THRESHOLDS.override) return null;
+    const semantic =
+      vote.intent === 'tech' || vote.intent === 'course' || unboosted >= THRESHOLDS.howtoProximity;
+    if (!semantic) return null;
+    const osUnspecified = !/\b(?:ubuntu|debian|fedora|windows|macos|mac\s+os|os\s+x|linux|wsl)\b/.test(text);
+    return {
+      ...base,
+      action: 'howto',
+      osUnspecified,
+      reasons: [
+        'how-to intercept: imperative signal + semantic signal, lesson below override-grade',
+        ...(osUnspecified ? ['no OS named: ask which OS'] : []),
+        ...reasons,
+      ],
+    };
+  };
+
   // Rule layer: cheap, high-precision, and already covered by tests.
   if (isOffCourseTopic(question)) {
     return { ...base, action: 'redirect', reasons: ['blocked topic', ...reasons] };
@@ -325,6 +374,11 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
     // shrugged at for asking how to switch Ben on, so the setup pin goes
     // first and only this pin: the other tag pins keep their old order.
     if (isDefiniteTutorSetup(question)) return pinTags(namedTagLessons(question));
+    // The two "how do I install docker" phrasings vote off_topic and were
+    // redirected as outside the course (§7 probe): the intercept runs here
+    // too, after the tutor pin, or that half of the class stays refused.
+    const howtoOffCourse = tryHowto();
+    if (howtoOffCourse) return howtoOffCourse;
     if (topScore >= THRESHOLDS.override && vote.confidence < THRESHOLDS.overrideVote) {
       return { ...base, action: 'lesson', reasons: ['a lesson matches strongly despite the vote', ...reasons] };
     }
@@ -343,6 +397,12 @@ export function route({ question, focusId, vector, index }: RouteInput): Decisio
   // 0.45 gate would return before a later pin could fire.
   const namedTags = namedTagLessons(question);
   if (namedTags.length > 0) return pinTags(namedTags);
+
+  // Pre-lesson-bar intercept: "install kubernetes" clears the 0.45 bar with a
+  // conceptual lesson (0.559 unboosted, §7), so the check must sit above the
+  // lesson branch or the worst measured case ships unchanged.
+  const howto = tryHowto();
+  if (howto) return howto;
 
   // Whether the course covers it is a retrieval fact, not an intent: "what is MVC"
   // reads like a general tech question, but the MVC lesson answers it.

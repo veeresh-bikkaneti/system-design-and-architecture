@@ -336,6 +336,69 @@ describe('router', () => {
     const decision = route({ question: 'DDD', vector: vec(0), index });
     expect(decision.pinned).toEqual(['domain-driven-design']);
   });
+
+  // Branch 3 (fix/ben-howto-route): the how-to intercept. Dual trigger only —
+  // an imperative signal AND a semantic signal; below override-grade only.
+  // ADR 0001 §4 amendment (2026-11-12); council record
+  // docs/council/2026-11-12-ben-howto-route.md (override-grade = unboosted
+  // best >= THRESHOLDS.override = 0.62).
+  describe('how-to intercept', () => {
+    it.each(['install docker', 'how do I install docker', 'how to install docker on ubuntu'])(
+      'routes the docker phrasing "%s" to the same howto action (phrasing invariance)',
+      (question) => {
+        const decision = route({ question, vector: vec(1), index });
+        expect(decision.action).toBe('howto');
+      },
+    );
+
+    it('flags OS-unspecified how-to questions and only those', () => {
+      expect(route({ question: 'install docker', vector: vec(1), index }).osUnspecified).toBe(true);
+      expect(route({ question: 'how do I install docker', vector: vec(1), index }).osUnspecified).toBe(true);
+      expect(route({ question: 'how to install docker on ubuntu', vector: vec(1), index }).osUnspecified).toBe(false);
+    });
+
+    it('does not return a lesson for "install kubernetes" on a weak lesson match (intercept precedence)', () => {
+      // Best section ~0.55: above the 0.45 lesson bar, below override-grade 0.62.
+      const mid = normalize(Float32Array.from([0, 0, 0, 0, 0, 0.642, 0, 0.767]));
+      const decision = route({ question: 'install kubernetes', vector: mid, index });
+      expect(decision.lessons[0]?.best).toBeGreaterThanOrEqual(THRESHOLDS.lesson);
+      expect(decision.lessons[0]?.best).toBeLessThan(THRESHOLDS.override);
+      expect(decision.action).toBe('howto');
+      expect(decision.action).not.toBe('lesson');
+    });
+
+    it('lets an override-grade lesson match survive the intercept', () => {
+      // Best section ~0.81 unboosted: at/above override-grade 0.62, lesson wins.
+      const strong = normalize(Float32Array.from([0, 0, 0, 0, 0, 0.95, 0, 0.31]));
+      const decision = route({ question: 'install kubernetes', vector: strong, index });
+      expect(decision.lessons[0]?.best).toBeGreaterThanOrEqual(THRESHOLDS.override);
+      expect(decision.action).toBe('lesson');
+    });
+
+    it('never routes on the regex alone: an install verb with no semantic signal stays redirect', () => {
+      const decision = route({ question: 'install docker', vector: vec(2), index });
+      expect(decision.action).toBe('redirect');
+      expect(decision.action).not.toBe('howto');
+    });
+
+    it('does not steal course imperatives: design/pick questions stay lesson', () => {
+      const design = route({ question: 'how do I design a rate limiter', vector: vec(6, [0.3, 0.9]), index });
+      expect(design.action).toBe('lesson');
+      const pick = route({ question: 'how do I pick a caching strategy', vector: vec(6, [0.3, 0.9]), index });
+      expect(pick.action).toBe('lesson');
+    });
+
+    it('keeps the AI-environment family on its existing route, never howto', () => {
+      expect(route({ question: 'set up conda environment for ai', vector: vec(1), index }).action).toBe('parametric_fallback');
+      expect(route({ question: 'set up my python ai env with venv and CUDA', vector: vec(1), index }).action).toBe(
+        'parametric_fallback',
+      );
+    });
+
+    it('keeps a definitional docker question on parametric_fallback (no imperative, no intercept)', () => {
+      expect(route({ question: 'what is a docker image', vector: vec(1), index }).action).toBe('parametric_fallback');
+    });
+  });
 });
 
 describe('turn', () => {
@@ -350,6 +413,37 @@ describe('turn', () => {
     });
     expect(turn.action).toBe('parametric_fallback');
     expect(turn.answer).toBe(NO_SOURCE);
+  });
+
+  it('asks exactly one OS question on an OS-unspecified how-to turn', () => {
+    const turn = buildTurn('install docker', [], {
+      action: 'howto',
+      intent: 'tech',
+      intentConfidence: 1,
+      intentScores: { course: 0, tech: 1, debate: 0, off_topic: 0, self: 0 },
+      lessons: [],
+      reasons: ['how-to intercept'],
+      osUnspecified: true,
+    });
+    expect(turn.action).toBe('howto');
+    expect(turn.answer).toMatch(/which operating system/i);
+    expect(turn.sources).toEqual([]);
+    expect(turn.context).toBe('');
+  });
+
+  it('does not dress a lesson up as instructions on an OS-specified how-to turn', () => {
+    const turn = buildTurn('how to install docker on ubuntu', [], {
+      action: 'howto',
+      intent: 'tech',
+      intentConfidence: 1,
+      intentScores: { course: 0, tech: 1, debate: 0, off_topic: 0, self: 0 },
+      lessons: [],
+      reasons: ['how-to intercept'],
+      osUnspecified: false,
+    });
+    expect(turn.action).toBe('howto');
+    expect(turn.answer).toBe(NO_SOURCE);
+    expect(turn.sources).toEqual([]);
   });
 
   it('redirects without citing anything', () => {

@@ -112,6 +112,7 @@ does no I/O, so it is unit-tested with synthetic vectors and evaluated with real
 | blocked topic (rules) | any | redirect |
 | debate or off topic, confident | below the "named it" bar | redirect |
 | course or tech | at or above the lesson bar | answer from the lesson |
+| how-to intercept (amendment below, dual trigger) | below override-grade | `howto` |
 | course | below the bar, above the clarify bar | offer the two closest lessons |
 | tech | below the bar | Wikipedia lookup, then fit check |
 | anything else | low | redirect |
@@ -123,6 +124,60 @@ An exact lesson name ("MVC", "RPO", "Raft") adds a fixed boost, but only in shor
 The rule layer runs first but is not absolute: an "about Ben" rule match loses to a confident
 debate or off-topic vote ("Is it ever okay to lie to your boss?" is not about Ben's boss). The thresholds live in one exported object and are tuned against the eval set, never
 against a single screenshot.
+
+#### Amendment (2026-11-12, F2 increment): the `howto` action and the pre-lesson-bar intercept
+
+Added by branch `fix/ben-howto-route` under the Consensus Manifest of 2026-11-12 (Part II,
+branch 3; council record `docs/council/2026-11-12-ben-howto-route.md`). This increment adds
+the policy-table row above and this subsection; the tool loop that consumes the new action is
+a later increment (branch 16 — the arena record's stray "branch 15" references to this
+placement mean branch 16 under the final numbering; erratum recorded in the council record).
+
+**The class.** Questions that ask Ben to *do* an install or a set-up — "install docker",
+"how do I install docker", "install kubernetes", "set up kafka locally" — had no designed
+path. Measured at HEAD (Phase 1 interrogation §7 probe, 2026-11-12, verified), one class
+returned `parametric_fallback`, `redirect`, `lesson`, or `clarify` depending on phrasing —
+including a conceptual lesson presented as the answer to an install request. `howto` is a
+routing action for that class: it marks the turn for the tool route (official install
+documentation, retrieved and fit-checked under §5 when the loop lands). Until that loop
+lands, the turn layer answers honestly from no source rather than dressing a lesson up as
+instructions.
+
+**The intercept, and why it is not "more regexes and stopwords".** The Alternatives section
+rejected regexes because each one fixes a phrasing, not the class, and a regex verdict is
+final. This intercept is the recorded exception, built so a regex can never decide alone:
+
+1. **Dual trigger.** An imperative signal — the install/set-up verb in verb position —
+   *arms* the intercept; an embedding-derived semantic signal must also fire: the k-NN vote
+   winner is `tech` or `course`, or the question embeds within a low proximity floor
+   (unboosted best lesson-chunk similarity ≥ 0.15, far below the 0.33 clarify bar) of the
+   lesson index. Regex alone never routes, and the embedding alone never routes to `howto`
+   either: a definitional "what is docker" has no imperative signal and stays
+   `parametric_fallback`. The pattern matches the verb position, not the tool's name, so it
+   covers the class rather than one phrasing of it.
+2. **Lesson override survives.** A lesson match at override-grade strength beats the
+   intercept; the intercept wins ties and weak matches only. Override-grade is numeric:
+   *unboosted* best-section similarity ≥ 0.62 (`THRESHOLDS.override`). The +0.08 name boost
+   does not count toward it — the boost is a lexical pin for acronym-short questions, and
+   counting it would exempt the measured worst case ("install kubernetes": 0.639 boosted,
+   0.559 unboosted, §7 probe).
+3. **No silent OS assumption.** Install steps are OS-specific (verified for the class's
+   seeded tools: Docker, Kubernetes, and Kafka each publish per-OS install/setup paths —
+   the official-docs sources recorded on the branch-2 held-out cases). When a `howto`
+   question names no operating system, the decision carries `osUnspecified` and Ben asks
+   exactly one clarifying question — which OS — instead of assuming one. When an OS is
+   named ("on ubuntu"), no question is asked.
+
+Existing classes keep their routes: the intercept runs after the rule layer and the
+named-tag pins (tutor set-up questions, including the AI-environment family, are never
+intercepted), so no pin is stolen.
+
+**Exception to the closing rule.** Consequences below says new failure reports should
+become new held-out cases first, then new examples, "never a new regex". That sequence held
+here — the class was written as held-out cases first (branch `test/ben-howto-heldout`) and
+this fix is gated on them — and the regex here only arms a decision the embedding layer
+must confirm. Any further regex-shaped routing change is outside this exception and needs
+its own ADR amendment and council record.
 
 ### 5. Tools are checked after they run
 
@@ -212,7 +267,9 @@ is only real if the holdout set, which that fix was never shown, agrees.
 - The build now fetches the embedder from Hugging Face (hash-pinned). A Hugging Face outage fails the build
   loudly instead of shipping a Ben without an index.
 - k-NN intent is only as good as the example bank. New failure reports should become new
-  held-out cases first, then new examples, never a new regex.
+  held-out cases first, then new examples, never a new regex. (One recorded exception: the
+  how-to intercept in the §4 amendment of 2026-11-12, where a verb-position pattern only
+  arms a decision the embedding layer must confirm.)
 
 **Not solved**
 
